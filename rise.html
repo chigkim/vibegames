@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Rise! — Vibe Games</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=DM+Sans:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -13,7 +16,7 @@
     align-items: center;
     height: 100vh;
     overflow: hidden;
-    font-family: 'Segoe UI', Arial, sans-serif;
+    font-family: 'DM Sans', 'Segoe UI', Arial, sans-serif;
     touch-action: none;
   }
   #game-root {
@@ -57,9 +60,10 @@
   }
   .screen.active { display: flex; }
   .screen h1 {
-    font-size: 3.2rem;
-    font-weight: 900;
-    letter-spacing: -1px;
+    font-family: 'Bowlby One SC', 'DM Sans', sans-serif;
+    font-size: 3.4rem;
+    font-weight: 400;
+    letter-spacing: 1px;
     background: linear-gradient(135deg, #ffe066, #ff6b9d, #6bceff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -154,11 +158,13 @@
       🔵 <strong>Let go</strong> to release and fly!<br>
       🚀 Climb as high as you can!
     </div>
+    <div class="best-score" id="ready-best-score" style="display:none;">🏆 Best: 0</div>
     <button class="btn btn-start" id="btn-start">Let's Go! 🎉</button>
   </div>
 
   <div id="screen-gameover" class="screen">
     <h1>Oh No! 😢</h1>
+    <div class="subtitle" id="encourage-msg">Nice climb!</div>
     <div class="score-display" id="final-score">Score: 0</div>
     <div class="best-score" id="best-score-display">Best: 0</div>
     <button class="btn btn-restart" id="btn-restart">Play Again! 🔄</button>
@@ -370,6 +376,11 @@ class RiseScene extends Phaser.Scene {
     this.player = null;
     this.generateClouds();
     this.generateHubs();
+    if (this.bestScore > 0) {
+      const el = document.getElementById('ready-best-score');
+      el.textContent = '🏆 Best: ' + this.bestScore;
+      el.style.display = 'block';
+    }
   }
 
   startGame() {
@@ -386,7 +397,7 @@ class RiseScene extends Phaser.Scene {
     this.generateClouds();
     this.generateHubs();
     this.initPlayer();
-    this.attachPlayer(0, 0);
+    this.attachPlayer(0, 0, true);  // silent auto-attach
     this.cameraY = this.player.y - this.gameHeight * 0.55;
     this.cameraTargetY = this.cameraY;
   }
@@ -463,7 +474,8 @@ class RiseScene extends Phaser.Scene {
         y: -(t * 8000 + Math.random() * 300),
         w: 60 + Math.random() * 90,
         h: 28 + Math.random() * 32,
-        alpha: 0.3 + Math.random() * 0.35
+        alpha: 0.3 + Math.random() * 0.35,
+        depth: 0.6 + Math.random() * 0.5  // 0.6=far/slow, 1.1=near/fast
       });
     }
     // Extra clouds near the start
@@ -473,7 +485,8 @@ class RiseScene extends Phaser.Scene {
         y: -(i * 120 + 60),
         w: 50 + Math.random() * 70,
         h: 24 + Math.random() * 24,
-        alpha: 0.25 + Math.random() * 0.25
+        alpha: 0.25 + Math.random() * 0.25,
+        depth: 0.7 + Math.random() * 0.4
       });
     }
   }
@@ -494,7 +507,7 @@ class RiseScene extends Phaser.Scene {
     };
   }
 
-  attachPlayer(hubIdx, ropeIdx) {
+  attachPlayer(hubIdx, ropeIdx, silent = false) {
     const hub = this.hubs[hubIdx];
     const rope = hub.ropes[ropeIdx];
     const ep = this.getRopeEndpoint(hub, rope);
@@ -510,8 +523,14 @@ class RiseScene extends Phaser.Scene {
     this.player.releaseTimer = 0;
     this.player.airborneCatchTimer = 0;
 
-    this.spawnParticles(this.player.x, this.player.y, hub.color);
-    playSound('catch');
+    if (!silent) {
+      this.spawnParticles(this.player.x, this.player.y, hub.color);
+      playSound('catch');
+      // Haptic feedback for mobile devices
+      if (navigator.vibrate) {
+        try { navigator.vibrate(15); } catch {}
+      }
+    }
 
     if (hub.uid > 0) {
       const newScore = Math.max(this.score, hub.uid);
@@ -661,6 +680,21 @@ class RiseScene extends Phaser.Scene {
       this.player.y += this.player.vy * dt;
       if (Math.abs(this.player.vx) > 0.5) this.player.faceDir = this.player.vx > 0 ? 1 : -1;
 
+      // Continuous flight trail when moving fast
+      const speed2 = this.player.vx * this.player.vx + this.player.vy * this.player.vy;
+      if (speed2 > 16 && Math.random() < 0.5) {
+        this.particles.push({
+          x: this.player.x + (Math.random() - 0.5) * 6,
+          y: this.player.y + (Math.random() - 0.5) * 6,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          life: 0.5,
+          decay: 0.06,
+          r: 1.5 + Math.random() * 2.5,
+          color: '#ffffff'
+        });
+      }
+
       let nearestDist = MAGNETIC_RADIUS;
       let nearest = null;
       for (let hi = 0; hi < this.hubs.length; hi++) {
@@ -702,11 +736,14 @@ class RiseScene extends Phaser.Scene {
 
     // Cull hubs far below the camera to keep array bounded.
     // Adjust player.hubIndex to match the new array indices.
+    // Never cull the hub the player is attached to.
     while (this.hubs.length > 3 && this.hubs[0].y - this.cameraY > this.gameHeight + 600) {
+      // Safety: if the player is attached to hubs[0], stop culling
+      if (this.player && this.player.attached && this.player.hubIndex === 0) break;
       this.hubs.shift();
       for (let i = 0; i < this.hubs.length; i++) this.hubs[i].index = i;
-      if (this.player && this.player.hubIndex >= 0) {
-        this.player.hubIndex = Math.max(0, this.player.hubIndex - 1);
+      if (this.player && this.player.hubIndex >= 1) {
+        this.player.hubIndex -= 1;
       }
     }
 
@@ -733,10 +770,24 @@ class RiseScene extends Phaser.Scene {
     this.state = 'gameover';
     this.inputHeld = false;
     playSound('gameover');
-    if (this.score > this.bestScore) {
+    if (navigator.vibrate) {
+      try { navigator.vibrate([40, 60, 80]); } catch {}
+    }
+    const isNewBest = this.score > this.bestScore;
+    if (isNewBest) {
       this.bestScore = this.score;
       saveBestScore(this.bestScore);
     }
+
+    let msg;
+    if (isNewBest && this.score > 0) msg = '🎉 New best! Amazing!';
+    else if (this.score >= 20) msg = '🌟 Sky-high climb!';
+    else if (this.score >= 10) msg = '💪 Great climbing!';
+    else if (this.score >= 5) msg = '🪢 Nice swinging!';
+    else if (this.score >= 1) msg = 'Keep practicing!';
+    else msg = 'Try again — you got this!';
+
+    document.getElementById('encourage-msg').textContent = msg;
     document.getElementById('final-score').textContent = 'Score: ' + this.score;
     document.getElementById('best-score-display').textContent = 'Best: ' + this.bestScore;
     document.getElementById('screen-gameover').classList.add('active');
@@ -763,7 +814,8 @@ class RiseScene extends Phaser.Scene {
 
   drawClouds() {
     for (const cloud of this.clouds) {
-      const screenY = cloud.y - this.cameraY;
+      const depth = cloud.depth || 1;
+      const screenY = cloud.y - this.cameraY * depth;
       if (screenY < -100 || screenY > this.gameHeight + 100) continue;
       this.g.fillStyle(0xffffff, cloud.alpha);
       this.g.fillEllipse(cloud.x, screenY, cloud.w, cloud.h);
@@ -783,7 +835,7 @@ class RiseScene extends Phaser.Scene {
       const epScreenY = ep.ey - this.cameraY;
       const isActive = this.player && this.player.attached && this.player.hubIndex === hub.index && this.player.ropeIndex === ri;
       const dist = this.player ? Phaser.Math.Distance.Between(ep.ex, ep.ey, this.player.x, this.player.y) : Infinity;
-      const isNear = this.player && this.inputHeld && !this.player.attached && this.canCatchWhileAirborne() && dist < MAGNETIC_RADIUS;
+      const isNear = this.player && !this.player.attached && dist < MAGNETIC_RADIUS;
 
       if (isNear) {
         this.g.lineStyle(9, 0xffe066, 0.18);
@@ -904,10 +956,11 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v4 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v5 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+
 
 

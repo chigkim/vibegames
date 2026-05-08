@@ -222,41 +222,7 @@
     .card-tag.coming { background: rgba(255,255,255,0.06); color: var(--text-muted); }
     .card-tag.live   { background: rgba(0,229,160,0.14);  color: var(--mint); }
 
-    /* ---- About ---- */
-    .about {
-      padding: 0 0 100px;
-      display: flex;
-      gap: 48px;
-      align-items: center;
-    }
-    .about-text { flex: 1; }
-    .about-text p {
-      color: var(--text-muted);
-      line-height: 1.7;
-      font-size: 1rem;
-      margin-bottom: 16px;
-    }
-    .about-visual {
-      flex: 0 0 280px;
-      height: 280px;
-      border-radius: 24px;
-      background: linear-gradient(145deg, var(--surface), var(--surface-hover));
-      border: 1px solid rgba(255,255,255,0.06);
-      display: grid;
-      place-items: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .about-visual::after {
-      content: '🎮';
-      font-size: 5rem;
-      opacity: 0.85;
-      animation: pulse 3s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.08); }
-    }
+
 
     /* ---- Footer ---- */
     footer {
@@ -289,8 +255,6 @@
 
     /* ---- Responsive ---- */
     @media (max-width: 700px) {
-      .about { flex-direction: column; }
-      .about-visual { flex: none; width: 100%; height: 200px; }
       header nav a { margin-left: 16px; font-size: 0.85rem; }
     }
   </style>
@@ -310,7 +274,6 @@
     <div class="logo">VIBE GAMES</div>
     <nav>
       <a href="#games">Games</a>
-      <a href="#about">About</a>
       <a href="https://github.com/chigkim/vibegames" target="_blank">GitHub</a>
     </nav>
   </header>
@@ -318,7 +281,7 @@
   <!-- Hero -->
   <section class="hero reveal">
     <h1>Play the <span class="highlight">Vibe</span></h1>
-    <p>A growing collection of browser-based games built purely for fun. No installs, no accounts — just pick a game and play.</p>
+    <p>A growing collection of browser-based games, vibe coded with AI. No installs, no accounts — just pick a game and play.</p>
     <a href="#games" class="hero-cta">
       Browse Games
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -346,19 +309,10 @@
     </div>
   </section>
 
-  <!-- About -->
-  <section class="about" id="about">
-    <div class="about-text reveal">
-      <h2 class="section-title">What's the Vibe?</h2>
-      <p>Vibe Games is an open-source playground for browser-based games. Every game is built with web technologies — HTML, CSS, and JavaScript — so they run anywhere with zero friction.</p>
-      <p>Whether you want to kill five minutes or lose an afternoon, there's a vibe for that. New games drop regularly, and contributions are always welcome on <a href="https://github.com/chigkim/vibegames" style="color:var(--accent);text-decoration:underline;">GitHub</a>.</p>
-    </div>
-    <div class="about-visual reveal"></div>
-  </section>
 
   <!-- Footer -->
   <footer>
-    <span>&copy; 2026 Vibe Games</span>
+    <span>&copy; 2026 Vibe Games &mdash; vibe coded with AI ✨</span>
     <div>
       <a href="https://github.com/chigkim/vibegames" target="_blank">GitHub</a>
     </div>

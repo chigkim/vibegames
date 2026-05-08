@@ -16,6 +16,13 @@
     font-family: 'Segoe UI', Arial, sans-serif;
     touch-action: none;
   }
+  #game-root {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+  }
   canvas {
     display: block;
     max-width: 100vw;
@@ -52,7 +59,7 @@
   .screen h1 {
     font-size: 3.2rem;
     font-weight: 900;
-    letter-spacing: -1px;
+    letter-spacing: 0;
     background: linear-gradient(135deg, #ffe066, #ff6b9d, #6bceff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -112,7 +119,7 @@
     font-weight: 900;
     color: #fff;
     text-shadow: 0 2px 12px rgba(0,0,0,0.4);
-    letter-spacing: -0.5px;
+    letter-spacing: 0;
   }
   #mute-btn {
     pointer-events: all;
@@ -131,11 +138,11 @@
 </head>
 <body>
 
-<canvas id="gameCanvas"></canvas>
+<div id="game-root"></div>
 
 <div id="hud" class="hidden">
   <div id="hud-score">🏆 0</div>
-  <button id="mute-btn">🔊</button>
+  <button id="mute-btn" aria-label="Toggle sound">🔊</button>
 </div>
 
 <div id="ui-overlay">
@@ -158,98 +165,45 @@
   </div>
 </div>
 
+<script src="./libs/phaser-3.90.0.min.js"></script>
+<script src="./libs/tone-15.1.22.js"></script>
 <script>
-// ======== CANVAS SETUP ========
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
-function resize() {
-  canvas.width = Math.min(window.innerWidth, 420);
-  canvas.height = window.innerHeight;
-}
-resize();
-window.addEventListener('resize', () => { resize(); });
-
-// ======== AUDIO ========
-const AudioCtx = window.AudioContext || window.webkitAudioContext;
-let audioCtx = null;
-let muted = false;
-
-function initAudio() {
-  if (!AudioCtx) return;
-  if (!audioCtx) audioCtx = new AudioCtx();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-}
-
-function playSound(type) {
-  if (muted || !audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  const t = audioCtx.currentTime;
-  if (type === 'catch') {
-    osc.frequency.setValueAtTime(520, t);
-    osc.frequency.exponentialRampToValueAtTime(820, t + 0.12);
-    gain.gain.setValueAtTime(0.25, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-    osc.start(t); osc.stop(t + 0.18);
-  } else if (type === 'release') {
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(300, t);
-    osc.frequency.exponentialRampToValueAtTime(180, t + 0.1);
-    gain.gain.setValueAtTime(0.18, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
-    osc.start(t); osc.stop(t + 0.12);
-  } else if (type === 'score') {
-    [0, 0.1, 0.2].forEach((delay, i) => {
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.connect(g); g.connect(audioCtx.destination);
-      o.frequency.value = [440, 550, 660][i];
-      g.gain.setValueAtTime(0.15, t + delay);
-      g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.12);
-      o.start(t + delay); o.stop(t + delay + 0.15);
-    });
-  } else if (type === 'gameover') {
-    osc.frequency.setValueAtTime(400, t);
-    osc.frequency.exponentialRampToValueAtTime(120, t + 0.5);
-    gain.gain.setValueAtTime(0.3, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-    osc.start(t); osc.stop(t + 0.5);
-  }
-}
-
-const muteBtn = document.getElementById('mute-btn');
-muteBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  muted = !muted;
-  muteBtn.textContent = muted ? '🔇' : '🔊';
-});
-
-// ======== GAME STATE ========
+const GAME_MAX_WIDTH = 420;
 const GRAVITY = 0.38;
 const CATCH_RADIUS = 52;
 const MAGNETIC_RADIUS = 90;
 const FALL_THRESHOLD = 300;
+const HUB_COLORS = ['#ff6b9d', '#ff8c42', '#ffe066', '#6bceff', '#a78bfa', '#5eead4', '#f472b6'];
+const ROPE_COLORS = ['#c77dff', '#4cc9f0', '#f8961e', '#90e0ef', '#ff6b6b', '#b5e48c'];
 
-let state = 'ready';
-let score = 0;
-let bestScore = loadBestScore();
-let cameraY = 0;
-let cameraTargetY = 0;
+let muted = false;
+let audioReady = false;
+let catchSynth = null;
+let releaseSynth = null;
+let scoreSynth = null;
+let gameOverSynth = null;
+let audioBus = null;
+let riseScene = null;
 
-// Player
-let player = {};
-// Hubs
-let hubs = [];
-let particles = [];
-let clouds = [];
-let hubsGenerated = 0;
+function gameSize() {
+  return {
+    width: Math.min(window.innerWidth, GAME_MAX_WIDTH),
+    height: window.innerHeight
+  };
+}
 
-// ======== COLORS ========
-const HUB_COLORS = ['#ff6b9d','#ff8c42','#ffe066','#6bceff','#a78bfa','#5eead4','#f472b6'];
-const ROPE_COLORS = ['#c77dff','#4cc9f0','#f8961e','#90e0ef','#ff6b6b','#b5e48c'];
+function hexColor(hex) {
+  return parseInt(hex.slice(1), 16);
+}
+
+function lerpColorInt(a, b, t) {
+  const ar = (a >> 16) & 0xff, ag = (a >> 8) & 0xff, ab = a & 0xff;
+  const br = (b >> 16) & 0xff, bg = (b >> 8) & 0xff, bb = b & 0xff;
+  const rr = Math.round(ar + (br - ar) * t);
+  const rg = Math.round(ag + (bg - ag) * t);
+  const rb = Math.round(ab + (bb - ab) * t);
+  return (rr << 16) | (rg << 8) | rb;
+}
 
 function loadBestScore() {
   try {
@@ -267,625 +221,608 @@ function saveBestScore(value) {
   }
 }
 
-// ======== HUB GENERATION ========
-function createHub(x, y, index) {
-  const isEarly = index < 3;
-  const speed = isEarly ? 0.018 : 0.018 + Math.min((index - 3) * 0.004, 0.03);
-  const dir = index === 0 ? -1 : (index === 1 ? 1 : (Math.random() < (index > 6 ? 0.45 : 0.3) ? -1 : 1));
-  const radius = 28 + Math.random() * 14;
-  const ropeCount = isEarly ? 3 : (2 + Math.floor(Math.random() * 3));
-  const ropes = [];
-  for (let i = 0; i < ropeCount; i++) {
-    const angleOffset = (i / ropeCount) * Math.PI * 2;
-    const len = isEarly ? (55 + i * 20) : (40 + Math.random() * 55);
-    ropes.push({ angleOffset, length: len, color: ROPE_COLORS[Math.floor(Math.random() * ROPE_COLORS.length)] });
+async function initAudio() {
+  if (!window.Tone) return;
+  if (!audioReady) {
+    audioBus = new Tone.Volume(muted ? -Infinity : -8).toDestination();
+    const sparkle = new Tone.FeedbackDelay({ delayTime: 0.07, feedback: 0.16, wet: 0.18 }).connect(audioBus);
+
+    catchSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.005, decay: 0.08, sustain: 0.12, release: 0.08 }
+    }).connect(sparkle);
+
+    releaseSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sawtooth' },
+      envelope: { attack: 0.002, decay: 0.08, sustain: 0.03, release: 0.04 }
+    }).connect(audioBus);
+
+    scoreSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.005, decay: 0.09, sustain: 0.08, release: 0.08 }
+    }).connect(sparkle);
+
+    gameOverSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'fatsawtooth', count: 2, spread: 18 },
+      envelope: { attack: 0.01, decay: 0.22, sustain: 0.1, release: 0.35 }
+    }).connect(audioBus);
+
+    audioReady = true;
   }
-  return { x, y, radius, rotation: 0, speed: speed * dir, ropes,
-    color: HUB_COLORS[index % HUB_COLORS.length], index };
-}
 
-function generateHubs() {
-  const CW = canvas.width;
-  // First hub: easy center
-  hubs.push(createHub(CW / 2, -180, 0));
-  hubsGenerated = 1;
-
-  for (let i = 1; i < 8; i++) {
-    addHub();
+  try {
+    await Tone.start();
+  } catch {
+    // Gameplay should continue even if the browser refuses audio startup.
   }
 }
 
-function addHub() {
-  const last = hubs[hubs.length - 1];
-  const CW = canvas.width;
-  const isEarly = hubsGenerated < 4;
-  const gapY = isEarly ? (160 + hubsGenerated * 10) : (160 + Math.min(hubsGenerated * 3, 60) + Math.random() * 40);
-  const xRange = isEarly ? 60 : 100;
-  const x = Math.max(55, Math.min(CW - 55, last.x + (Math.random() - 0.5) * xRange * 2));
-  const y = last.y - gapY;
-  hubs.push(createHub(x, y, hubsGenerated));
-  hubsGenerated++;
+function setMuted(value) {
+  muted = value;
+  if (audioBus) audioBus.volume.value = muted ? -Infinity : -8;
+  document.getElementById('mute-btn').textContent = muted ? '🔇' : '🔊';
 }
 
-// ======== ROPE ENDPOINTS ========
-function getRopeEndpoint(hub, rope) {
-  const angle = hub.rotation + rope.angleOffset;
-  const ax = hub.x + Math.cos(angle) * hub.radius;
-  const ay = hub.y + Math.sin(angle) * hub.radius;
-  const ex = ax + Math.cos(angle) * rope.length;
-  const ey = ay + Math.sin(angle) * rope.length;
-  return { ax, ay, ex, ey, angle };
+function playSound(type) {
+  if (muted || !audioReady) return;
+  const now = Tone.now();
+
+  if (type === 'catch') {
+    catchSynth.triggerAttackRelease('C5', 0.07, now, 0.5);
+    catchSynth.triggerAttackRelease('G5', 0.09, now + 0.06, 0.55);
+  } else if (type === 'release') {
+    releaseSynth.triggerAttackRelease('D4', 0.05, now, 0.38);
+    releaseSynth.triggerAttackRelease('A3', 0.08, now + 0.045, 0.36);
+  } else if (type === 'score') {
+    scoreSynth.triggerAttackRelease('A4', '16n', now, 0.45);
+    scoreSynth.triggerAttackRelease('C#5', '16n', now + 0.1, 0.45);
+    scoreSynth.triggerAttackRelease('E5', '16n', now + 0.2, 0.45);
+  } else if (type === 'gameover') {
+    gameOverSynth.triggerAttackRelease('G4', 0.18, now, 0.48);
+    gameOverSynth.triggerAttackRelease('D3', 0.24, now + 0.16, 0.42);
+    gameOverSynth.triggerAttackRelease('B2', 0.34, now + 0.34, 0.36);
+  }
 }
 
-// ======== PARTICLES ========
-function spawnParticles(x, y, color) {
-  for (let i = 0; i < 10; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 1.5 + Math.random() * 3;
-    particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      life: 1,
-      decay: 0.03 + Math.random() * 0.03,
-      r: 3 + Math.random() * 5,
-      color
+class RiseScene extends Phaser.Scene {
+  constructor() {
+    super('RiseScene');
+    this.state = 'ready';
+    this.score = 0;
+    this.bestScore = loadBestScore();
+    this.cameraY = 0;
+    this.cameraTargetY = 0;
+    this.player = null;
+    this.hubs = [];
+    this.particles = [];
+    this.clouds = [];
+    this.hubsGenerated = 0;
+  }
+
+  create() {
+    riseScene = this;
+    this.g = this.add.graphics();
+    this.resizeGame();
+    this.resetAttractMode();
+
+    this.input.on('pointerdown', (pointer) => {
+      if (pointer.event) pointer.event.preventDefault();
+      this.handleTap();
     });
-  }
-}
 
-function spawnTrail(x, y) {
-  for (let i = 0; i < 5; i++) {
-    particles.push({
-      x: x + (Math.random() - 0.5) * 10,
-      y: y + (Math.random() - 0.5) * 10,
-      vx: (Math.random() - 0.5) * 1.5,
-      vy: (Math.random() - 0.5) * 1.5,
-      life: 0.7,
-      decay: 0.05,
-      r: 2 + Math.random() * 3,
-      color: '#fff'
+    this.input.keyboard.on('keydown-SPACE', (event) => {
+      event.preventDefault();
+      this.handleTap();
     });
+
+    this.onWindowResize = () => this.resizeGame();
+    window.addEventListener('resize', this.onWindowResize);
   }
-}
 
-// ======== CLOUD GENERATION ========
-function generateClouds() {
-  clouds = [];
-  for (let i = 0; i < 20; i++) {
-    clouds.push({
-      x: Math.random() * canvas.width,
-      y: -(Math.random() * 4000),
-      w: 60 + Math.random() * 80,
-      h: 28 + Math.random() * 28,
-      alpha: 0.35 + Math.random() * 0.3
-    });
-  }
-}
-
-// ======== PLAYER INIT ========
-function initPlayer() {
-  const CW = canvas.width;
-  player = {
-    x: CW / 2,
-    y: 0,
-    vx: 0,
-    vy: 0,
-    attached: false,
-    hubIndex: -1,
-    ropeIndex: -1,
-    grabCooldown: 0,
-    justReleased: false,
-    releaseTimer: 0,
-    faceDir: 1
-  };
-}
-
-// ======== ATTACH PLAYER ========
-function attachPlayer(hubIdx, ropeIdx) {
-  const hub = hubs[hubIdx];
-  const rope = hub.ropes[ropeIdx];
-  const ep = getRopeEndpoint(hub, rope);
-
-  player.x = ep.ex;
-  player.y = ep.ey;
-  player.attached = true;
-  player.hubIndex = hubIdx;
-  player.ropeIndex = ropeIdx;
-  player.vx = 0; player.vy = 0;
-  player.grabCooldown = 12;
-  player.justReleased = false;
-  player.releaseTimer = 0;
-
-  spawnParticles(player.x, player.y, hub.color);
-  playSound('catch');
-
-  // Score when reaching new hubs
-  if (hubIdx > 0) {
-    const newScore = Math.max(score, hubIdx);
-    if (newScore > score) {
-      score = newScore;
-      document.getElementById('hud-score').textContent = '🏆 ' + score;
-      if (score % 3 === 0) playSound('score');
+  resizeGame() {
+    const size = gameSize();
+    this.gameWidth = size.width;
+    this.gameHeight = size.height;
+    this.scale.resize(size.width, size.height);
+    if (this.player) {
+      this.player.x = Phaser.Math.Clamp(this.player.x, 18, this.gameWidth - 18);
     }
   }
-}
 
-// ======== RELEASE PLAYER ========
-function releasePlayer() {
-  if (!player.attached) return;
-  const hub = hubs[player.hubIndex];
-  const rope = hub.ropes[player.ropeIndex];
-  const ep = getRopeEndpoint(hub, rope);
-
-  // Tangent velocity
-  const totalLen = hub.radius + rope.length;
-  const tangentSpeed = Math.abs(hub.speed) * totalLen * 1.8;
-  const angle = ep.angle + Math.PI / 2 * Math.sign(hub.speed || 1);
-  const launchSpeed = Math.min(tangentSpeed * 6, 20);
-
-  player.vx = Math.cos(angle) * launchSpeed;
-  player.vy = Math.sin(angle) * launchSpeed;
-
-  // Modest upward boost if going downward
-  if (player.vy > 2) player.vy -= 4;
-
-  player.attached = false;
-  player.justReleased = true;
-  player.releaseTimer = 0;
-  player.grabCooldown = 8;
-
-  playSound('release');
-  spawnTrail(player.x, player.y);
-}
-
-// ======== GAME INIT ========
-function initGame() {
-  score = 0;
-  cameraY = 0;
-  cameraTargetY = 0;
-  hubs = [];
-  particles = [];
-  hubsGenerated = 0;
-  document.getElementById('hud-score').textContent = '🏆 0';
-  generateClouds();
-  generateHubs();
-  initPlayer();
-
-  // Attach to first rope of first hub automatically
-  attachPlayer(0, 0);
-
-  // Start with the attached player visible instead of letting the camera chase in.
-  cameraY = player.y - canvas.height * 0.55;
-  cameraTargetY = cameraY;
-}
-
-// ======== INPUT ========
-function handleTap() {
-  if (state !== 'playing') return;
-  initAudio();
-
-  if (player.grabCooldown > 0) return;
-
-  if (player.attached) {
-    releasePlayer();
-  } else {
-    // Try to grab nearest rope
-    tryGrab();
+  resetAttractMode() {
+    this.state = 'ready';
+    this.score = 0;
+    this.cameraY = 0;
+    this.cameraTargetY = 0;
+    this.hubs = [];
+    this.particles = [];
+    this.hubsGenerated = 0;
+    this.player = null;
+    this.generateClouds();
+    this.generateHubs();
   }
-}
 
-function tryGrab() {
-  let bestDist = CATCH_RADIUS * 2.5;
-  let bestHub = -1;
-  let bestRope = -1;
+  startGame() {
+    initAudio();
+    this.state = 'playing';
+    this.score = 0;
+    this.cameraY = 0;
+    this.cameraTargetY = 0;
+    this.hubs = [];
+    this.particles = [];
+    this.hubsGenerated = 0;
+    document.getElementById('hud-score').textContent = '🏆 0';
+    this.generateClouds();
+    this.generateHubs();
+    this.initPlayer();
+    this.attachPlayer(0, 0);
+    this.cameraY = this.player.y - this.gameHeight * 0.55;
+    this.cameraTargetY = this.cameraY;
+  }
 
-  for (let hi = 0; hi < hubs.length; hi++) {
-    const hub = hubs[hi];
-    // Only look at hubs above or near player
-    if (hub.y > player.y + 100) continue;
-    for (let ri = 0; ri < hub.ropes.length; ri++) {
-      const ep = getRopeEndpoint(hub, hub.ropes[ri]);
-      const dx = ep.ex - player.x;
-      const dy = ep.ey - player.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestHub = hi;
-        bestRope = ri;
+  createHub(x, y, index) {
+    const isEarly = index < 3;
+    const speed = isEarly ? 0.018 : 0.018 + Math.min((index - 3) * 0.004, 0.03);
+    const dir = index === 0 ? -1 : (index === 1 ? 1 : (Math.random() < (index > 6 ? 0.45 : 0.3) ? -1 : 1));
+    const radius = 28 + Math.random() * 14;
+    const ropeCount = isEarly ? 3 : 2 + Math.floor(Math.random() * 3);
+    const ropes = [];
+
+    for (let i = 0; i < ropeCount; i++) {
+      const angleOffset = (i / ropeCount) * Math.PI * 2;
+      const length = isEarly ? 55 + i * 20 : 40 + Math.random() * 55;
+      ropes.push({
+        angleOffset,
+        length,
+        color: ROPE_COLORS[Math.floor(Math.random() * ROPE_COLORS.length)]
+      });
+    }
+
+    return {
+      x,
+      y,
+      radius,
+      rotation: 0,
+      speed: speed * dir,
+      ropes,
+      color: HUB_COLORS[index % HUB_COLORS.length],
+      index
+    };
+  }
+
+  generateHubs() {
+    this.hubs.push(this.createHub(this.gameWidth / 2, -180, 0));
+    this.hubsGenerated = 1;
+    for (let i = 1; i < 8; i++) this.addHub();
+  }
+
+  addHub() {
+    const last = this.hubs[this.hubs.length - 1];
+    const isEarly = this.hubsGenerated < 4;
+    const gapY = isEarly
+      ? 160 + this.hubsGenerated * 10
+      : 160 + Math.min(this.hubsGenerated * 3, 60) + Math.random() * 40;
+    const xRange = isEarly ? 60 : 100;
+    const x = Phaser.Math.Clamp(last.x + (Math.random() - 0.5) * xRange * 2, 55, this.gameWidth - 55);
+    const y = last.y - gapY;
+    this.hubs.push(this.createHub(x, y, this.hubsGenerated));
+    this.hubsGenerated++;
+  }
+
+  getRopeEndpoint(hub, rope) {
+    const angle = hub.rotation + rope.angleOffset;
+    const ax = hub.x + Math.cos(angle) * hub.radius;
+    const ay = hub.y + Math.sin(angle) * hub.radius;
+    return {
+      ax,
+      ay,
+      ex: ax + Math.cos(angle) * rope.length,
+      ey: ay + Math.sin(angle) * rope.length,
+      angle
+    };
+  }
+
+  generateClouds() {
+    this.clouds = [];
+    for (let i = 0; i < 20; i++) {
+      this.clouds.push({
+        x: Math.random() * this.gameWidth,
+        y: -(Math.random() * 4000),
+        w: 60 + Math.random() * 80,
+        h: 28 + Math.random() * 28,
+        alpha: 0.35 + Math.random() * 0.3
+      });
+    }
+  }
+
+  initPlayer() {
+    this.player = {
+      x: this.gameWidth / 2,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      attached: false,
+      hubIndex: -1,
+      ropeIndex: -1,
+      grabCooldown: 0,
+      releaseTimer: 0,
+      faceDir: 1
+    };
+  }
+
+  attachPlayer(hubIdx, ropeIdx) {
+    const hub = this.hubs[hubIdx];
+    const rope = hub.ropes[ropeIdx];
+    const ep = this.getRopeEndpoint(hub, rope);
+
+    this.player.x = ep.ex;
+    this.player.y = ep.ey;
+    this.player.attached = true;
+    this.player.hubIndex = hubIdx;
+    this.player.ropeIndex = ropeIdx;
+    this.player.vx = 0;
+    this.player.vy = 0;
+    this.player.grabCooldown = 12;
+    this.player.releaseTimer = 0;
+
+    this.spawnParticles(this.player.x, this.player.y, hub.color);
+    playSound('catch');
+
+    if (hubIdx > 0) {
+      const newScore = Math.max(this.score, hubIdx);
+      if (newScore > this.score) {
+        this.score = newScore;
+        document.getElementById('hud-score').textContent = '🏆 ' + this.score;
+        if (this.score % 3 === 0) playSound('score');
       }
     }
   }
 
-  if (bestHub >= 0) {
-    attachPlayer(bestHub, bestRope);
+  releasePlayer() {
+    if (!this.player || !this.player.attached) return;
+    const hub = this.hubs[this.player.hubIndex];
+    const rope = hub.ropes[this.player.ropeIndex];
+    const ep = this.getRopeEndpoint(hub, rope);
+    const totalLen = hub.radius + rope.length;
+    const tangentSpeed = Math.abs(hub.speed) * totalLen * 1.8;
+    const angle = ep.angle + Math.PI / 2 * Math.sign(hub.speed || 1);
+    const launchSpeed = Math.min(tangentSpeed * 6, 20);
+
+    this.player.vx = Math.cos(angle) * launchSpeed;
+    this.player.vy = Math.sin(angle) * launchSpeed;
+    if (this.player.vy > 2) this.player.vy -= 4;
+
+    this.player.attached = false;
+    this.player.releaseTimer = 0;
+    this.player.grabCooldown = 8;
+    playSound('release');
+    this.spawnTrail(this.player.x, this.player.y);
+  }
+
+  handleTap() {
+    if (this.state !== 'playing') return;
+    initAudio();
+    if (this.player.grabCooldown > 0) return;
+    if (this.player.attached) this.releasePlayer();
+    else this.tryGrab();
+  }
+
+  tryGrab() {
+    let bestDist = CATCH_RADIUS * 2.5;
+    let bestHub = -1;
+    let bestRope = -1;
+
+    for (let hi = 0; hi < this.hubs.length; hi++) {
+      const hub = this.hubs[hi];
+      if (hub.y > this.player.y + 100) continue;
+      for (let ri = 0; ri < hub.ropes.length; ri++) {
+        const ep = this.getRopeEndpoint(hub, hub.ropes[ri]);
+        const dist = Phaser.Math.Distance.Between(ep.ex, ep.ey, this.player.x, this.player.y);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestHub = hi;
+          bestRope = ri;
+        }
+      }
+    }
+
+    if (bestHub >= 0) this.attachPlayer(bestHub, bestRope);
+  }
+
+  spawnParticles(x, y, color) {
+    for (let i = 0; i < 10; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.5 + Math.random() * 3;
+      this.particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1,
+        decay: 0.03 + Math.random() * 0.03,
+        r: 3 + Math.random() * 5,
+        color
+      });
+    }
+  }
+
+  spawnTrail(x, y) {
+    for (let i = 0; i < 5; i++) {
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 10,
+        y: y + (Math.random() - 0.5) * 10,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: (Math.random() - 0.5) * 1.5,
+        life: 0.7,
+        decay: 0.05,
+        r: 2 + Math.random() * 3,
+        color: '#fff'
+      });
+    }
+  }
+
+  update(time, delta) {
+    const dt = Math.min(delta / 16.67, 3);
+
+    if (this.state === 'playing') {
+      this.updatePlaying(dt);
+    } else {
+      for (const hub of this.hubs) hub.rotation += hub.speed * 0.3;
+    }
+
+    this.renderScene();
+  }
+
+  updatePlaying(dt) {
+    for (const hub of this.hubs) hub.rotation += hub.speed;
+
+    if (this.player.grabCooldown > 0) this.player.grabCooldown--;
+    this.player.releaseTimer++;
+
+    if (this.player.attached) {
+      const hub = this.hubs[this.player.hubIndex];
+      const rope = hub.ropes[this.player.ropeIndex];
+      const ep = this.getRopeEndpoint(hub, rope);
+      this.player.x = ep.ex;
+      this.player.y = ep.ey;
+      this.player.faceDir = hub.speed >= 0 ? 1 : -1;
+    } else {
+      this.player.vy += GRAVITY;
+      this.player.x += this.player.vx * dt;
+      this.player.y += this.player.vy * dt;
+      if (Math.abs(this.player.vx) > 0.5) this.player.faceDir = this.player.vx > 0 ? 1 : -1;
+
+      let nearestDist = MAGNETIC_RADIUS;
+      let nearest = null;
+      for (let hi = 0; hi < this.hubs.length; hi++) {
+        const hub = this.hubs[hi];
+        if (hub.y > this.player.y + 80) continue;
+        for (let ri = 0; ri < hub.ropes.length; ri++) {
+          const ep = this.getRopeEndpoint(hub, hub.ropes[ri]);
+          const dist = Phaser.Math.Distance.Between(ep.ex, ep.ey, this.player.x, this.player.y);
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearest = { ep, hi, ri };
+          }
+        }
+      }
+
+      if (nearest && nearestDist < CATCH_RADIUS && this.player.grabCooldown <= 0) {
+        this.attachPlayer(nearest.hi, nearest.ri);
+      } else if (nearest && nearestDist < MAGNETIC_RADIUS * 0.7) {
+        const factor = 0.06;
+        this.player.vx += (nearest.ep.ex - this.player.x) * factor;
+        this.player.vy += (nearest.ep.ey - this.player.y) * factor;
+      }
+
+      this.player.x = Phaser.Math.Clamp(this.player.x, 18, this.gameWidth - 18);
+      if (this.player.releaseTimer > 180) this.player.vy += 0.15;
+    }
+
+    const screenTarget = this.gameHeight * 0.55;
+    const playerScreenY = this.player.y - this.cameraY;
+    if (playerScreenY < screenTarget) {
+      this.cameraTargetY = Math.min(this.cameraTargetY, this.player.y - screenTarget);
+    }
+    this.cameraY += (this.cameraTargetY - this.cameraY) * 0.1;
+
+    const topHub = this.hubs[this.hubs.length - 1];
+    if (topHub.y - this.cameraY > -this.gameHeight * 0.5) this.addHub();
+
+    this.updateParticles();
+
+    if (this.player.y - this.cameraY > this.gameHeight + FALL_THRESHOLD) {
+      this.showGameOver();
+    }
+  }
+
+  updateParticles() {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.05;
+      p.life -= p.decay;
+      if (p.life <= 0) this.particles.splice(i, 1);
+    }
+  }
+
+  showGameOver() {
+    if (this.state === 'gameover') return;
+    this.state = 'gameover';
+    playSound('gameover');
+    if (this.score > this.bestScore) {
+      this.bestScore = this.score;
+      saveBestScore(this.bestScore);
+    }
+    document.getElementById('final-score').textContent = 'Score: ' + this.score;
+    document.getElementById('best-score-display').textContent = 'Best: ' + this.bestScore;
+    document.getElementById('screen-gameover').classList.add('active');
+    document.getElementById('hud').classList.add('hidden');
+  }
+
+  renderScene() {
+    this.g.clear();
+    this.drawSky();
+    this.drawClouds();
+    for (const hub of this.hubs) this.drawHub(hub);
+    this.drawParticles();
+    if (this.player) this.drawPlayer();
+  }
+
+  drawSky() {
+    const altitude = Math.max(-this.cameraY, 0);
+    const progress = Math.min(altitude / 3000, 1);
+    const c1 = lerpColorInt(0x87ceeb, 0x1a1a3e, progress);
+    const c2 = lerpColorInt(0xffd1dc, 0x000020, progress);
+    this.g.fillGradientStyle(c1, c1, c2, c2, 1);
+    this.g.fillRect(0, 0, this.gameWidth, this.gameHeight);
+  }
+
+  drawClouds() {
+    for (const cloud of this.clouds) {
+      const screenY = cloud.y - this.cameraY;
+      if (screenY < -100 || screenY > this.gameHeight + 100) continue;
+      this.g.fillStyle(0xffffff, cloud.alpha);
+      this.g.fillEllipse(cloud.x, screenY, cloud.w, cloud.h);
+      this.g.fillEllipse(cloud.x + cloud.w * 0.25, screenY - cloud.h * 0.25, cloud.w * 0.7, cloud.h * 0.8);
+      this.g.fillEllipse(cloud.x - cloud.w * 0.25, screenY - cloud.h * 0.2, cloud.w * 0.6, cloud.h * 0.7);
+    }
+  }
+
+  drawHub(hub) {
+    const sx = hub.x;
+    const sy = hub.y - this.cameraY;
+    if (sy < -150 || sy > this.gameHeight + 150) return;
+
+    for (let ri = 0; ri < hub.ropes.length; ri++) {
+      const rope = hub.ropes[ri];
+      const ep = this.getRopeEndpoint(hub, rope);
+      const epScreenY = ep.ey - this.cameraY;
+      const isActive = this.player && this.player.attached && this.player.hubIndex === hub.index && this.player.ropeIndex === ri;
+      const dist = this.player ? Phaser.Math.Distance.Between(ep.ex, ep.ey, this.player.x, this.player.y) : Infinity;
+      const isNear = this.player && !this.player.attached && dist < MAGNETIC_RADIUS;
+
+      if (isNear) {
+        this.g.lineStyle(9, 0xffe066, 0.18);
+        this.g.beginPath();
+        this.g.moveTo(ep.ax, ep.ay - this.cameraY);
+        this.g.lineTo(ep.ex, epScreenY);
+        this.g.strokePath();
+      }
+
+      this.g.lineStyle(isActive ? 5 : 3.5, hexColor(rope.color), 1);
+      this.g.beginPath();
+      this.g.moveTo(ep.ax, ep.ay - this.cameraY);
+      this.g.lineTo(ep.ex, epScreenY);
+      this.g.strokePath();
+
+      this.g.fillStyle(isNear ? 0xffe066 : (isActive ? 0xffffff : 0xffffff), isActive || isNear ? 1 : 0.75);
+      this.g.fillCircle(ep.ex, epScreenY, isActive ? 10 : 8);
+      this.g.lineStyle(2, hexColor(rope.color), 1);
+      this.g.strokeCircle(ep.ex, epScreenY, isActive ? 10 : 8);
+    }
+
+    this.g.fillStyle(hexColor(hub.color), 1);
+    this.g.fillCircle(sx, sy, hub.radius);
+    this.g.lineStyle(3, 0xffffff, 0.5);
+    this.g.strokeCircle(sx, sy, hub.radius);
+
+    this.g.lineStyle(2, 0xffffff, 0.35);
+    for (const rope of hub.ropes) {
+      const angle = hub.rotation + rope.angleOffset;
+      this.g.beginPath();
+      this.g.moveTo(sx, sy);
+      this.g.lineTo(sx + Math.cos(angle) * hub.radius, sy + Math.sin(angle) * hub.radius);
+      this.g.strokePath();
+    }
+
+    this.g.fillStyle(0xffffff, 0.7);
+    this.g.fillCircle(sx, sy, 6);
+  }
+
+  drawParticles() {
+    for (const p of this.particles) {
+      const screenY = p.y - this.cameraY;
+      this.g.fillStyle(hexColor(p.color), Phaser.Math.Clamp(p.life, 0, 1));
+      this.g.fillCircle(p.x, screenY, p.r);
+    }
+  }
+
+  drawPlayer() {
+    const px = this.player.x;
+    const py = this.player.y - this.cameraY;
+    const eyeX = this.player.faceDir * 6;
+
+    this.g.fillStyle(0x000000, 0.2);
+    this.g.fillCircle(px, py + 2, 20);
+    this.g.fillStyle(0xffba49, 1);
+    this.g.fillCircle(px, py, 20);
+    this.g.fillStyle(0xffe8b0, 0.55);
+    this.g.fillCircle(px - 5, py - 6, 9);
+    this.g.lineStyle(2, 0xff8c42, 1);
+    this.g.strokeCircle(px, py, 20);
+
+    this.g.fillStyle(0x222222, 1);
+    this.g.fillCircle(px + eyeX - 4, py - 4, 4.5);
+    this.g.fillCircle(px + eyeX + 4, py - 4, 4.5);
+    this.g.fillStyle(0xffffff, 1);
+    this.g.fillCircle(px + eyeX - 3, py - 5.5, 1.5);
+    this.g.fillCircle(px + eyeX + 5, py - 5.5, 1.5);
+
+    this.g.lineStyle(2, 0xff6b35, 1);
+    this.g.beginPath();
+    this.g.arc(px + eyeX, py + 5, 7, 0.2, Math.PI - 0.2, false);
+    this.g.strokePath();
   }
 }
 
-canvas.addEventListener('pointerdown', (e) => {
-  e.preventDefault();
-  handleTap();
-}, { passive: false });
-
-document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') { e.preventDefault(); handleTap(); }
+const initialSize = gameSize();
+const phaserGame = new Phaser.Game({
+  type: Phaser.AUTO,
+  parent: 'game-root',
+  width: initialSize.width,
+  height: initialSize.height,
+  backgroundColor: '#87ceeb',
+  scale: {
+    mode: Phaser.Scale.NONE,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  render: {
+    antialias: true,
+    pixelArt: false
+  },
+  scene: RiseScene
 });
 
-// ======== SCREENS ========
+document.getElementById('mute-btn').addEventListener('click', (event) => {
+  event.stopPropagation();
+  setMuted(!muted);
+});
+
 document.getElementById('btn-start').addEventListener('click', () => {
+  if (!riseScene) return;
   initAudio();
-  initGame();
-  state = 'playing';
+  riseScene.startGame();
   document.getElementById('screen-ready').classList.remove('active');
-  document.getElementById('hud').classList.remove('hidden');
-});
-
-document.getElementById('btn-restart').addEventListener('click', () => {
-  initAudio();
-  initGame();
-  state = 'playing';
   document.getElementById('screen-gameover').classList.remove('active');
   document.getElementById('hud').classList.remove('hidden');
 });
 
-function showGameOver() {
-  state = 'gameover';
-  playSound('gameover');
-  if (score > bestScore) {
-    bestScore = score;
-    saveBestScore(bestScore);
-  }
-  document.getElementById('final-score').textContent = 'Score: ' + score;
-  document.getElementById('best-score-display').textContent = 'Best: ' + bestScore;
-  document.getElementById('screen-gameover').classList.add('active');
-  document.getElementById('hud').classList.add('hidden');
-}
+document.getElementById('btn-restart').addEventListener('click', () => {
+  if (!riseScene) return;
+  initAudio();
+  riseScene.startGame();
+  document.getElementById('screen-gameover').classList.remove('active');
+  document.getElementById('hud').classList.remove('hidden');
+});
 
-// ======== UPDATE ========
-let lastTime = 0;
-
-function update(dt) {
-  if (state !== 'playing') return;
-
-  // Update hubs
-  for (const hub of hubs) {
-    hub.rotation += hub.speed;
-  }
-
-  // Player update
-  if (player.grabCooldown > 0) player.grabCooldown--;
-  if (player.releaseTimer !== undefined) player.releaseTimer++;
-
-  if (player.attached) {
-    const hub = hubs[player.hubIndex];
-    const rope = hub.ropes[player.ropeIndex];
-    const ep = getRopeEndpoint(hub, rope);
-    player.x = ep.ex;
-    player.y = ep.ey;
-    // Face direction of movement
-    player.faceDir = hub.speed >= 0 ? 1 : -1;
-
-  } else {
-    // Gravity & movement
-    player.vy += GRAVITY;
-    player.x += player.vx * dt;
-    player.y += player.vy * dt;
-
-    // Face dir
-    if (Math.abs(player.vx) > 0.5) player.faceDir = player.vx > 0 ? 1 : -1;
-
-    // Magnetic pull toward nearest rope endpoint above
-    let nearestDist = MAGNETIC_RADIUS;
-    let nearestEP = null;
-    for (const hub of hubs) {
-      if (hub.y > player.y + 80) continue;
-      for (const rope of hub.ropes) {
-        const ep = getRopeEndpoint(hub, rope);
-        const dx = ep.ex - player.x;
-        const dy = ep.ey - player.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < nearestDist) {
-          nearestDist = dist;
-          nearestEP = ep;
-        }
-      }
-    }
-    if (nearestEP && nearestDist < CATCH_RADIUS) {
-      // Auto-catch
-      if (player.grabCooldown <= 0) {
-        // Find which hub/rope this is
-        for (let hi = 0; hi < hubs.length; hi++) {
-          const hub = hubs[hi];
-          for (let ri = 0; ri < hub.ropes.length; ri++) {
-            const ep = getRopeEndpoint(hub, hub.ropes[ri]);
-            const dx = ep.ex - player.x;
-            const dy = ep.ey - player.y;
-            if (Math.sqrt(dx*dx+dy*dy) < CATCH_RADIUS) {
-              attachPlayer(hi, ri);
-              break;
-            }
-          }
-          if (player.attached) break;
-        }
-      }
-    } else if (nearestEP && nearestDist < MAGNETIC_RADIUS * 0.7) {
-      // Magnetic pull
-      const factor = 0.06;
-      player.vx += (nearestEP.ex - player.x) * factor;
-      player.vy += (nearestEP.ey - player.y) * factor;
-    }
-
-    // Clamp x
-    player.x = Math.max(18, Math.min(canvas.width - 18, player.x));
-
-    // Release timer fallback: if airborne too long without catching, gravity speeds up
-    if (player.releaseTimer > 180) {
-      player.vy += 0.15;
-    }
-  }
-
-  // Camera follow
-  const screenTarget = canvas.height * 0.55;
-  const playerScreenY = player.y - cameraY;
-  if (playerScreenY < screenTarget) {
-    cameraTargetY = Math.min(cameraTargetY, player.y - screenTarget);
-  }
-  cameraY += (cameraTargetY - cameraY) * 0.1;
-
-  // Generate more hubs
-  const topHub = hubs[hubs.length - 1];
-  if (topHub.y - cameraY > -canvas.height * 0.5) {
-    addHub();
-  }
-
-  // Particles
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vy += 0.05;
-    p.life -= p.decay;
-    if (p.life <= 0) particles.splice(i, 1);
-  }
-
-  // Game over: fell below camera
-  if (player.y - cameraY > canvas.height + FALL_THRESHOLD) {
-    showGameOver();
-  }
-}
-
-// ======== DRAW ========
-function drawSky() {
-  const altitude = Math.max(-cameraY, 0);
-  const progress = Math.min(altitude / 3000, 1);
-  const c1 = lerpColor('#87ceeb', '#1a1a3e', progress);
-  const c2 = lerpColor('#ffd1dc', '#000020', progress);
-  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  grad.addColorStop(0, c1);
-  grad.addColorStop(1, c2);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function lerpColor(a, b, t) {
-  const ah = parseInt(a.slice(1), 16);
-  const bh = parseInt(b.slice(1), 16);
-  const ar = (ah >> 16) & 0xff, ag = (ah >> 8) & 0xff, ab = ah & 0xff;
-  const br = (bh >> 16) & 0xff, bg = (bh >> 8) & 0xff, bb = bh & 0xff;
-  const rr = Math.round(ar + (br - ar) * t);
-  const rg = Math.round(ag + (bg - ag) * t);
-  const rb = Math.round(ab + (bb - ab) * t);
-  return '#' + ((rr << 16) | (rg << 8) | rb).toString(16).padStart(6, '0');
-}
-
-function drawClouds() {
-  ctx.save();
-  for (const cloud of clouds) {
-    const screenY = cloud.y - cameraY;
-    if (screenY < -100 || screenY > canvas.height + 100) continue;
-    ctx.globalAlpha = cloud.alpha;
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.ellipse(cloud.x, screenY, cloud.w / 2, cloud.h / 2, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(cloud.x + cloud.w * 0.25, screenY - cloud.h * 0.25, cloud.w * 0.35, cloud.h * 0.4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(cloud.x - cloud.w * 0.25, screenY - cloud.h * 0.2, cloud.w * 0.3, cloud.h * 0.35, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-  ctx.restore();
-}
-
-function drawHub(hub) {
-  const sx = hub.x;
-  const sy = hub.y - cameraY;
-  if (sy < -150 || sy > canvas.height + 150) return;
-
-  ctx.save();
-  ctx.translate(sx, sy);
-  ctx.rotate(hub.rotation);
-
-  // Hub body
-  ctx.beginPath();
-  ctx.arc(0, 0, hub.radius, 0, Math.PI * 2);
-  ctx.fillStyle = hub.color;
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  // Spokes
-  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-  ctx.lineWidth = 2;
-  for (let i = 0; i < hub.ropes.length; i++) {
-    const a = hub.ropes[i].angleOffset;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(Math.cos(a) * hub.radius, Math.sin(a) * hub.radius);
-    ctx.stroke();
-  }
-
-  // Center dot
-  ctx.beginPath();
-  ctx.arc(0, 0, 6, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.fill();
-
-  ctx.restore();
-
-  // Draw ropes
-  for (let ri = 0; ri < hub.ropes.length; ri++) {
-    const rope = hub.ropes[ri];
-    const ep = getRopeEndpoint(hub, rope);
-    const epScreenY = ep.ey - cameraY;
-    const isActive = player.attached && player.hubIndex === hubs.indexOf(hub) && player.ropeIndex === ri;
-
-    // Is player near this rope?
-    const dx = ep.ex - player.x;
-    const dy = ep.ey - player.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const isNear = !player.attached && dist < MAGNETIC_RADIUS;
-
-    ctx.save();
-    // Rope line
-    ctx.beginPath();
-    ctx.moveTo(ep.ax, ep.ay - cameraY);
-    ctx.lineTo(ep.ex, epScreenY);
-    ctx.strokeStyle = rope.color;
-    ctx.lineWidth = isActive ? 5 : 3.5;
-    ctx.lineCap = 'round';
-    if (isNear) {
-      ctx.shadowColor = '#ffe066';
-      ctx.shadowBlur = 14;
-    }
-    ctx.stroke();
-
-    // Knot/handle at end
-    ctx.beginPath();
-    ctx.arc(ep.ex, epScreenY, isActive ? 10 : 8, 0, Math.PI * 2);
-    ctx.fillStyle = isNear ? '#ffe066' : (isActive ? '#fff' : 'rgba(255,255,255,0.75)');
-    if (isNear) {
-      ctx.shadowColor = '#ffe066';
-      ctx.shadowBlur = 20;
-    }
-    ctx.fill();
-    ctx.strokeStyle = rope.color;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.restore();
-  }
-}
-
-function drawPlayer() {
-  const px = player.x;
-  const py = player.y - cameraY;
-  ctx.save();
-  ctx.translate(px, py);
-
-  // Body shadow
-  ctx.beginPath();
-  ctx.arc(0, 2, 20, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
-  ctx.fill();
-
-  // Body
-  ctx.beginPath();
-  ctx.arc(0, 0, 20, 0, Math.PI * 2);
-  const bodyGrad = ctx.createRadialGradient(-4, -4, 2, 0, 0, 20);
-  bodyGrad.addColorStop(0, '#ffe8b0');
-  bodyGrad.addColorStop(1, '#ffba49');
-  ctx.fillStyle = bodyGrad;
-  ctx.fill();
-  ctx.strokeStyle = '#ff8c42';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Eyes
-  const eyeX = player.faceDir * 6;
-  ctx.beginPath();
-  ctx.arc(eyeX - 4, -4, 4.5, 0, Math.PI * 2);
-  ctx.arc(eyeX + 4, -4, 4.5, 0, Math.PI * 2);
-  ctx.fillStyle = '#222';
-  ctx.fill();
-
-  // Eye shine
-  ctx.beginPath();
-  ctx.arc(eyeX - 3, -5.5, 1.5, 0, Math.PI * 2);
-  ctx.arc(eyeX + 5, -5.5, 1.5, 0, Math.PI * 2);
-  ctx.fillStyle = '#fff';
-  ctx.fill();
-
-  // Smile
-  ctx.beginPath();
-  ctx.arc(eyeX, 5, 7, 0.2, Math.PI - 0.2);
-  ctx.strokeStyle = '#ff6b35';
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-function drawParticles() {
-  for (const p of particles) {
-    const screenY = p.y - cameraY;
-    ctx.save();
-    ctx.globalAlpha = p.life;
-    ctx.beginPath();
-    ctx.arc(p.x, screenY, p.r, 0, Math.PI * 2);
-    ctx.fillStyle = p.color;
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
-// ======== MAIN LOOP ========
-function loop(timestamp) {
-  const dt = Math.min((timestamp - lastTime) / 16.67, 3);
-  lastTime = timestamp;
-
-  if (state === 'playing') {
-    update(dt);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawSky();
-    drawClouds();
-    for (const hub of hubs) drawHub(hub);
-    drawParticles();
-    drawPlayer();
-  } else if (state === 'ready' || state === 'gameover') {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (hubs.length > 0) {
-      drawSky();
-      drawClouds();
-      for (const hub of hubs) {
-        hub.rotation += hub.speed * 0.3;
-        drawHub(hub);
-      }
-    } else {
-      // Just draw sky
-      ctx.fillStyle = '#87ceeb';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-  }
-
-  requestAnimationFrame(loop);
-}
-
-// Init background hubs for title screen
-generateClouds();
-generateHubs();
-// Prevent page scroll
-document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-
-requestAnimationFrame(loop);
+document.addEventListener('touchmove', event => event.preventDefault(), { passive: false });
 </script>
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v1 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v2 Phaser &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>

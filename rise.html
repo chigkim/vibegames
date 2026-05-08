@@ -125,6 +125,26 @@
     text-shadow: 0 2px 12px rgba(0,0,0,0.4);
     letter-spacing: -0.5px;
   }
+  #hud-combo {
+    font-family: 'Bowlby One SC', 'DM Sans', sans-serif;
+    font-size: 1.6rem;
+    color: #ff6b9d;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.4), 0 0 18px rgba(255,107,157,0.5);
+    margin-top: 4px;
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 0.18s ease, transform 0.18s cubic-bezier(.5,1.6,.4,1);
+    pointer-events: none;
+  }
+  #hud-combo.visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+  #hud-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
   #mute-btn {
     pointer-events: all;
     background: rgba(255,255,255,0.18);
@@ -145,7 +165,10 @@
 <div id="game-root"></div>
 
 <div id="hud" class="hidden">
-  <div id="hud-score">🏆 0</div>
+  <div id="hud-left">
+    <div id="hud-score">🏆 0</div>
+    <div id="hud-combo">x2</div>
+  </div>
   <button id="mute-btn" aria-label="Toggle sound">🔊</button>
 </div>
 
@@ -178,17 +201,26 @@
 const GAME_MAX_WIDTH = 420;
 const GRAVITY = 0.38;
 const CATCH_RADIUS = 52;
+const STAR_COLLECT_RADIUS = 32;
 const MAGNETIC_RADIUS = 90;
 const AIRBORNE_CATCH_FRAMES = 18;
 const MISSED_CATCH_GRAVITY = 0.35;
 const FALL_THRESHOLD = 300;
+const COMBO_TIMEOUT_FRAMES = 90;  // 1.5s at 60fps to chain catches
 const HUB_COLORS = ['#ff6b9d', '#ff8c42', '#ffe066', '#6bceff', '#a78bfa', '#5eead4', '#f472b6'];
 const ROPE_COLORS = ['#c77dff', '#4cc9f0', '#f8961e', '#90e0ef', '#ff6b6b', '#b5e48c'];
+const MILESTONES = [5, 10, 15, 25, 40, 60, 80, 100];
 
 let muted = false;
 let audioReady = false;
 let scoreSynth = null;
 let gameOverSynth = null;
+let starSynth = null;
+let comboSynth = null;
+let milestoneSynth = null;
+let musicBed = null;
+let musicPad = null;
+let musicLevel = 0;
 let audioBus = null;
 let riseScene = null;
 
@@ -233,6 +265,7 @@ async function initAudio() {
   if (!audioReady) {
     audioBus = new Tone.Volume(muted ? -Infinity : -8).toDestination();
     const sparkle = new Tone.FeedbackDelay({ delayTime: 0.07, feedback: 0.16, wet: 0.18 }).connect(audioBus);
+    const reverb = new Tone.Reverb({ decay: 2.5, wet: 0.32 }).connect(audioBus);
 
     scoreSynth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'sine' },
@@ -243,6 +276,33 @@ async function initAudio() {
       oscillator: { type: 'fatsawtooth', count: 2, spread: 18 },
       envelope: { attack: 0.01, decay: 0.22, sustain: 0.1, release: 0.35 }
     }).connect(audioBus);
+
+    // Sparkly star pickup chime
+    starSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.001, decay: 0.06, sustain: 0.0, release: 0.05 }
+    }).connect(sparkle);
+
+    // Combo - bright bell-like
+    comboSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.001, decay: 0.18, sustain: 0.0, release: 0.18 }
+    }).connect(reverb);
+
+    // Milestone fanfare - rich pad
+    milestoneSynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'fatsine', count: 3, spread: 12 },
+      envelope: { attack: 0.02, decay: 0.4, sustain: 0.2, release: 0.6 }
+    }).connect(reverb);
+
+    // Ambient pad bed - very quiet, intensifies with combo
+    musicBed = new Tone.Volume(-Infinity).connect(audioBus);
+    musicPad = new Tone.PolySynth(Tone.AMSynth, {
+      harmonicity: 1.5,
+      oscillator: { type: 'sine' },
+      modulation: { type: 'sine' },
+      envelope: { attack: 1.5, decay: 0.5, sustain: 0.7, release: 2.0 }
+    }).connect(musicBed);
 
     audioReady = true;
   }
@@ -279,7 +339,7 @@ function setMuted(value) {
   document.getElementById('mute-btn').textContent = muted ? '🔇' : '🔊';
 }
 
-function playSound(type) {
+function playSound(type, data) {
   if (muted) return;
   if (type === 'catch') {
     playArcadeSound([0.55, 0.05, 880, 0.01, 0.04, 0.09, 1, 1.6, 0.2]);
@@ -289,6 +349,10 @@ function playSound(type) {
     playArcadeSound([0.45, 0.08, 260, 0.005, 0.05, 0.12, 2, 1, -0.25]);
     return;
   }
+  if (type === 'goldcatch') {
+    playArcadeSound([0.7, 0.05, 1320, 0.01, 0.08, 0.18, 1, 2.2, 0.3]);
+    return;
+  }
   if (!audioReady) return;
   const now = Tone.now();
 
@@ -296,11 +360,49 @@ function playSound(type) {
     scoreSynth.triggerAttackRelease('A4', '16n', now, 0.45);
     scoreSynth.triggerAttackRelease('C#5', '16n', now + 0.1, 0.45);
     scoreSynth.triggerAttackRelease('E5', '16n', now + 0.2, 0.45);
+  } else if (type === 'star') {
+    // Sparkly upward triplet — pitch climbs with combo
+    const c = Math.min((data || 0), 12);
+    const base = 72 + c * 2;  // semitones up
+    const f = (n) => Tone.Frequency(n, 'midi').toFrequency();
+    starSynth.triggerAttackRelease(f(base), '32n', now, 0.4);
+    starSynth.triggerAttackRelease(f(base + 4), '32n', now + 0.04, 0.4);
+    starSynth.triggerAttackRelease(f(base + 7), '32n', now + 0.08, 0.4);
+  } else if (type === 'combo') {
+    // Bell-like rising tone
+    const c = Math.min((data || 1), 10);
+    const f = Tone.Frequency(60 + c * 2, 'midi').toFrequency();
+    comboSynth.triggerAttackRelease(f, '8n', now, 0.5);
+  } else if (type === 'milestone') {
+    // Triumphant chord
+    milestoneSynth.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], '4n', now, 0.55);
+    milestoneSynth.triggerAttackRelease(['G4', 'B4', 'D5', 'G5'], '4n', now + 0.18, 0.5);
   } else if (type === 'gameover') {
     gameOverSynth.triggerAttackRelease('G4', 0.18, now, 0.48);
     gameOverSynth.triggerAttackRelease('D3', 0.24, now + 0.16, 0.42);
     gameOverSynth.triggerAttackRelease('B2', 0.34, now + 0.34, 0.36);
   }
+}
+
+function setMusicLevel(level) {
+  // 0 = silent, 1 = quiet pad, 2 = stronger pad
+  if (!audioReady || !musicBed) return;
+  musicLevel = level;
+  if (muted) return;
+  const targetVol = level === 0 ? -Infinity : (level === 1 ? -28 : -20);
+  try { musicBed.volume.rampTo(targetVol, 1.5); } catch {}
+}
+
+function startMusic() {
+  if (!audioReady || !musicPad) return;
+  try {
+    const now = Tone.now();
+    // Gentle Cmaj7 pad — slow alternating
+    musicPad.triggerAttackRelease(['C3', 'E3', 'G3', 'B3'], '2n', now, 0.4);
+    musicPad.triggerAttackRelease(['A2', 'C3', 'E3', 'G3'], '2n', now + 2, 0.4);
+    musicPad.triggerAttackRelease(['F2', 'A2', 'C3', 'E3'], '2n', now + 4, 0.4);
+    musicPad.triggerAttackRelease(['G2', 'B2', 'D3', 'G3'], '2n', now + 6, 0.4);
+  } catch {}
 }
 
 class RiseScene extends Phaser.Scene {
@@ -315,8 +417,18 @@ class RiseScene extends Phaser.Scene {
     this.hubs = [];
     this.particles = [];
     this.clouds = [];
+    this.stars = null;
+    this.collectibles = [];        // floating stars to grab mid-air
+    this.popups = [];              // floating "+1!", "PERFECT!" text
     this.hubsGenerated = 0;
+    this.collectiblesGenerated = 0;
     this.inputHeld = false;
+    this.combo = 0;
+    this.comboTimer = 0;
+    this.shake = 0;
+    this.flashAmount = 0;
+    this.milestonesHit = new Set();
+    this.bigMessage = null;        // { text, life, color }
   }
 
   create() {
@@ -371,11 +483,21 @@ class RiseScene extends Phaser.Scene {
     this.cameraTargetY = 0;
     this.hubs = [];
     this.particles = [];
+    this.collectibles = [];
+    this.popups = [];
     this.hubsGenerated = 0;
+    this.collectiblesGenerated = 0;
     this.inputHeld = false;
+    this.combo = 0;
+    this.comboTimer = 0;
+    this.shake = 0;
+    this.flashAmount = 0;
+    this.milestonesHit = new Set();
+    this.bigMessage = null;
     this.player = null;
     this.generateClouds();
     this.generateHubs();
+    this.generateCollectiblesUpTo(this.hubs[this.hubs.length - 1].y);
     if (this.bestScore > 0) {
       const el = document.getElementById('ready-best-score');
       el.textContent = '🏆 Best: ' + this.bestScore;
@@ -391,21 +513,34 @@ class RiseScene extends Phaser.Scene {
     this.cameraTargetY = 0;
     this.hubs = [];
     this.particles = [];
+    this.collectibles = [];
+    this.popups = [];
     this.hubsGenerated = 0;
+    this.collectiblesGenerated = 0;
     this.inputHeld = false;
+    this.combo = 0;
+    this.comboTimer = 0;
+    this.shake = 0;
+    this.flashAmount = 0;
+    this.milestonesHit = new Set();
+    this.bigMessage = null;
     document.getElementById('hud-score').textContent = '🏆 0';
+    document.getElementById('hud-combo').classList.remove('visible');
     this.generateClouds();
     this.generateHubs();
     this.initPlayer();
     this.attachPlayer(0, 0, true);  // silent auto-attach
     this.cameraY = this.player.y - this.gameHeight * 0.55;
     this.cameraTargetY = this.cameraY;
+    this.generateCollectiblesUpTo(this.hubs[this.hubs.length - 1].y);
+    setMusicLevel(1);
+    startMusic();
   }
 
   createHub(x, y, index) {
     const isEarly = index < 4;
     // Slower speed ramp - cap reached around hub 12-15 instead of 10
-    const speed = isEarly ? 0.018 : 0.018 + Math.min((index - 4) * 0.0028, 0.027);
+    let speed = isEarly ? 0.018 : 0.018 + Math.min((index - 4) * 0.0028, 0.027);
     // Direction flips less often, only after hub 5
     const flipChance = index < 5 ? 0 : Math.min(0.15 + (index - 5) * 0.02, 0.4);
     const dir = index === 0 ? -1 : (index === 1 ? 1 : (Math.random() < flipChance ? -1 : 1));
@@ -413,6 +548,15 @@ class RiseScene extends Phaser.Scene {
     // Keep min 3 ropes through hub 7, then 2-4
     const ropeCount = index < 7 ? 3 : 2 + Math.floor(Math.random() * 3);
     const ropes = [];
+
+    // Hub variants — only after a few warm-up hubs so kids learn the basics first.
+    let variant = 'normal';
+    if (index >= 5) {
+      const r = Math.random();
+      if (r < 0.10) variant = 'gold';        // 10% rare bonus hub
+      else if (r < 0.20) variant = 'bouncy';  // 10% extra-fast spin
+    }
+    if (variant === 'bouncy') speed *= 1.6;
 
     for (let i = 0; i < ropeCount; i++) {
       const angleOffset = (i / ropeCount) * Math.PI * 2;
@@ -424,6 +568,10 @@ class RiseScene extends Phaser.Scene {
       });
     }
 
+    const baseColor = variant === 'gold' ? '#ffd700'
+                     : variant === 'bouncy' ? '#ff4d8d'
+                     : HUB_COLORS[index % HUB_COLORS.length];
+
     return {
       x,
       y,
@@ -431,7 +579,8 @@ class RiseScene extends Phaser.Scene {
       rotation: 0,
       speed: speed * dir,
       ropes,
-      color: HUB_COLORS[index % HUB_COLORS.length],
+      color: baseColor,
+      variant,
       index,
       uid: index  // permanent monotonic id, never changes when array re-indexes
     };
@@ -518,8 +667,138 @@ class RiseScene extends Phaser.Scene {
       grabCooldown: 0,
       releaseTimer: 0,
       airborneCatchTimer: 0,
-      faceDir: 1
+      faceDir: 1,
+      mood: 'normal'  // 'normal', 'happy', 'scared', 'launch'
     };
+  }
+
+  // ---- Collectibles ---------------------------------------------------------
+  generateCollectiblesUpTo(targetY) {
+    // Generate floating stars between hubs as the world extends
+    while (this.collectiblesGenerated < this.hubsGenerated - 1) {
+      const i = this.collectiblesGenerated;
+      if (i >= 1 && Math.random() < 0.7) {
+        // Place 1-3 stars between hub i and hub i+1
+        const a = this.hubs.find(h => h.uid === i);
+        const b = this.hubs.find(h => h.uid === i + 1);
+        if (a && b) {
+          const count = 1 + Math.floor(Math.random() * 3);
+          for (let k = 0; k < count; k++) {
+            const t = (k + 1) / (count + 1);
+            const jitterX = (Math.random() - 0.5) * 80;
+            const jitterY = (Math.random() - 0.5) * 30;
+            const cx = Phaser.Math.Clamp(
+              Phaser.Math.Linear(a.x, b.x, t) + jitterX, 30, this.gameWidth - 30
+            );
+            const cy = Phaser.Math.Linear(a.y, b.y, t) + jitterY;
+            this.collectibles.push({
+              x: cx,
+              y: cy,
+              collected: false,
+              phase: Math.random() * Math.PI * 2,
+              baseY: cy
+            });
+          }
+        }
+      }
+      this.collectiblesGenerated++;
+    }
+  }
+
+  collectStar(star) {
+    if (star.collected) return;
+    star.collected = true;
+    this.score += 1;
+    this.combo += 1;
+    this.comboTimer = COMBO_TIMEOUT_FRAMES;
+    document.getElementById('hud-score').textContent = '🏆 ' + this.score;
+    this.spawnStarBurst(star.x, star.y);
+    playSound('star', this.combo);
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch {}
+    this.popups.push({
+      x: star.x,
+      y: star.y,
+      text: '+1',
+      color: '#ffe066',
+      life: 1,
+      vy: -1.2,
+      size: 22
+    });
+    this.checkComboMilestone();
+    this.checkScoreMilestone();
+  }
+
+  spawnStarBurst(x, y) {
+    for (let i = 0; i < 12; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 4;
+      this.particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1,
+        life: 1, decay: 0.04 + Math.random() * 0.03,
+        r: 2 + Math.random() * 3,
+        color: ['#ffe066', '#fff5b8', '#ffba49'][Math.floor(Math.random() * 3)]
+      });
+    }
+  }
+
+  // ---- Combo & milestones ---------------------------------------------------
+  resetCombo() {
+    if (this.combo >= 3) {
+      // Show "Combo lost" gently
+      this.popups.push({
+        x: this.player.x,
+        y: this.player.y,
+        text: 'streak lost',
+        color: '#ffffff',
+        life: 0.7, vy: -0.6, size: 14
+      });
+    }
+    this.combo = 0;
+    this.comboTimer = 0;
+  }
+
+  checkComboMilestone() {
+    if (this.combo === 3 || this.combo === 5 || this.combo === 8 || this.combo === 12) {
+      const labels = { 3: 'NICE!', 5: 'AWESOME!', 8: 'AMAZING!', 12: 'UNREAL!' };
+      this.popups.push({
+        x: this.player.x,
+        y: this.player.y - 30,
+        text: labels[this.combo] + ' x' + this.combo,
+        color: '#ff6b9d',
+        life: 1.4, vy: -0.8, size: 26
+      });
+      playSound('combo', this.combo);
+      this.shake = Math.min(8, 4 + this.combo * 0.3);
+      if (navigator.vibrate) try { navigator.vibrate(20); } catch {}
+      // Intensify music with combos
+      if (this.combo >= 5) setMusicLevel(2);
+    }
+  }
+
+  checkScoreMilestone() {
+    for (const m of MILESTONES) {
+      if (this.score >= m && !this.milestonesHit.has(m)) {
+        this.milestonesHit.add(m);
+        const messages = {
+          5: { txt: 'Nice climb!', color: '#6bceff' },
+          10: { txt: 'Going strong!', color: '#5eead4' },
+          15: { txt: 'Up, up, up!', color: '#a78bfa' },
+          25: { txt: 'Sky champion!', color: '#ffe066' },
+          40: { txt: 'INCREDIBLE!', color: '#ff8c42' },
+          60: { txt: 'LEGENDARY!', color: '#ff6b9d' },
+          80: { txt: 'OUT OF THIS WORLD!', color: '#5eead4' },
+          100: { txt: '★ HERO OF THE SKY ★', color: '#ffd700' }
+        };
+        const meta = messages[m];
+        this.bigMessage = { text: meta.txt, color: meta.color, life: 2.0 };
+        this.flashAmount = 1;
+        this.shake = Math.max(this.shake, 12);
+        playSound('milestone');
+        if (navigator.vibrate) try { navigator.vibrate([30, 40, 60]); } catch {}
+      }
+    }
   }
 
   attachPlayer(hubIdx, ropeIdx, silent = false) {
@@ -537,23 +816,55 @@ class RiseScene extends Phaser.Scene {
     this.player.grabCooldown = 12;
     this.player.releaseTimer = 0;
     this.player.airborneCatchTimer = 0;
+    this.player.mood = 'happy';
 
     if (!silent) {
       this.spawnParticles(this.player.x, this.player.y, hub.color);
-      playSound('catch');
-      // Haptic feedback for mobile devices
-      if (navigator.vibrate) {
-        try { navigator.vibrate(15); } catch {}
+      // Gold hub gets extra sparkle and bonus
+      if (hub.variant === 'gold') {
+        this.spawnStarBurst(this.player.x, this.player.y);
+        this.spawnStarBurst(this.player.x, this.player.y);
+        playSound('goldcatch');
+        this.shake = Math.max(this.shake, 9);
+        if (navigator.vibrate) try { navigator.vibrate([15, 20, 30]); } catch {}
+        this.popups.push({
+          x: this.player.x,
+          y: this.player.y - 28,
+          text: '+5 GOLD!',
+          color: '#ffd700',
+          life: 1.4, vy: -1.0, size: 24
+        });
+      } else {
+        playSound('catch');
+        if (navigator.vibrate) try { navigator.vibrate(15); } catch {}
       }
     }
 
     if (hub.uid > 0) {
-      const newScore = Math.max(this.score, hub.uid);
-      if (newScore > this.score) {
-        this.score = newScore;
+      const newScoreBefore = this.score;
+      const wasNew = hub.uid > newScoreBefore;
+      // Track high-water mark of hub reached, plus gold bonus
+      if (wasNew) {
+        // Use additive bonus for gold so it's visibly distinct from a regular catch.
+        this.score = Math.max(this.score, hub.uid) + (hub.variant === 'gold' ? 5 : 0);
         document.getElementById('hud-score').textContent = '🏆 ' + this.score;
-        // Score chime: play on first 5 hubs, then every 3rd hub for celebration
-        if (this.score <= 5 || this.score % 3 === 0) playSound('score');
+
+        // Combo: chain when this hub uid is exactly the next expected
+        this.combo += 1;
+        this.comboTimer = COMBO_TIMEOUT_FRAMES;
+        if (!silent) this.checkComboMilestone();
+
+        if (!silent) {
+          if (hub.variant !== 'gold') {
+            this.popups.push({
+              x: this.player.x, y: this.player.y - 22,
+              text: '+1', color: '#ffffff',
+              life: 0.9, vy: -1.0, size: 18
+            });
+          }
+          if (this.score <= 5 || this.score % 3 === 0) playSound('score');
+        }
+        this.checkScoreMilestone();
       }
     }
   }
@@ -577,6 +888,7 @@ class RiseScene extends Phaser.Scene {
     this.player.releaseTimer = 0;
     this.player.airborneCatchTimer = 0;
     this.player.grabCooldown = 8;
+    this.player.mood = 'launch';
     playSound('release');
     this.spawnTrail(this.player.x, this.player.y);
   }
@@ -685,6 +997,23 @@ class RiseScene extends Phaser.Scene {
   updatePlaying(dt) {
     for (const hub of this.hubs) hub.rotation += hub.speed;
 
+    // Combo decay
+    if (this.combo > 0) {
+      this.comboTimer -= dt;
+      if (this.comboTimer <= 0) this.resetCombo();
+    }
+    // Music level back to 1 if combo dropped
+    if (this.combo < 5 && musicLevel === 2) setMusicLevel(1);
+
+    // Update HUD combo display
+    const comboEl = document.getElementById('hud-combo');
+    if (this.combo >= 2) {
+      comboEl.textContent = 'x' + this.combo;
+      comboEl.classList.add('visible');
+    } else {
+      comboEl.classList.remove('visible');
+    }
+
     if (this.player.grabCooldown > 0) this.player.grabCooldown--;
 
     if (this.player.attached) {
@@ -698,6 +1027,14 @@ class RiseScene extends Phaser.Scene {
       // Face direction based on actual screen-x movement
       const dx = ep.ex - prevX;
       if (Math.abs(dx) > 0.4) this.player.faceDir = dx > 0 ? 1 : -1;
+      // Mood: 'happy' lingers briefly, then 'normal'
+      if (this.player.mood !== 'normal') {
+        this.player._moodFrames = (this.player._moodFrames || 0) + 1;
+        if (this.player._moodFrames > 30) {
+          this.player.mood = 'normal';
+          this.player._moodFrames = 0;
+        }
+      }
     } else {
       this.player.releaseTimer++;
       this.player.airborneCatchTimer += dt;
@@ -706,6 +1043,10 @@ class RiseScene extends Phaser.Scene {
       this.player.x += this.player.vx * dt;
       this.player.y += this.player.vy * dt;
       if (Math.abs(this.player.vx) > 0.5) this.player.faceDir = this.player.vx > 0 ? 1 : -1;
+
+      // Mood by airborne speed - scared when falling fast
+      if (this.player.vy > 8) this.player.mood = 'scared';
+      else if (this.player.mood === 'launch' && this.player.releaseTimer > 25) this.player.mood = 'normal';
 
       // Continuous flight trail when moving fast
       const speed2 = this.player.vx * this.player.vx + this.player.vy * this.player.vy;
@@ -751,6 +1092,18 @@ class RiseScene extends Phaser.Scene {
       if (this.player.releaseTimer > 180) this.player.vy += 0.15;
     }
 
+    // Collect stars (always — even while attached, in case rope swings through one)
+    for (const star of this.collectibles) {
+      if (star.collected) continue;
+      const sy = star.baseY + Math.sin(this.time.now * 0.003 + star.phase) * 4;
+      star.y = sy;
+      const dx = star.x - this.player.x;
+      const dy = star.y - this.player.y;
+      if (dx * dx + dy * dy < STAR_COLLECT_RADIUS * STAR_COLLECT_RADIUS) {
+        this.collectStar(star);
+      }
+    }
+
     const screenTarget = this.gameHeight * 0.55;
     const playerScreenY = this.player.y - this.cameraY;
     if (playerScreenY < screenTarget) {
@@ -762,19 +1115,35 @@ class RiseScene extends Phaser.Scene {
     this.cameraY += camDelta * camLerp;
 
     const topHub = this.hubs[this.hubs.length - 1];
-    if (topHub.y - this.cameraY > -this.gameHeight * 0.5) this.addHub();
+    if (topHub.y - this.cameraY > -this.gameHeight * 0.5) {
+      this.addHub();
+      this.generateCollectiblesUpTo(topHub.y);
+    }
 
     // Cull hubs far below the camera to keep array bounded.
-    // Adjust player.hubIndex to match the new array indices.
-    // Never cull the hub the player is attached to.
     while (this.hubs.length > 3 && this.hubs[0].y - this.cameraY > this.gameHeight + 600) {
-      // Safety: if the player is attached to hubs[0], stop culling
       if (this.player && this.player.attached && this.player.hubIndex === 0) break;
       this.hubs.shift();
       for (let i = 0; i < this.hubs.length; i++) this.hubs[i].index = i;
       if (this.player && this.player.hubIndex >= 1) {
         this.player.hubIndex -= 1;
       }
+    }
+    // Cull old collectibles too
+    this.collectibles = this.collectibles.filter(c => c.y - this.cameraY < this.gameHeight + 400);
+
+    // Update popups, shake, flash, big message
+    for (let i = this.popups.length - 1; i >= 0; i--) {
+      const p = this.popups[i];
+      p.y += p.vy;
+      p.life -= 0.025;
+      if (p.life <= 0) this.popups.splice(i, 1);
+    }
+    if (this.shake > 0) this.shake = Math.max(0, this.shake - 0.6);
+    if (this.flashAmount > 0) this.flashAmount = Math.max(0, this.flashAmount - 0.04);
+    if (this.bigMessage) {
+      this.bigMessage.life -= 0.018;
+      if (this.bigMessage.life <= 0) this.bigMessage = null;
     }
 
     this.updateParticles();
@@ -799,6 +1168,9 @@ class RiseScene extends Phaser.Scene {
     if (this.state === 'gameover') return;
     this.state = 'gameover';
     this.inputHeld = false;
+    this.combo = 0;
+    document.getElementById('hud-combo').classList.remove('visible');
+    setMusicLevel(0);
     playSound('gameover');
     if (navigator.vibrate) {
       try { navigator.vibrate([40, 60, 80]); } catch {}
@@ -826,12 +1198,110 @@ class RiseScene extends Phaser.Scene {
 
   renderScene() {
     this.g.clear();
+    this._textPoolUsed = 0;  // reset text counter at start of frame
+
+    // Apply screen shake by translating the graphics context
+    let shakeX = 0, shakeY = 0;
+    if (this.shake > 0.1) {
+      shakeX = (Math.random() - 0.5) * this.shake;
+      shakeY = (Math.random() - 0.5) * this.shake;
+    }
+    if (this.g.x !== shakeX || this.g.y !== shakeY) {
+      this.g.x = shakeX;
+      this.g.y = shakeY;
+    }
+
     this.drawSky();
     this.drawStars();
     this.drawClouds();
+    this.drawCollectibles();
     for (const hub of this.hubs) this.drawHub(hub);
     this.drawParticles();
     if (this.player) this.drawPlayer();
+
+    // Flash overlay (drawn last, before HUD popups)
+    if (this.flashAmount > 0.02) {
+      this.g.fillStyle(0xffffff, this.flashAmount * 0.5);
+      this.g.fillRect(-shakeX - 20, -shakeY - 20, this.gameWidth + 40, this.gameHeight + 40);
+    }
+
+    this.drawPopups();
+    this.drawBigMessage();
+    this.recycleText();
+  }
+
+  drawCollectibles() {
+    for (const star of this.collectibles) {
+      if (star.collected) continue;
+      const sy = star.y - this.cameraY;
+      if (sy < -30 || sy > this.gameHeight + 30) continue;
+      const pulse = 0.85 + 0.15 * Math.sin(this.time.now * 0.005 + star.phase);
+      const r = 8 * pulse;
+      // Glow
+      this.g.fillStyle(0xffe066, 0.25);
+      this.g.fillCircle(star.x, sy, r * 2.2);
+      this.g.fillStyle(0xffe066, 0.4);
+      this.g.fillCircle(star.x, sy, r * 1.5);
+      // Star body
+      this.g.fillStyle(0xfff5b8, 1);
+      this.g.fillCircle(star.x, sy, r);
+      this.g.fillStyle(0xffd700, 1);
+      this.g.fillCircle(star.x, sy, r * 0.55);
+      // Sparkle highlight
+      this.g.fillStyle(0xffffff, 0.9);
+      this.g.fillCircle(star.x - r * 0.3, sy - r * 0.3, r * 0.25);
+    }
+  }
+
+  drawPopups() {
+    if (this.popups.length === 0) return;
+    for (const p of this.popups) {
+      const sy = p.y - this.cameraY;
+      if (sy < -30 || sy > this.gameHeight + 30) continue;
+      const alpha = Math.min(1, p.life * 1.4);
+      this.drawTextOutlined(p.text, p.x, sy, p.size, p.color, alpha);
+    }
+  }
+
+  drawBigMessage() {
+    if (!this.bigMessage) return;
+    const m = this.bigMessage;
+    const cx = this.gameWidth / 2;
+    const cy = this.gameHeight * 0.35;
+    const alpha = Math.min(1, m.life * 0.9);
+    const scale = 1 + (1 - Math.min(m.life, 1)) * 0.15;
+    this.drawTextOutlined(m.text, cx, cy, 34 * scale, m.color, alpha, true);
+  }
+
+  drawTextOutlined(text, x, y, size, color, alpha, bold) {
+    if (!this._textPool) this._textPool = [];
+    const idx = this._textPoolUsed | 0;
+    let txt = this._textPool[idx];
+    if (!txt) {
+      txt = this.add.text(0, 0, '', {});
+      txt.setOrigin(0.5, 0.5);
+      this._textPool.push(txt);
+    }
+    txt.setText(text);
+    txt.setStyle({
+      fontFamily: '"Bowlby One SC", "DM Sans", sans-serif',
+      fontSize: Math.round(size) + 'px',
+      color,
+      fontStyle: bold ? '900' : '700',
+      stroke: '#1a0030',
+      strokeThickness: Math.max(3, Math.round(size * 0.16))
+    });
+    txt.setPosition(x, y);
+    txt.setAlpha(alpha);
+    txt.setVisible(true);
+    txt.setDepth(10);
+    this._textPoolUsed = idx + 1;
+  }
+
+  recycleText() {
+    if (!this._textPool) return;
+    const used = this._textPoolUsed || 0;
+    for (let i = used; i < this._textPool.length; i++) this._textPool[i].setVisible(false);
   }
 
   drawSky() {
@@ -903,10 +1373,31 @@ class RiseScene extends Phaser.Scene {
       this.g.strokeCircle(ep.ex, epScreenY, isActive ? 10 : 8);
     }
 
+    // Special hub glow
+    if (hub.variant === 'gold') {
+      const pulse = 0.7 + 0.3 * Math.sin(this.time.now * 0.005);
+      this.g.fillStyle(0xffd700, 0.18 * pulse);
+      this.g.fillCircle(sx, sy, hub.radius + 16);
+      this.g.fillStyle(0xffd700, 0.3 * pulse);
+      this.g.fillCircle(sx, sy, hub.radius + 8);
+    } else if (hub.variant === 'bouncy') {
+      this.g.fillStyle(0xff4d8d, 0.16);
+      this.g.fillCircle(sx, sy, hub.radius + 10);
+    }
+
     this.g.fillStyle(hexColor(hub.color), 1);
     this.g.fillCircle(sx, sy, hub.radius);
-    this.g.lineStyle(3, 0xffffff, 0.5);
-    this.g.strokeCircle(sx, sy, hub.radius);
+
+    // Gold hub: extra gold rim
+    if (hub.variant === 'gold') {
+      this.g.lineStyle(4, 0xffffff, 0.85);
+      this.g.strokeCircle(sx, sy, hub.radius);
+      this.g.lineStyle(2, 0xfff5b8, 1);
+      this.g.strokeCircle(sx, sy, hub.radius - 4);
+    } else {
+      this.g.lineStyle(3, 0xffffff, 0.5);
+      this.g.strokeCircle(sx, sy, hub.radius);
+    }
 
     this.g.lineStyle(2, 0xffffff, 0.35);
     for (const rope of hub.ropes) {
@@ -917,8 +1408,14 @@ class RiseScene extends Phaser.Scene {
       this.g.strokePath();
     }
 
-    this.g.fillStyle(0xffffff, 0.7);
-    this.g.fillCircle(sx, sy, 6);
+    this.g.fillStyle(hub.variant === 'gold' ? 0xffe066 : 0xffffff, hub.variant === 'gold' ? 1 : 0.7);
+    this.g.fillCircle(sx, sy, hub.variant === 'gold' ? 8 : 6);
+
+    // Star icon on gold hub center
+    if (hub.variant === 'gold') {
+      this.g.fillStyle(0xffd700, 1);
+      this.g.fillCircle(sx, sy, 4);
+    }
   }
 
   drawParticles() {
@@ -933,6 +1430,7 @@ class RiseScene extends Phaser.Scene {
     const px = this.player.x;
     const py = this.player.y - this.cameraY;
     const eyeX = this.player.faceDir * 6;
+    const mood = this.player.mood || 'normal';
 
     this.g.fillStyle(0x000000, 0.2);
     this.g.fillCircle(px, py + 2, 20);
@@ -943,17 +1441,47 @@ class RiseScene extends Phaser.Scene {
     this.g.lineStyle(2, 0xff8c42, 1);
     this.g.strokeCircle(px, py, 20);
 
-    this.g.fillStyle(0x222222, 1);
-    this.g.fillCircle(px + eyeX - 4, py - 4, 4.5);
-    this.g.fillCircle(px + eyeX + 4, py - 4, 4.5);
+    // Eyes — bigger when scared/launch, normal otherwise
+    const eyeR = (mood === 'scared' || mood === 'launch') ? 5.5 : 4.5;
+    this.g.fillStyle(0xffffff, 1);
+    if (mood === 'scared' || mood === 'launch') {
+      // White eye sclera for surprise look
+      this.g.fillCircle(px + eyeX - 4, py - 4, eyeR);
+      this.g.fillCircle(px + eyeX + 4, py - 4, eyeR);
+      // Smaller pupils
+      this.g.fillStyle(0x222222, 1);
+      this.g.fillCircle(px + eyeX - 4, py - 4, 2.8);
+      this.g.fillCircle(px + eyeX + 4, py - 4, 2.8);
+    } else {
+      this.g.fillStyle(0x222222, 1);
+      this.g.fillCircle(px + eyeX - 4, py - 4, eyeR);
+      this.g.fillCircle(px + eyeX + 4, py - 4, eyeR);
+    }
+    // Eye shine
     this.g.fillStyle(0xffffff, 1);
     this.g.fillCircle(px + eyeX - 3, py - 5.5, 1.5);
     this.g.fillCircle(px + eyeX + 5, py - 5.5, 1.5);
 
-    this.g.lineStyle(2, 0xff6b35, 1);
-    this.g.beginPath();
-    this.g.arc(px + eyeX, py + 5, 7, 0.2, Math.PI - 0.2, false);
-    this.g.strokePath();
+    // Mouth — varies by mood
+    if (mood === 'happy') {
+      // Big smile
+      this.g.lineStyle(2.5, 0xff6b35, 1);
+      this.g.beginPath();
+      this.g.arc(px + eyeX, py + 4, 8, 0.1, Math.PI - 0.1, false);
+      this.g.strokePath();
+    } else if (mood === 'scared' || mood === 'launch') {
+      // O-shaped mouth
+      this.g.fillStyle(0x6b2222, 1);
+      this.g.fillCircle(px + eyeX, py + 6, mood === 'scared' ? 4 : 3);
+      this.g.lineStyle(1.5, 0xff6b35, 1);
+      this.g.strokeCircle(px + eyeX, py + 6, mood === 'scared' ? 4 : 3);
+    } else {
+      // Default smile
+      this.g.lineStyle(2, 0xff6b35, 1);
+      this.g.beginPath();
+      this.g.arc(px + eyeX, py + 5, 7, 0.2, Math.PI - 0.2, false);
+      this.g.strokePath();
+    }
   }
 }
 
@@ -1002,11 +1530,12 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v6 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v7 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+
 
 
 

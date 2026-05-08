@@ -53,7 +53,7 @@
     padding: 40px 36px;
     border: 2px solid rgba(255,255,255,0.25);
     box-shadow: 0 12px 60px rgba(0,0,0,0.35);
-    pointer-events: all;
+    pointer-events: auto;
     max-width: 320px;
     width: 88vw;
     text-align: center;
@@ -146,7 +146,7 @@
     align-items: flex-start;
   }
   #mute-btn {
-    pointer-events: all;
+    pointer-events: auto;
     background: rgba(255,255,255,0.18);
     border: 1.5px solid rgba(255,255,255,0.3);
     border-radius: 50%;
@@ -224,6 +224,8 @@ let musicLoop = null;
 let musicLevel = 0;
 let audioBus = null;
 let riseScene = null;
+let pendingStartRequest = false;
+let lastStartRequestAt = 0;
 
 function gameSize() {
   return {
@@ -456,6 +458,7 @@ class RiseScene extends Phaser.Scene {
     this.g = this.add.graphics();
     this.resizeGame();
     this.resetAttractMode();
+    if (pendingStartRequest) requestStartGame();
 
     this.input.on('pointerdown', (pointer) => {
       if (pointer.event) pointer.event.preventDefault();
@@ -1527,27 +1530,45 @@ const phaserGame = new Phaser.Game({
   scene: RiseScene
 });
 
+function showPlayingUi() {
+  document.getElementById('screen-ready').classList.remove('active');
+  document.getElementById('screen-gameover').classList.remove('active');
+  document.getElementById('hud').classList.remove('hidden');
+}
+
+function requestStartGame(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const now = performance.now();
+  if (lastStartRequestAt && now - lastStartRequestAt < 250) return;
+  lastStartRequestAt = now;
+
+  if (!riseScene) {
+    pendingStartRequest = true;
+    return;
+  }
+
+  pendingStartRequest = false;
+  initAudio();
+  riseScene.startGame();
+  showPlayingUi();
+}
+
 document.getElementById('mute-btn').addEventListener('click', (event) => {
+  event.preventDefault();
   event.stopPropagation();
   setMuted(!muted);
 });
 
-document.getElementById('btn-start').addEventListener('click', () => {
-  if (!riseScene) return;
-  initAudio();
-  riseScene.startGame();
-  document.getElementById('screen-ready').classList.remove('active');
-  document.getElementById('screen-gameover').classList.remove('active');
-  document.getElementById('hud').classList.remove('hidden');
-});
-
-document.getElementById('btn-restart').addEventListener('click', () => {
-  if (!riseScene) return;
-  initAudio();
-  riseScene.startGame();
-  document.getElementById('screen-gameover').classList.remove('active');
-  document.getElementById('hud').classList.remove('hidden');
-});
+const startButton = document.getElementById('btn-start');
+const restartButton = document.getElementById('btn-restart');
+startButton.addEventListener('pointerup', requestStartGame);
+startButton.addEventListener('click', requestStartGame);
+restartButton.addEventListener('pointerup', requestStartGame);
+restartButton.addEventListener('click', requestStartGame);
 
 document.addEventListener('touchmove', event => event.preventDefault(), { passive: false });
 </script>

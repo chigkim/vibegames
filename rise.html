@@ -417,7 +417,8 @@ class RiseScene extends Phaser.Scene {
       speed: speed * dir,
       ropes,
       color: HUB_COLORS[index % HUB_COLORS.length],
-      index
+      index,
+      uid: index  // permanent monotonic id, never changes when array re-indexes
     };
   }
 
@@ -512,8 +513,8 @@ class RiseScene extends Phaser.Scene {
     this.spawnParticles(this.player.x, this.player.y, hub.color);
     playSound('catch');
 
-    if (hubIdx > 0) {
-      const newScore = Math.max(this.score, hubIdx);
+    if (hub.uid > 0) {
+      const newScore = Math.max(this.score, hub.uid);
       if (newScore > this.score) {
         this.score = newScore;
         document.getElementById('hud-score').textContent = '🏆 ' + this.score;
@@ -580,7 +581,7 @@ class RiseScene extends Phaser.Scene {
 
     for (let hi = 0; hi < this.hubs.length; hi++) {
       const hub = this.hubs[hi];
-      if (hub.y > this.player.y + 100) continue;
+      if (hub.y - this.cameraY > this.gameHeight + 200) continue;
       for (let ri = 0; ri < hub.ropes.length; ri++) {
         const ep = this.getRopeEndpoint(hub, hub.ropes[ri]);
         const dist = Phaser.Math.Distance.Between(ep.ex, ep.ey, this.player.x, this.player.y);
@@ -664,7 +665,8 @@ class RiseScene extends Phaser.Scene {
       let nearest = null;
       for (let hi = 0; hi < this.hubs.length; hi++) {
         const hub = this.hubs[hi];
-        if (hub.y > this.player.y + 80) continue;
+        // Skip hubs entirely off-screen below
+        if (hub.y - this.cameraY > this.gameHeight + 200) continue;
         for (let ri = 0; ri < hub.ropes.length; ri++) {
           const ep = this.getRopeEndpoint(hub, hub.ropes[ri]);
           const dist = Phaser.Math.Distance.Between(ep.ex, ep.ey, this.player.x, this.player.y);
@@ -698,11 +700,14 @@ class RiseScene extends Phaser.Scene {
     const topHub = this.hubs[this.hubs.length - 1];
     if (topHub.y - this.cameraY > -this.gameHeight * 0.5) this.addHub();
 
-    // Cull hubs far below the camera to keep array bounded
+    // Cull hubs far below the camera to keep array bounded.
+    // Adjust player.hubIndex to match the new array indices.
     while (this.hubs.length > 3 && this.hubs[0].y - this.cameraY > this.gameHeight + 600) {
       this.hubs.shift();
-      // Re-index
       for (let i = 0; i < this.hubs.length; i++) this.hubs[i].index = i;
+      if (this.player && this.player.hubIndex >= 0) {
+        this.player.hubIndex = Math.max(0, this.player.hubIndex - 1);
+      }
     }
 
     this.updateParticles();
@@ -899,9 +904,10 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v3 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v4 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+
 

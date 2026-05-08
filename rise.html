@@ -518,6 +518,7 @@ class RiseScene extends Phaser.Scene {
     this.milestonesHit = new Set();
     this.bigMessage = null;
     this.highestHubReached = 0;
+    this.hasCaughtFirst = false;
     this.player = null;
     this.generateClouds();
     this.generateHubs();
@@ -549,13 +550,22 @@ class RiseScene extends Phaser.Scene {
     this.milestonesHit = new Set();
     this.bigMessage = null;
     this.highestHubReached = 0;
+    this.hasCaughtFirst = false;  // no falling/penalty until first catch
     document.getElementById('hud-score').textContent = '🏆 0';
     document.getElementById('hud-combo').classList.remove('visible');
     this.generateClouds();
     this.generateHubs();
     this.initPlayer();
-    this.attachPlayer(0, 0, true);  // silent auto-attach
-    this.cameraY = this.player.y - this.gameHeight * 0.55;
+
+    // Position player just below the first hub's lowest rope reach.
+    // First hub is at gameWidth/2, y=-180, with rope lengths 55/75/95 (isEarly).
+    const firstHub = this.hubs[0];
+    const longestRope = Math.max(...firstHub.ropes.map(r => r.length));
+    this.player.x = firstHub.x;
+    this.player.y = firstHub.y + firstHub.radius + longestRope + 12;
+    this.player.mood = 'normal';
+
+    this.cameraY = this.player.y - this.gameHeight * 0.7;  // show hub above
     this.cameraTargetY = this.cameraY;
     this.generateCollectiblesUpTo(this.hubs[this.hubs.length - 1].y);
     setMusicLevel(1);
@@ -844,6 +854,13 @@ class RiseScene extends Phaser.Scene {
     this.player.mood = 'happy';
     this.player._moodFrames = 0;
 
+    // First-catch milestone: enables gravity, fall threshold, and missed-catch penalty.
+    if (!this.hasCaughtFirst) {
+      this.hasCaughtFirst = true;
+      // Re-target the camera so the player sits at the normal play position.
+      this.cameraTargetY = this.player.y - this.gameHeight * 0.55;
+    }
+
     if (!silent) {
       this.spawnParticles(this.player.x, this.player.y, hub.color);
       // Gold hub gets extra sparkle and bonus
@@ -1059,31 +1076,35 @@ class RiseScene extends Phaser.Scene {
         }
       }
     } else {
-      this.player.releaseTimer++;
-      this.player.airborneCatchTimer += dt;
-      this.player.vy += GRAVITY;
-      if (!this.canCatchWhileAirborne()) this.player.vy += MISSED_CATCH_GRAVITY;
-      this.player.x += this.player.vx * dt;
-      this.player.y += this.player.vy * dt;
-      if (Math.abs(this.player.vx) > 0.5) this.player.faceDir = this.player.vx > 0 ? 1 : -1;
+      // Pre-first-catch: player floats in place, no gravity, no missed-catch penalty,
+      // no fall threshold. They just wait for a rope to swing into reach.
+      if (this.hasCaughtFirst) {
+        this.player.releaseTimer++;
+        this.player.airborneCatchTimer += dt;
+        this.player.vy += GRAVITY;
+        if (!this.canCatchWhileAirborne()) this.player.vy += MISSED_CATCH_GRAVITY;
+        this.player.x += this.player.vx * dt;
+        this.player.y += this.player.vy * dt;
+        if (Math.abs(this.player.vx) > 0.5) this.player.faceDir = this.player.vx > 0 ? 1 : -1;
 
-      // Mood by airborne speed - scared when falling fast
-      if (this.player.vy > 8) this.player.mood = 'scared';
-      else if (this.player.mood === 'launch' && this.player.releaseTimer > 25) this.player.mood = 'normal';
+        // Mood by airborne speed - scared when falling fast
+        if (this.player.vy > 8) this.player.mood = 'scared';
+        else if (this.player.mood === 'launch' && this.player.releaseTimer > 25) this.player.mood = 'normal';
 
-      // Continuous flight trail when moving fast
-      const speed2 = this.player.vx * this.player.vx + this.player.vy * this.player.vy;
-      if (speed2 > 16 && Math.random() < 0.5) {
-        this.particles.push({
-          x: this.player.x + (Math.random() - 0.5) * 6,
-          y: this.player.y + (Math.random() - 0.5) * 6,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
-          life: 0.5,
-          decay: 0.06,
-          r: 1.5 + Math.random() * 2.5,
-          color: '#ffffff'
-        });
+        // Continuous flight trail when moving fast
+        const speed2 = this.player.vx * this.player.vx + this.player.vy * this.player.vy;
+        if (speed2 > 16 && Math.random() < 0.5) {
+          this.particles.push({
+            x: this.player.x + (Math.random() - 0.5) * 6,
+            y: this.player.y + (Math.random() - 0.5) * 6,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: (Math.random() - 0.5) * 0.3,
+            life: 0.5,
+            decay: 0.06,
+            r: 1.5 + Math.random() * 2.5,
+            color: '#ffffff'
+          });
+        }
       }
 
       let nearestDist = MAGNETIC_RADIUS;
@@ -1102,17 +1123,21 @@ class RiseScene extends Phaser.Scene {
         }
       }
 
+      // Before first catch: just hold to grab the first rope that swings into range.
+      // After first catch: standard catch logic.
       const canCatch = this.inputHeld;
       if (canCatch && nearest && nearestDist < CATCH_RADIUS && this.player.grabCooldown <= 0) {
         this.attachPlayer(nearest.hi, nearest.ri);
-      } else if (canCatch && nearest && nearestDist < MAGNETIC_RADIUS * 0.7) {
+      } else if (this.hasCaughtFirst && canCatch && nearest && nearestDist < MAGNETIC_RADIUS * 0.7) {
         const factor = 0.06;
         this.player.vx += (nearest.ep.ex - this.player.x) * factor;
         this.player.vy += (nearest.ep.ey - this.player.y) * factor;
       }
 
-      this.player.x = Phaser.Math.Clamp(this.player.x, 18, this.gameWidth - 18);
-      if (this.player.releaseTimer > 180) this.player.vy += 0.15;
+      if (this.hasCaughtFirst) {
+        this.player.x = Phaser.Math.Clamp(this.player.x, 18, this.gameWidth - 18);
+        if (this.player.releaseTimer > 180) this.player.vy += 0.15;
+      }
     }
 
     // Collect stars (always — even while attached, in case rope swings through one)
@@ -1171,7 +1196,7 @@ class RiseScene extends Phaser.Scene {
 
     this.updateParticles();
 
-    if (this.player.y - this.cameraY > this.gameHeight + FALL_THRESHOLD) {
+    if (this.hasCaughtFirst && this.player.y - this.cameraY > this.gameHeight + FALL_THRESHOLD) {
       this.showGameOver();
     }
   }
@@ -1455,7 +1480,12 @@ class RiseScene extends Phaser.Scene {
 
   drawPlayer() {
     const px = this.player.x;
-    const py = this.player.y - this.cameraY;
+    // Gentle hover bob while waiting for the first catch — purely cosmetic,
+    // does not affect physics or collision.
+    const waitBob = (this.state === 'playing' && !this.hasCaughtFirst && !this.player.attached)
+      ? Math.sin(this.time.now * 0.004) * 4
+      : 0;
+    const py = this.player.y - this.cameraY + waitBob;
     const eyeX = this.player.faceDir * 6;
     const mood = this.player.mood || 'normal';
 
@@ -1575,11 +1605,12 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v8 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v9 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+
 
 
 

@@ -279,7 +279,7 @@ function update(){
     if(!pipes[i].passed && pipes[i].x+pipes[i].w<bird.x){
       pipes[i].passed=true; passed++;
       pillObs.textContent=Math.min(passed,L.count)+' / '+L.count;
-      if(passed>=L.count && !lvDone){ lvDone=true; setTimeout(function(){running=false;showLvDone();},900); }
+      if(passed>=L.count && !lvDone){ lvDone=true; running=false; setTimeout(showLvDone,900); }
     }
     if(pipes[i].x+pipes[i].w<-30) pipes.splice(i,1);
   }
@@ -292,7 +292,7 @@ function update(){
   for(var i=particles.length-1;i>=0;i--){ var p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.life--; if(p.life<=0)particles.splice(i,1); }
 
   if(bird.y<18){ bird.y=18; bird.vy=1; }
-  if(bird.y>CH()-GH-13){ die(); return; }
+  if(!lvDone && bird.y>CH()-GH-13){ die(); return; }
 
   if(!lvDone){
     var bx=bird.x,by=bird.y,br=13;
@@ -303,7 +303,7 @@ function update(){
   }
 }
 
-function die(){ bird.alive=false; bird.vy=FLAP*0.3; playDie(); running=false; setTimeout(showDied,900); }
+function die(){ if(lvDone) return; bird.alive=false; bird.vy=FLAP*0.3; playDie(); running=false; setTimeout(showDied,900); }
 
 // ── Drawing ───────────────────────────────────────────────────────────────────
 function drawSky(){

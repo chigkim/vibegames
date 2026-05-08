@@ -34,7 +34,6 @@
       overflow-x: hidden;
     }
 
-    /* ---- Grain overlay ---- */
     body::before {
       content: '';
       position: fixed;
@@ -46,7 +45,6 @@
       background-size: 180px;
     }
 
-    /* ---- Background blobs ---- */
     .bg-blobs {
       position: fixed;
       inset: 0;
@@ -68,7 +66,6 @@
       to { transform: translate(60px, 40px) scale(1.12); }
     }
 
-    /* ---- Layout ---- */
     .wrapper {
       position: relative;
       z-index: 1;
@@ -77,7 +74,6 @@
       padding: 0 24px;
     }
 
-    /* ---- Header ---- */
     header {
       display: flex;
       align-items: center;
@@ -103,7 +99,6 @@
     }
     header nav a:hover { color: var(--text); }
 
-    /* ---- Hero ---- */
     .hero {
       text-align: center;
       padding: 80px 0 60px;
@@ -152,14 +147,12 @@
     .hero-cta svg { transition: transform 0.25s; }
     .hero-cta:hover svg { transform: translateX(4px); }
 
-    /* ---- Section titles ---- */
     .section-title {
       font-family: 'Bowlby One SC', cursive;
       font-size: 1.8rem;
       margin-bottom: 36px;
     }
 
-    /* ---- Game grid ---- */
     .games {
       padding: 20px 0 80px;
     }
@@ -198,6 +191,7 @@
     .card-icon.mint   { background: rgba(0,229,160,0.15);  color: var(--mint); }
     .card-icon.violet { background: rgba(167,139,250,0.15); color: var(--violet); }
     .card-icon.sky    { background: rgba(56,189,248,0.15);  color: var(--sky); }
+    .card-icon.yellow { background: rgba(255,224,102,0.15); color: #ffe066; }
 
     .game-card h3 {
       font-size: 1.15rem;
@@ -222,9 +216,6 @@
     .card-tag.coming { background: rgba(255,255,255,0.06); color: var(--text-muted); }
     .card-tag.live   { background: rgba(0,229,160,0.14);  color: var(--mint); }
 
-
-
-    /* ---- Footer ---- */
     footer {
       border-top: 1px solid rgba(255,255,255,0.06);
       padding: 32px 0;
@@ -242,7 +233,6 @@
     }
     footer a:hover { color: var(--text); }
 
-    /* ---- Fade-in on scroll ---- */
     .reveal {
       opacity: 0;
       transform: translateY(28px);
@@ -253,7 +243,6 @@
       transform: translateY(0);
     }
 
-    /* ---- Responsive ---- */
     @media (max-width: 700px) {
       header nav a { margin-left: 16px; font-size: 0.85rem; }
     }
@@ -269,7 +258,6 @@
 
 <div class="wrapper">
 
-  <!-- Header -->
   <header>
     <div class="logo">VIBE GAMES</div>
     <nav>
@@ -278,7 +266,6 @@
     </nav>
   </header>
 
-  <!-- Hero -->
   <section class="hero reveal">
     <h1>Play the <span class="highlight">Vibe</span></h1>
     <p>A growing collection of browser-based games, vibe coded with AI. No installs, no accounts — just pick a game and play.</p>
@@ -288,10 +275,16 @@
     </a>
   </section>
 
-  <!-- Games -->
   <section class="games" id="games">
     <h2 class="section-title reveal">Games</h2>
     <div class="game-grid">
+
+      <a class="game-card reveal" href="rise.html">
+        <div class="card-icon yellow">🪢</div>
+        <h3>Rise! <span style="font-size:0.7rem;opacity:0.45;font-family:monospace;font-weight:400;">v1</span></h3>
+        <p>Swing from rope to rope on spinning hubs and climb as high as you can! Tap to release, tap to catch. A one-touch arcade climber made for kids.</p>
+        <span class="card-tag live">Play Now</span>
+      </a>
 
       <a class="game-card reveal" href="hero-rescue.html">
         <div class="card-icon orange">🚑🚒🚔</div>
@@ -299,6 +292,7 @@
         <p>Pick your vehicle and save the day! Drive an ambulance to the hospital, rescue a kitten with a fire truck, or chase the bad guy in a police car. Touch controls, made for kids.</p>
         <span class="card-tag live">Play Now</span>
       </a>
+
       <a class="game-card reveal" href="ms-menna-math.html">
         <div class="card-icon mint">🐾</div>
         <h3>Math with Ms. Menna! <span style="font-size:0.7rem;opacity:0.45;font-family:monospace;font-weight:400;">v1</span></h3>
@@ -306,18 +300,16 @@
         <span class="card-tag live">Play Now</span>
       </a>
 
-
       <a class="game-card reveal" href="flappy-birdie.html">
         <div class="card-icon sky">&#128038;</div>
         <h3>Flappy Birdie! <span style="font-size:0.7rem;opacity:0.45;font-family:monospace;font-weight:400;">v3</span></h3>
         <p>5 themed levels to complete! Fly through candy clouds, a night sky, a jungle, and a rainbow world. Collect stars along the way!</p>
         <span class="card-tag live">Play Now</span>
       </a>
+
     </div>
   </section>
 
-
-  <!-- Footer -->
   <footer>
     <span>&copy; 2026 Vibe Games &mdash; vibe coded with AI ✨</span>
     <div>
@@ -328,13 +320,11 @@
 </div>
 
 <script>
-  // Scroll reveal
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
   }, { threshold: 0.15 });
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-  // Smooth scroll for anchor links
   document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener('click', e => {
       e.preventDefault();

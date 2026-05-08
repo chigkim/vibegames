@@ -530,17 +530,20 @@ class RiseScene extends Phaser.Scene {
     if (pendingStartRequest) requestStartGame();
 
     this.input.on('pointerdown', (pointer) => {
-      if (pointer.event) pointer.event.preventDefault();
+      // Only call preventDefault during gameplay; during menu screens, allow
+      // the browser to deliver the click to overlay HTML elements (checkboxes,
+      // buttons). Otherwise iOS may swallow the synthesized click.
+      if (this.state === 'playing' && pointer.event) pointer.event.preventDefault();
       this.handleGrabStart();
     });
 
     this.input.on('pointerup', (pointer) => {
-      if (pointer.event) pointer.event.preventDefault();
+      if (this.state === 'playing' && pointer.event) pointer.event.preventDefault();
       this.handleGrabEnd();
     });
 
     this.input.on('pointerupoutside', (pointer) => {
-      if (pointer.event) pointer.event.preventDefault();
+      if (this.state === 'playing' && pointer.event) pointer.event.preventDefault();
       this.handleGrabEnd();
     });
 
@@ -1852,10 +1855,6 @@ guideToggleReady.checked = guideEnabled;
 guideToggleGameover.checked = guideEnabled;
 guideToggleReady.addEventListener('change', () => setGuidePref(guideToggleReady.checked));
 guideToggleGameover.addEventListener('change', () => setGuidePref(guideToggleGameover.checked));
-// Stop pointer events from bubbling to canvas
-[guideToggleReady, guideToggleGameover].forEach(box => {
-  box.addEventListener('pointerdown', e => e.stopPropagation());
-});
 
 const startButton = document.getElementById('btn-start');
 const restartButton = document.getElementById('btn-restart');
@@ -1869,11 +1868,12 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v13 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v14 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+
 
 
 

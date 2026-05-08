@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Flappy Birdie! v1</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+  background:#87CEEB;
+  display:flex; align-items:center; justify-content:center;
+  height:100vh; width:100vw; overflow:hidden;
+  font-family:'Comic Sans MS','Chalkboard SE',cursive;
+  touch-action:none; user-select:none; -webkit-user-select:none;
+}
+#wrap {
+  position:relative;
+  width:100vw; max-width:480px;
+  height:100vh; max-height:760px;
+  overflow:hidden; border-radius:12px;
+  background:#87CEEB;
+}
+canvas { display:block; width:100%; height:100%; }
+
+/* HUD */
+#hud {
+  position:absolute; top:14px; left:0; right:0;
+  display:flex; justify-content:center; align-items:center;
+  pointer-events:none; z-index:10; gap:10px;
+}
+#star-count {
+  background:rgba(255,255,255,0.85);
+  border-radius:30px; padding:7px 20px;
+  font-size:22px; font-weight:bold; color:#e65100;
+  box-shadow:0 3px 12px rgba(0,0,0,0.15);
+}
+#version-badge {
+  position:absolute; top:14px; right:14px;
+  background:rgba(0,0,0,0.18); color:rgba(255,255,255,0.7);
+  border-radius:10px; padding:3px 8px; font-size:10px;
+  pointer-events:none; z-index:10; letter-spacing:1px;
+}
+
+/* Overlay */
+#overlay {
+  position:absolute; inset:0;
+  background:rgba(100,180,255,0.55);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  z-index:50; gap:10px;
+}
+#overlay-card {
+  background:#fff; border-radius:28px; padding:28px 36px;
+  text-align:center; max-width:290px;
+  box-shadow:0 8px 40px rgba(0,0,0,0.18);
+}
+#ov-emoji { font-size:60px; line-height:1.1; }
+#ov-title { font-size:23px; font-weight:bold; color:#e65100; margin:8px 0 6px; }
+#ov-sub   { font-size:14px; color:#666; margin-bottom:18px; line-height:1.5; }
+#ov-stars { font-size:18px; color:#f59e0b; margin-bottom:12px; min-height:24px; }
+#ov-btn {
+  background:#ff7043; color:#fff; border:none;
+  border-radius:50px; padding:13px 40px;
+  font-size:18px; font-family:inherit; font-weight:bold;
+  cursor:pointer; box-shadow:0 4px 16px rgba(255,112,67,0.4);
+  display:inline-block;
+}
+#ov-btn:active { transform:scale(0.95); }
+
+/* Floating star reward popup */
+.star-pop {
+  position:absolute;
+  font-size:32px;
+  pointer-events:none;
+  z-index:30;
+  animation:starFloat 1.2s ease-out forwards;
+}
+@keyframes starFloat {
+  0%   { opacity:1; transform:translateY(0) scale(1); }
+  100% { opacity:0; transform:translateY(-80px) scale(1.5); }
+}
+
+/* Confetti */
+.confetti {
+  position:absolute; pointer-events:none;
+  animation:cfall linear forwards; z-index:60;
+}
+@keyframes cfall {
+  0%  { opacity:1; transform:translateY(0) rotate(0deg); }
+  100%{ opacity:0; transform:translateY(110vh) rotate(720deg); }
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+
+  <div id="hud">
+    <div id="star-count">&#11088; 0</div>
+  </div>
+  <div id="version-badge">v1</div>
+
+  <div id="overlay">
+    <div id="overlay-card">
+      <div id="ov-emoji">&#128038;</div>
+      <div id="ov-title">Flappy Birdie!</div>
+      <div id="ov-sub">Tap anywhere to flap!<br>Fly through the clouds<br>and collect the stars! &#11088;</div>
+      <div id="ov-stars"></div>
+      <div id="ov-btn">Let's Fly! &#128038;</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var wrap    = document.getElementById('wrap');
+var canvas  = document.getElementById('c');
+var ctx     = canvas.getContext('2d');
+var overlay = document.getElementById('overlay');
+var ovBtn   = document.getElementById('ov-btn');
+var ovEmoji = document.getElementById('ov-emoji');
+var ovTitle = document.getElementById('ov-title');
+var ovSub   = document.getElementById('ov-sub');
+var ovStars = document.getElementById('ov-stars');
+var starCountEl = document.getElementById('star-count');
+
+function resize(){
+  canvas.width  = wrap.offsetWidth  || 375;
+  canvas.height = wrap.offsetHeight || 667;
+}
+resize();
+window.addEventListener('resize', resize);
+function CW(){ return canvas.width; }
+function CH(){ return canvas.height; }
+
+// ── Game constants (toddler-friendly) ─────────────────────────────────────────
+var GRAVITY      = 0.22;   // very gentle gravity
+var FLAP_POWER   = -5.2;   // strong flap so one tap goes far
+var PIPE_SPEED   = 1.6;    // slow moving clouds
+var PIPE_GAP     = 200;    // huge gap — easy to fly through
+var PIPE_SPACING = 380;    // lots of space between cloud pairs
+var BIRD_X_RATIO = 0.28;   // bird sits at 28% from left
+var GROUND_H     = 70;
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var running = false;
+var started = false; // first tap has happened
+var stars   = 0;
+var bird, pipes, starItems, bgClouds, particles;
+var groundOffset = 0;
+var frameCount = 0;
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+var ac = null;
+function getAC(){ if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}} return ac; }
+function beep(freq,dur,vol,type){
+  try{
+    var c=getAC(); if(!c) return;
+    if(c.state==='suspended') c.resume();
+    var o=c.createOscillator(),g=c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.type=type||'sine'; o.frequency.value=freq;
+    g.gain.setValueAtTime(vol||0.15,c.currentTime);
+    g.gain.linearRampToValueAtTime(0,c.currentTime+dur);
+    o.start(c.currentTime); o.stop(c.currentTime+dur);
+  }catch(e){}
+}
+function playFlap(){
+  beep(520,0.08,0.12,'sine');
+  beep(640,0.06,0.08,'sine');
+}
+function playStar(){
+  var f=[800,1000,1200];
+  for(var i=0;i<f.length;i++)(function(fr,d){setTimeout(function(){beep(fr,0.1,0.18,'sine');},d);})(f[i],i*60);
+}
+function playDie(){
+  beep(300,0.15,0.2,'sawtooth');
+  setTimeout(function(){beep(180,0.25,0.15,'sawtooth');},120);
+}
+function playCelebrate(){
+  var f=[523,659,784,1047,1319];
+  for(var i=0;i<f.length;i++)(function(fr,d){setTimeout(function(){beep(fr,0.15,0.2,'sine');},d);})(f[i],i*100);
+}
+
+// ── Rounded rect helper ───────────────────────────────────────────────────────
+function rrFill(x,y,w,h,r,col){
+  if(w<2*r)r=w/2; if(h<2*r)r=h/2;
+  ctx.fillStyle=col;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath(); ctx.fill();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function initGame(){
+  bird = {
+    x: CW() * BIRD_X_RATIO,
+    y: CH() * 0.42,
+    vy: 0,
+    angle: 0,
+    flapAnim: 0,  // wing flap frame
+    alive: true
+  };
+
+  pipes = [];
+  starItems = [];
+  bgClouds = [];
+  particles = [];
+  frameCount = 0;
+  groundOffset = 0;
+  started = false;
+
+  // Spawn background decorative clouds
+  for(var i=0;i<6;i++){
+    bgClouds.push({
+      x: Math.random()*CW(),
+      y: 40+Math.random()*(CH()*0.45),
+      s: 0.6+Math.random()*0.8,
+      vx: 0.2+Math.random()*0.3,
+      alpha: 0.3+Math.random()*0.3
+    });
+  }
+
+  // First pipe far enough away for player to prepare
+  spawnPipe(CW() + 300);
+}
+
+function spawnPipe(x){
+  var minTop = 80;
+  var maxTop = CH() - GROUND_H - PIPE_GAP - 80;
+  var topH = minTop + Math.random()*(maxTop - minTop);
+
+  pipes.push({
+    x: x,
+    topH: topH,
+    bottomY: topH + PIPE_GAP,
+    w: 90,
+    passed: false,
+    // cloud wobble
+    wobbleTop: Math.random()*Math.PI*2,
+    wobbleBot: Math.random()*Math.PI*2,
+    colorHue: 190 + Math.floor(Math.random()*30)
+  });
+
+  // Maybe place a star in the gap
+  if(Math.random() < 0.75){
+    starItems.push({
+      x: x + 45,
+      y: topH + PIPE_GAP/2,
+      r: 16,
+      collected: false,
+      wobble: Math.random()*Math.PI*2,
+      scale: 1
+    });
+  }
+}
+
+// ── Flap ──────────────────────────────────────────────────────────────────────
+function flap(){
+  if(!bird.alive) return;
+  if(!started){ started=true; }
+  bird.vy = FLAP_POWER;
+  bird.flapAnim = 8;
+  playFlap();
+  // tiny particle burst
+  for(var i=0;i<6;i++){
+    particles.push({
+      x:bird.x, y:bird.y,
+      vx:(Math.random()-0.5)*3,
+      vy:Math.random()*2+1,
+      life:20, maxLife:20,
+      col:'rgba(255,255,150,'
+    });
+  }
+}
+
+// Tap / click
+document.addEventListener('touchstart', function(e){
+  e.preventDefault();
+  if(!running && !overlay.style.display.includes('none') === false) return;
+  flap();
+},{passive:false});
+document.addEventListener('mousedown', function(){ flap(); });
+
+function handleOvBtn(){
+  overlay.style.display='none';
+  stars=0;
+  starCountEl.innerHTML='&#11088; 0';
+  initGame();
+  running=true;
+  requestAnimationFrame(loop);
+}
+ovBtn.addEventListener('touchstart',function(e){e.preventDefault();handleOvBtn();},{passive:false});
+ovBtn.addEventListener('click',handleOvBtn);
+
+// ── Physics & logic ────────────────────────────────────────────────────────────
+function update(){
+  frameCount++;
+  groundOffset = (groundOffset + PIPE_SPEED) % 40;
+
+  // Bird physics — hover gently before first flap
+  if(!started){
+    bird.y = CH()*0.42 + Math.sin(frameCount*0.05)*8;
+    bird.angle = 0;
+    return;
+  }
+
+  bird.vy += GRAVITY;
+  // Terminal velocity cap so it never plummets too fast
+  if(bird.vy > 6) bird.vy = 6;
+  bird.y += bird.vy;
+  bird.angle = Math.max(-25, Math.min(35, bird.vy * 4));
+  if(bird.flapAnim > 0) bird.flapAnim--;
+
+  // Background clouds drift
+  for(var i=0;i<bgClouds.length;i++){
+    bgClouds[i].x += bgClouds[i].vx;
+    if(bgClouds[i].x > CW()+120) bgClouds[i].x = -120;
+  }
+
+  // Spawn new pipes
+  if(pipes.length === 0 || pipes[pipes.length-1].x < CW() - PIPE_SPACING){
+    spawnPipe(CW() + 60);
+  }
+
+  // Move pipes
+  for(var i=pipes.length-1;i>=0;i--){
+    pipes[i].x -= PIPE_SPEED;
+    if(pipes[i].x + pipes[i].w < -20){
+      pipes.splice(i,1);
+    }
+  }
+
+  // Move & collect stars
+  for(var i=starItems.length-1;i>=0;i--){
+    var s=starItems[i];
+    s.x -= PIPE_SPEED;
+    s.wobble += 0.07;
+    if(!s.collected){
+      var dx=bird.x-s.x, dy=bird.y-s.y;
+      if(Math.sqrt(dx*dx+dy*dy) < s.r+14){
+        s.collected=true;
+        stars++;
+        starCountEl.innerHTML='&#11088; '+stars;
+        playStar();
+        spawnStarPop(s.x,s.y);
+      }
+    }
+    if(s.x < -30) starItems.splice(i,1);
+  }
+
+  // Particles
+  for(var i=particles.length-1;i>=0;i--){
+    var p=particles[i];
+    p.x+=p.vx; p.y+=p.vy; p.life--;
+    if(p.life<=0) particles.splice(i,1);
+  }
+
+  // Collision: ceiling
+  if(bird.y < 20){
+    bird.y=20; bird.vy=1;
+  }
+
+  // Collision: ground
+  if(bird.y > CH()-GROUND_H-16){
+    die();
+    return;
+  }
+
+  // Collision: pipes (cloud obstacles)
+  var bx=bird.x, by=bird.y, br=14;
+  for(var i=0;i<pipes.length;i++){
+    var p=pipes[i];
+    var inX = bx+br > p.x+6 && bx-br < p.x+p.w-6;
+    if(inX){
+      if(by-br < p.topH || by+br > p.bottomY){
+        die();
+        return;
+      }
+    }
+  }
+}
+
+function die(){
+  bird.alive=false;
+  bird.vy=FLAP_POWER*0.4;
+  playDie();
+  running=false;
+  setTimeout(showGameOver, 900);
+}
+
+// ── Drawing ───────────────────────────────────────────────────────────────────
+function drawSky(){
+  // Gradient sky
+  var grad=ctx.createLinearGradient(0,0,0,CH());
+  grad.addColorStop(0,'#4FC3F7');
+  grad.addColorStop(0.6,'#87CEEB');
+  grad.addColorStop(1,'#B3E5FC');
+  ctx.fillStyle=grad;
+  ctx.fillRect(0,0,CW(),CH());
+}
+
+function drawBgCloud(c){
+  ctx.save();
+  ctx.globalAlpha=c.alpha;
+  ctx.translate(c.x,c.y);
+  ctx.scale(c.s,c.s);
+  ctx.fillStyle='#fff';
+  ctx.beginPath();
+  ctx.arc(0,0,22,0,Math.PI*2); ctx.arc(28,-8,18,0,Math.PI*2);
+  ctx.arc(-24,-6,16,0,Math.PI*2); ctx.arc(12,10,14,0,Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.restore();
+}
+
+function drawPipeCloud(pipe){
+  var wo=pipe.w;
+  var t=Date.now()/1000;
+
+  // TOP cloud obstacle (hangs from top)
+  drawCloudObstacle(pipe.x, 0, wo, pipe.topH, true, t+pipe.wobbleTop, pipe.colorHue);
+
+  // BOTTOM cloud obstacle (sits on floor area)
+  drawCloudObstacle(pipe.x, pipe.bottomY, wo, CH()-GROUND_H-pipe.bottomY, false, t+pipe.wobbleBot, pipe.colorHue);
+}
+
+function drawCloudObstacle(x,y,w,h,isTop,wobble,hue){
+  if(h<=0) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x-10,y-10,w+20,h+20);
+  ctx.clip();
+
+  // Cloud body colour
+  var lightness=isTop?'88%':'82%';
+  ctx.fillStyle='hsl('+hue+',60%,'+lightness+')';
+  ctx.fillRect(x,y,w,h);
+
+  // Puffy cloud bumps on the visible edge
+  ctx.fillStyle='hsl('+hue+',55%,92%)';
+  var edgeY = isTop ? y+h : y;
+  var bumps = 5;
+  var bumpW = w/bumps;
+  for(var i=0;i<bumps;i++){
+    var bx=x+i*bumpW+bumpW/2;
+    var offset=Math.sin(wobble+i)*4;
+    var r=bumpW*0.55;
+    ctx.beginPath();
+    if(isTop){
+      ctx.arc(bx, edgeY+offset, r, 0, Math.PI*2);
+    } else {
+      ctx.arc(bx, edgeY+offset, r, 0, Math.PI*2);
+    }
+    ctx.fill();
+  }
+
+  // Highlight sheen
+  ctx.fillStyle='rgba(255,255,255,0.25)';
+  ctx.fillRect(x+4, y, w-8, Math.min(h, 18));
+
+  ctx.restore();
+}
+
+function drawStar(s){
+  if(s.collected) return;
+  var bob=Math.sin(s.wobble)*5;
+  ctx.save();
+  ctx.translate(s.x, s.y+bob);
+  var sc=0.9+Math.sin(s.wobble*1.5)*0.1;
+  ctx.scale(sc,sc);
+  // Glow
+  ctx.shadowColor='#FFD700'; ctx.shadowBlur=18;
+  ctx.font='28px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('\u2B50',0,0);
+  ctx.shadowBlur=0;
+  ctx.restore();
+}
+
+function drawBird(){
+  var x=bird.x, y=bird.y;
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(bird.angle * Math.PI/180);
+
+  var wingDown = bird.flapAnim > 0;
+
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.12)';
+  ctx.beginPath(); ctx.ellipse(2,18,14,5,0,0,Math.PI*2); ctx.fill();
+
+  // Body
+  ctx.fillStyle='#FFD700';
+  ctx.beginPath(); ctx.ellipse(0,0,18,14,0,0,Math.PI*2); ctx.fill();
+
+  // Belly
+  ctx.fillStyle='#FFF9C4';
+  ctx.beginPath(); ctx.ellipse(3,2,11,9,0.2,0,Math.PI*2); ctx.fill();
+
+  // Wing
+  ctx.fillStyle='#FFA000';
+  if(wingDown){
+    // wing down = flapping
+    ctx.beginPath(); ctx.ellipse(-4,8,12,6,-0.4,0,Math.PI*2); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.ellipse(-4,-4,12,6,0.4,0,Math.PI*2); ctx.fill();
+  }
+
+  // Eye white
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(10,-3,6,0,Math.PI*2); ctx.fill();
+  // Pupil
+  ctx.fillStyle='#222';
+  ctx.beginPath(); ctx.arc(11,-3,3,0,Math.PI*2); ctx.fill();
+  // Eye shine
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(12,-4,1.2,0,Math.PI*2); ctx.fill();
+
+  // Beak
+  ctx.fillStyle='#FF8F00';
+  ctx.beginPath();
+  ctx.moveTo(16,-1); ctx.lineTo(24,1); ctx.lineTo(16,4);
+  ctx.closePath(); ctx.fill();
+
+  // Cheek blush
+  ctx.fillStyle='rgba(255,150,150,0.5)';
+  ctx.beginPath(); ctx.arc(6,4,5,0,Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
+function drawGround(){
+  // Green ground strip
+  ctx.fillStyle='#66BB6A';
+  ctx.fillRect(0,CH()-GROUND_H,CW(),GROUND_H);
+  // Dirt base
+  ctx.fillStyle='#8D6E63';
+  ctx.fillRect(0,CH()-GROUND_H+22,CW(),GROUND_H);
+  // Grass bumps
+  ctx.fillStyle='#43A047';
+  var bumpW=40;
+  for(var bx=-(groundOffset%bumpW);bx<CW()+bumpW;bx+=bumpW){
+    ctx.beginPath();
+    ctx.arc(bx,CH()-GROUND_H+4,16,Math.PI,0);
+    ctx.fill();
+  }
+  // Top edge line
+  ctx.strokeStyle='#2E7D32'; ctx.lineWidth=2; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(0,CH()-GROUND_H+20); ctx.lineTo(CW(),CH()-GROUND_H+20); ctx.stroke();
+}
+
+function drawParticles(){
+  for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    var a=p.life/p.maxLife;
+    ctx.fillStyle=p.col+a+')';
+    ctx.beginPath(); ctx.arc(p.x,p.y,3*a,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// Pre-start gentle float prompt
+function drawTapPrompt(){
+  if(started) return;
+  var pulse=0.7+Math.sin(frameCount*0.08)*0.3;
+  ctx.save();
+  ctx.globalAlpha=pulse;
+  ctx.font='bold 20px Comic Sans MS,cursive';
+  ctx.fillStyle='#fff';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.shadowColor='rgba(0,0,0,0.3)'; ctx.shadowBlur=6;
+  ctx.fillText('Tap to flap! \uD83D\uDC26',CW()/2, CH()*0.72);
+  ctx.shadowBlur=0;
+  ctx.globalAlpha=1;
+  ctx.restore();
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────────
+function render(){
+  ctx.clearRect(0,0,CW(),CH());
+  drawSky();
+  for(var i=0;i<bgClouds.length;i++) drawBgCloud(bgClouds[i]);
+  for(var i=0;i<pipes.length;i++) drawPipeCloud(pipes[i]);
+  for(var i=0;i<starItems.length;i++) drawStar(starItems[i]);
+  drawGround();
+  drawParticles();
+  drawBird();
+  drawTapPrompt();
+}
+
+function loop(){
+  if(!running) return;
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ── Star pop animation ─────────────────────────────────────────────────────────
+function spawnStarPop(x,y){
+  var el=document.createElement('div');
+  el.className='star-pop';
+  el.textContent='\u2B50';
+  // convert world coords to element position
+  var scaleX=wrap.offsetWidth/CW();
+  var scaleY=wrap.offsetHeight/CH();
+  el.style.left=(x*scaleX-16)+'px';
+  el.style.top=(y*scaleY-16)+'px';
+  wrap.appendChild(el);
+  setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); },1300);
+}
+
+// ── Game Over / Celebration ───────────────────────────────────────────────────
+var CELEB_MSGS = [
+  {e:'\uD83C\uDF89',t:'Amazing flying!', s:'You\'re a superstar! \u2B50'},
+  {e:'\uD83C\uDFC6',t:'Wow, great job!',  s:'Keep on flying!'},
+  {e:'\uD83D\uDC26',t:'Tweet tweet!',     s:'What a birdie!'},
+  {e:'\u2B50',     t:'Star collector!',  s:'So many stars!'},
+];
+
+function showGameOver(){
+  // Render one last dead-bird frame
+  render();
+
+  var m=CELEB_MSGS[Math.floor(Math.random()*CELEB_MSGS.length)];
+  ovEmoji.textContent=m.e;
+  ovTitle.textContent=m.t;
+
+  var starStr='';
+  for(var i=0;i<Math.min(stars,10);i++) starStr+='\u2B50';
+  ovStars.innerHTML=starStr || '';
+  ovSub.innerHTML='You collected <strong>'+stars+'</strong> star'+(stars!==1?'s':'')+'!<br>Tap to fly again!';
+  ovBtn.textContent='Fly Again! \uD83D\uDC26';
+
+  overlay.style.display='flex';
+  if(stars >= 3) launchConfetti();
+  if(stars >= 1) playCelebrate();
+}
+
+function launchConfetti(){
+  var cols=['#FFD700','#FF7043','#42A5F5','#66BB6A','#AB47BC','#FFCA28'];
+  for(var i=0;i<45;i++){
+    var c=document.createElement('div'); c.className='confetti';
+    var sz=7+Math.random()*8;
+    c.style.cssText='left:'+Math.random()*100+'%;top:-10px;background:'+cols[Math.floor(Math.random()*cols.length)]+
+      ';width:'+sz+'px;height:'+sz+'px;border-radius:'+(Math.random()>.5?'50%':'2px')+
+      ';animation-duration:'+(2+Math.random()*2)+'s;animation-delay:'+Math.random()*0.5+'s';
+    wrap.appendChild(c);
+    setTimeout(function(el){if(el.parentNode)el.parentNode.removeChild(el);},5000,c);
+  }
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
+initGame();
+render(); // draw initial frame under overlay
+
+})();
+</script>
+</body>
+</html>

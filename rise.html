@@ -167,6 +167,7 @@
 
 <script src="./libs/phaser-3.90.0.min.js"></script>
 <script src="./libs/tone-15.1.22.js"></script>
+<script src="./libs/zzfx-1.3.2.micro.min.js"></script>
 <script>
 const GAME_MAX_WIDTH = 420;
 const GRAVITY = 0.38;
@@ -178,8 +179,6 @@ const ROPE_COLORS = ['#c77dff', '#4cc9f0', '#f8961e', '#90e0ef', '#ff6b6b', '#b5
 
 let muted = false;
 let audioReady = false;
-let catchSynth = null;
-let releaseSynth = null;
 let scoreSynth = null;
 let gameOverSynth = null;
 let audioBus = null;
@@ -227,16 +226,6 @@ async function initAudio() {
     audioBus = new Tone.Volume(muted ? -Infinity : -8).toDestination();
     const sparkle = new Tone.FeedbackDelay({ delayTime: 0.07, feedback: 0.16, wet: 0.18 }).connect(audioBus);
 
-    catchSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'triangle' },
-      envelope: { attack: 0.005, decay: 0.08, sustain: 0.12, release: 0.08 }
-    }).connect(sparkle);
-
-    releaseSynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'sawtooth' },
-      envelope: { attack: 0.002, decay: 0.08, sustain: 0.03, release: 0.04 }
-    }).connect(audioBus);
-
     scoreSynth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'sine' },
       envelope: { attack: 0.005, decay: 0.09, sustain: 0.08, release: 0.08 }
@@ -252,8 +241,27 @@ async function initAudio() {
 
   try {
     await Tone.start();
+    resumeZzfx();
   } catch {
     // Gameplay should continue even if the browser refuses audio startup.
+  }
+}
+
+function resumeZzfx() {
+  try {
+    if (typeof zzfxX !== 'undefined' && zzfxX.state === 'suspended') zzfxX.resume();
+  } catch {
+    // ZzFX is optional; Tone handles the longer musical cues.
+  }
+}
+
+function playArcadeSound(params) {
+  if (muted) return;
+  resumeZzfx();
+  try {
+    if (typeof zzfx === 'function') zzfx(...params);
+  } catch {
+    // Ignore audio failures so gameplay is never blocked.
   }
 }
 
@@ -264,16 +272,19 @@ function setMuted(value) {
 }
 
 function playSound(type) {
-  if (muted || !audioReady) return;
+  if (muted) return;
+  if (type === 'catch') {
+    playArcadeSound([0.55, 0.05, 880, 0.01, 0.04, 0.09, 1, 1.6, 0.2]);
+    return;
+  }
+  if (type === 'release') {
+    playArcadeSound([0.45, 0.08, 260, 0.005, 0.05, 0.12, 2, 1, -0.25]);
+    return;
+  }
+  if (!audioReady) return;
   const now = Tone.now();
 
-  if (type === 'catch') {
-    catchSynth.triggerAttackRelease('C5', 0.07, now, 0.5);
-    catchSynth.triggerAttackRelease('G5', 0.09, now + 0.06, 0.55);
-  } else if (type === 'release') {
-    releaseSynth.triggerAttackRelease('D4', 0.05, now, 0.38);
-    releaseSynth.triggerAttackRelease('A3', 0.08, now + 0.045, 0.36);
-  } else if (type === 'score') {
+  if (type === 'score') {
     scoreSynth.triggerAttackRelease('A4', '16n', now, 0.45);
     scoreSynth.triggerAttackRelease('C#5', '16n', now + 0.1, 0.45);
     scoreSynth.triggerAttackRelease('E5', '16n', now + 0.2, 0.45);

@@ -150,9 +150,9 @@
     <h1>RISE!</h1>
     <div class="subtitle">Swing from rope to rope and climb as high as you can! ☁️</div>
     <div class="instructions">
-      🟡 Tap to <strong>release</strong> from a rope<br>
-      🔵 Tap again to <strong>grab</strong> the next rope<br>
-      🚀 Climb as high as possible!
+      Hold to <strong>grab</strong> a rope<br>
+      Release to <strong>let go</strong><br>
+      Time your swing carefully!
     </div>
     <button class="btn btn-start" id="btn-start">Let's Go! 🎉</button>
   </div>
@@ -173,6 +173,7 @@ const GAME_MAX_WIDTH = 420;
 const GRAVITY = 0.38;
 const CATCH_RADIUS = 52;
 const MAGNETIC_RADIUS = 90;
+const AIRBORNE_CATCH_FRAMES = 18;
 const FALL_THRESHOLD = 300;
 const HUB_COLORS = ['#ff6b9d', '#ff8c42', '#ffe066', '#6bceff', '#a78bfa', '#5eead4', '#f472b6'];
 const ROPE_COLORS = ['#c77dff', '#4cc9f0', '#f8961e', '#90e0ef', '#ff6b6b', '#b5e48c'];
@@ -308,6 +309,7 @@ class RiseScene extends Phaser.Scene {
     this.particles = [];
     this.clouds = [];
     this.hubsGenerated = 0;
+    this.inputHeld = false;
   }
 
   create() {
@@ -318,12 +320,27 @@ class RiseScene extends Phaser.Scene {
 
     this.input.on('pointerdown', (pointer) => {
       if (pointer.event) pointer.event.preventDefault();
-      this.handleTap();
+      this.handleGrabStart();
+    });
+
+    this.input.on('pointerup', (pointer) => {
+      if (pointer.event) pointer.event.preventDefault();
+      this.handleGrabEnd();
+    });
+
+    this.input.on('pointerupoutside', (pointer) => {
+      if (pointer.event) pointer.event.preventDefault();
+      this.handleGrabEnd();
     });
 
     this.input.keyboard.on('keydown-SPACE', (event) => {
       event.preventDefault();
-      this.handleTap();
+      this.handleGrabStart();
+    });
+
+    this.input.keyboard.on('keyup-SPACE', (event) => {
+      event.preventDefault();
+      this.handleGrabEnd();
     });
 
     this.onWindowResize = () => this.resizeGame();
@@ -348,6 +365,7 @@ class RiseScene extends Phaser.Scene {
     this.hubs = [];
     this.particles = [];
     this.hubsGenerated = 0;
+    this.inputHeld = false;
     this.player = null;
     this.generateClouds();
     this.generateHubs();
@@ -362,6 +380,7 @@ class RiseScene extends Phaser.Scene {
     this.hubs = [];
     this.particles = [];
     this.hubsGenerated = 0;
+    this.inputHeld = false;
     document.getElementById('hud-score').textContent = '🏆 0';
     this.generateClouds();
     this.generateHubs();
@@ -457,6 +476,7 @@ class RiseScene extends Phaser.Scene {
       ropeIndex: -1,
       grabCooldown: 0,
       releaseTimer: 0,
+      airborneCatchTimer: 0,
       faceDir: 1
     };
   }
@@ -475,6 +495,7 @@ class RiseScene extends Phaser.Scene {
     this.player.vy = 0;
     this.player.grabCooldown = 12;
     this.player.releaseTimer = 0;
+    this.player.airborneCatchTimer = 0;
 
     this.spawnParticles(this.player.x, this.player.y, hub.color);
     playSound('catch');
@@ -505,21 +526,38 @@ class RiseScene extends Phaser.Scene {
 
     this.player.attached = false;
     this.player.releaseTimer = 0;
+    this.player.airborneCatchTimer = 0;
     this.player.grabCooldown = 8;
     playSound('release');
     this.spawnTrail(this.player.x, this.player.y);
   }
 
-  handleTap() {
+  handleGrabStart() {
     if (this.state !== 'playing') return;
     initAudio();
+    this.inputHeld = true;
+    if (!this.canCatchWhileAirborne()) return;
     if (this.player.grabCooldown > 0) return;
+    if (!this.player.attached) this.tryGrab();
+  }
+
+  handleGrabEnd() {
+    if (this.state !== 'playing') {
+      this.inputHeld = false;
+      return;
+    }
+    this.inputHeld = false;
     if (this.player.attached) this.releasePlayer();
-    else this.tryGrab();
+  }
+
+  canCatchWhileAirborne() {
+    return this.player.attached || this.player.airborneCatchTimer <= AIRBORNE_CATCH_FRAMES;
   }
 
   tryGrab() {
-    let bestDist = CATCH_RADIUS * 2.5;
+    if (!this.canCatchWhileAirborne()) return;
+
+    let bestDist = CATCH_RADIUS;
     let bestHub = -1;
     let bestRope = -1;
 
@@ -598,6 +636,7 @@ class RiseScene extends Phaser.Scene {
       this.player.y = ep.ey;
       this.player.faceDir = hub.speed >= 0 ? 1 : -1;
     } else {
+      this.player.airborneCatchTimer += dt;
       this.player.vy += GRAVITY;
       this.player.x += this.player.vx * dt;
       this.player.y += this.player.vy * dt;
@@ -618,9 +657,10 @@ class RiseScene extends Phaser.Scene {
         }
       }
 
-      if (nearest && nearestDist < CATCH_RADIUS && this.player.grabCooldown <= 0) {
+      const canCatch = this.inputHeld && this.canCatchWhileAirborne();
+      if (canCatch && nearest && nearestDist < CATCH_RADIUS && this.player.grabCooldown <= 0) {
         this.attachPlayer(nearest.hi, nearest.ri);
-      } else if (nearest && nearestDist < MAGNETIC_RADIUS * 0.7) {
+      } else if (canCatch && nearest && nearestDist < MAGNETIC_RADIUS * 0.7) {
         const factor = 0.06;
         this.player.vx += (nearest.ep.ex - this.player.x) * factor;
         this.player.vy += (nearest.ep.ey - this.player.y) * factor;
@@ -661,6 +701,7 @@ class RiseScene extends Phaser.Scene {
   showGameOver() {
     if (this.state === 'gameover') return;
     this.state = 'gameover';
+    this.inputHeld = false;
     playSound('gameover');
     if (this.score > this.bestScore) {
       this.bestScore = this.score;
@@ -712,7 +753,7 @@ class RiseScene extends Phaser.Scene {
       const epScreenY = ep.ey - this.cameraY;
       const isActive = this.player && this.player.attached && this.player.hubIndex === hub.index && this.player.ropeIndex === ri;
       const dist = this.player ? Phaser.Math.Distance.Between(ep.ex, ep.ey, this.player.x, this.player.y) : Infinity;
-      const isNear = this.player && !this.player.attached && dist < MAGNETIC_RADIUS;
+      const isNear = this.player && this.inputHeld && !this.player.attached && this.canCatchWhileAirborne() && dist < MAGNETIC_RADIUS;
 
       if (isNear) {
         this.g.lineStyle(9, 0xffe066, 0.18);

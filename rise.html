@@ -1175,10 +1175,37 @@ class RiseScene extends Phaser.Scene {
       }
     }
 
-    const screenTarget = this.gameHeight * 0.55;
-    const playerScreenY = this.player.y - this.cameraY;
-    if (playerScreenY < screenTarget) {
-      this.cameraTargetY = Math.min(this.cameraTargetY, this.player.y - screenTarget);
+    // Camera target: when attached, frame the entire swing arc on-screen.
+    // The hub is placed near the upper-middle so the rope can swing fully below
+    // (and above) without the player going off the bottom or top.
+    if (this.player.attached) {
+      const hub = this.hubs[this.player.hubIndex];
+      const rope = hub.ropes[this.player.ropeIndex];
+      const swingReach = hub.radius + rope.length;  // distance from hub to player
+      // Position the hub at a screen Y such that hub.y - swingReach (top of arc)
+      // and hub.y + swingReach (bottom of arc) both fit within the screen
+      // with a small margin for the player's body.
+      const margin = 24;  // player radius + small buffer
+      // Need: swingReach + margin <= hub_screen_y <= gameHeight - swingReach - margin
+      // Pick the upper half of that range so progress feels upward.
+      const minHubScreenY = swingReach + margin;
+      const maxHubScreenY = this.gameHeight - swingReach - margin;
+      let hubScreenY;
+      if (minHubScreenY > maxHubScreenY) {
+        // Swing too big to fit (very small phone) — center the hub.
+        hubScreenY = this.gameHeight / 2;
+      } else {
+        // Bias toward upper portion (35-45%) so there's still room to climb upward.
+        hubScreenY = Phaser.Math.Clamp(this.gameHeight * 0.42, minHubScreenY, maxHubScreenY);
+      }
+      const desiredCamY = hub.y - hubScreenY;
+      this.cameraTargetY = Math.min(this.cameraTargetY, desiredCamY);
+    } else {
+      const screenTarget = this.gameHeight * 0.55;
+      const playerScreenY = this.player.y - this.cameraY;
+      if (playerScreenY < screenTarget) {
+        this.cameraTargetY = Math.min(this.cameraTargetY, this.player.y - screenTarget);
+      }
     }
     // Adaptive lerp: catch up faster when far behind
     const camDelta = this.cameraTargetY - this.cameraY;
@@ -1628,11 +1655,12 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v11 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v12 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+
 
 
 

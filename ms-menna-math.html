@@ -677,42 +677,60 @@
     bg.appendChild(b);
   }
 
-  // ===== TEXT TO SPEECH =====
-  let ttsVoice = null;
+  // ===== TEXT TO SPEECH (Safari/iOS safe) =====
+  let ttsReady = false;
 
-  function loadVoice() {
+  // iOS Safari requires speechSynthesis to be triggered inside a user gesture.
+  // We unlock it on the very first tap anywhere on the page.
+  function unlockTTS() {
+    if (ttsReady) return;
+    ttsReady = true;
+    const utt = new SpeechSynthesisUtterance('');
+    utt.volume = 0;
+    window.speechSynthesis.speak(utt);
+  }
+  document.addEventListener('touchstart', unlockTTS, { once: true });
+  document.addEventListener('click', unlockTTS, { once: true });
+
+  function getVoice() {
     const voices = window.speechSynthesis.getVoices();
-    // Prefer a friendly female English voice
-    ttsVoice =
+    return (
+      voices.find(v => v.name === 'Samantha') ||
+      voices.find(v => v.name === 'Karen') ||
+      voices.find(v => v.name === 'Moira') ||
       voices.find(v => v.name.includes('Samantha')) ||
-      voices.find(v => v.name.includes('Karen')) ||
-      voices.find(v => v.name.includes('Moira')) ||
-      voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('female')) ||
-      voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('male')) ||
+      voices.find(v => v.lang === 'en-US') ||
       voices.find(v => v.lang.startsWith('en')) ||
-      null;
+      null
+    );
   }
 
-  window.speechSynthesis.onvoiceschanged = loadVoice;
-  loadVoice();
+  function stripEmoji(text) {
+    return text
+      .replace(/[\u{1F300}-\u{1FAFF}]/gu, '')
+      .replace(/[\u{2600}-\u{27BF}]/gu, '')
+      .replace(/[\u{FE00}-\u{FEFF}]/gu, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
 
   function speak(text) {
     if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    // Strip emojis and special characters for clean TTS
-    const clean = text
-      .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
-      .replace(/[\u{2600}-\u{27FF}]/gu, '')
-      .replace(/[🎉⭐🐾🌟🐶🔥✨🎊🌀💪💫🎯]/g, '')
-      .replace(/[!]{2,}/g, '!')
-      .trim();
+    const clean = stripEmoji(text);
     if (!clean) return;
-    const utt = new SpeechSynthesisUtterance(clean);
-    utt.rate = 0.95;
-    utt.pitch = 1.2;
-    utt.volume = 1;
-    if (ttsVoice) utt.voice = ttsVoice;
-    window.speechSynthesis.speak(utt);
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    // Small delay needed on iOS after cancel()
+    setTimeout(function() {
+      const utt = new SpeechSynthesisUtterance(clean);
+      utt.lang = 'en-US';
+      utt.rate = 0.95;
+      utt.pitch = 1.15;
+      utt.volume = 1;
+      const voice = getVoice();
+      if (voice) utt.voice = voice;
+      window.speechSynthesis.speak(utt);
+    }, 50);
   }
 
   // ===== GAME STATE =====

@@ -554,7 +554,7 @@
     <p class="subtitle">Your Pomeranian math teacher</p>
 
     <div class="speech-bubble" id="welcomeBubble">
-      Woof woof! 🐾 I'm Ms. Menna, your math teacher! What's your name, friend?
+      Woof woof! I'm Ms. Menna, your math teacher! What's your name, friend?
     </div>
 
     <input class="name-input" type="text" id="nameInput" placeholder="Type your name here!" maxlength="20" autocomplete="off"/>
@@ -677,6 +677,44 @@
     bg.appendChild(b);
   }
 
+  // ===== TEXT TO SPEECH =====
+  let ttsVoice = null;
+
+  function loadVoice() {
+    const voices = window.speechSynthesis.getVoices();
+    // Prefer a friendly female English voice
+    ttsVoice =
+      voices.find(v => v.name.includes('Samantha')) ||
+      voices.find(v => v.name.includes('Karen')) ||
+      voices.find(v => v.name.includes('Moira')) ||
+      voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('female')) ||
+      voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('male')) ||
+      voices.find(v => v.lang.startsWith('en')) ||
+      null;
+  }
+
+  window.speechSynthesis.onvoiceschanged = loadVoice;
+  loadVoice();
+
+  function speak(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    // Strip emojis and special characters for clean TTS
+    const clean = text
+      .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+      .replace(/[\u{2600}-\u{27FF}]/gu, '')
+      .replace(/[🎉⭐🐾🌟🐶🔥✨🎊🌀💪💫🎯]/g, '')
+      .replace(/[!]{2,}/g, '!')
+      .trim();
+    if (!clean) return;
+    const utt = new SpeechSynthesisUtterance(clean);
+    utt.rate = 0.95;
+    utt.pitch = 1.2;
+    utt.volume = 1;
+    if (ttsVoice) utt.voice = ttsVoice;
+    window.speechSynthesis.speak(utt);
+  }
+
   // ===== GAME STATE =====
   let playerName = '';
   let currentQuestion = 0;
@@ -744,6 +782,7 @@
     wrongStreak = 0;
     answered = false;
     currentAnswer = 0;
+    speak('Hi ' + playerName + '! I am Ms. Menna, your math teacher! Let us do some math!');
     showScreen('gameScreen');
     loadNextQuestion();
   }
@@ -767,7 +806,10 @@
     document.getElementById('progressFill').style.width = pct + '%';
 
     const prompt = questionPrompts[Math.floor(Math.random() * questionPrompts.length)];
-    document.getElementById('gameBubble').textContent = prompt.replace('{name}', playerName);
+    const promptText = prompt.replace('{name}', playerName);
+    document.getElementById('gameBubble').textContent = promptText;
+    const qText = q.text.replace('−', 'minus').replace('+', 'plus').replace('=', 'equals');
+    speak(promptText + ' ' + qText);
 
     updateStarDisplay();
     inp.focus();
@@ -806,6 +848,7 @@
     const userAns = parseInt(raw, 10);
     if (raw === '' || isNaN(userAns)) {
       document.getElementById('gameBubble').textContent = 'Pick a number first! 🐾';
+      speak('Pick a number first!');
       inp.style.borderColor = '#FF8C42';
       setTimeout(() => { inp.style.borderColor = ''; }, 800);
       return;
@@ -824,6 +867,7 @@
       flash.className = 'result-flash correct-msg';
       const msg = correctMessages[Math.floor(Math.random() * correctMessages.length)];
       document.getElementById('gameBubble').textContent = msg;
+      speak(msg);
       pom.classList.remove('bounce', 'shake');
       void pom.offsetWidth;
       pom.classList.add('bounce');
@@ -835,6 +879,7 @@
       flash.textContent = 'The answer was ' + currentAnswer;
       flash.className = 'result-flash wrong-msg';
       document.getElementById('gameBubble').textContent = msg;
+      speak(msg);
       pom.classList.remove('bounce', 'shake');
       void pom.offsetWidth;
       pom.classList.add('shake');
@@ -886,10 +931,12 @@
     medalRow.innerHTML = medals.map(m => `<div class="medal">${m}</div>`).join('');
 
     showScreen('endScreen');
+    speak(message + ' You got ' + correctAnswers + ' out of ' + totalQuestions + '!');
     if (pct >= 0.8) launchConfetti(30);
   }
 
   function playAgain() {
+    window.speechSynthesis.cancel();
     showScreen('welcomeScreen');
     document.getElementById('nameInput').value = '';
     document.getElementById('welcomeBubble').textContent = `Welcome back! Ready for more math? 🐾⭐`;

@@ -201,7 +201,7 @@
 const GAME_MAX_WIDTH = 420;
 const GRAVITY = 0.38;
 const CATCH_RADIUS = 52;
-const STAR_COLLECT_RADIUS = 32;
+const STAR_COLLECT_RADIUS = 38;
 const MAGNETIC_RADIUS = 90;
 const AIRBORNE_CATCH_FRAMES = 18;
 const MISSED_CATCH_GRAVITY = 0.35;
@@ -220,6 +220,7 @@ let comboSynth = null;
 let milestoneSynth = null;
 let musicBed = null;
 let musicPad = null;
+let musicLoop = null;
 let musicLevel = 0;
 let audioBus = null;
 let riseScene = null;
@@ -361,16 +362,16 @@ function playSound(type, data) {
     scoreSynth.triggerAttackRelease('C#5', '16n', now + 0.1, 0.45);
     scoreSynth.triggerAttackRelease('E5', '16n', now + 0.2, 0.45);
   } else if (type === 'star') {
-    // Sparkly upward triplet — pitch climbs with combo
-    const c = Math.min((data || 0), 12);
-    const base = 72 + c * 2;  // semitones up
+    // Sparkly upward triplet — pitch climbs with combo, capped to stay pleasant
+    const c = Math.min((data || 0), 6);
+    const base = 72 + c * 2;  // semitones up, max +12 = octave above
     const f = (n) => Tone.Frequency(n, 'midi').toFrequency();
     starSynth.triggerAttackRelease(f(base), '32n', now, 0.4);
     starSynth.triggerAttackRelease(f(base + 4), '32n', now + 0.04, 0.4);
     starSynth.triggerAttackRelease(f(base + 7), '32n', now + 0.08, 0.4);
   } else if (type === 'combo') {
-    // Bell-like rising tone
-    const c = Math.min((data || 1), 10);
+    // Bell-like rising tone, capped
+    const c = Math.min((data || 1), 8);
     const f = Tone.Frequency(60 + c * 2, 'midi').toFrequency();
     comboSynth.triggerAttackRelease(f, '8n', now, 0.5);
   } else if (type === 'milestone') {
@@ -395,14 +396,32 @@ function setMusicLevel(level) {
 
 function startMusic() {
   if (!audioReady || !musicPad) return;
+  if (musicLoop) return;  // already running
   try {
-    const now = Tone.now();
-    // Gentle Cmaj7 pad — slow alternating
-    musicPad.triggerAttackRelease(['C3', 'E3', 'G3', 'B3'], '2n', now, 0.4);
-    musicPad.triggerAttackRelease(['A2', 'C3', 'E3', 'G3'], '2n', now + 2, 0.4);
-    musicPad.triggerAttackRelease(['F2', 'A2', 'C3', 'E3'], '2n', now + 4, 0.4);
-    musicPad.triggerAttackRelease(['G2', 'B2', 'D3', 'G3'], '2n', now + 6, 0.4);
+    // 4-bar progression of soft pad chords, looped via Tone.Loop
+    const chords = [
+      ['C3', 'E3', 'G3', 'B3'],
+      ['A2', 'C3', 'E3', 'G3'],
+      ['F2', 'A2', 'C3', 'E3'],
+      ['G2', 'B2', 'D3', 'G3']
+    ];
+    let step = 0;
+    musicLoop = new Tone.Loop((time) => {
+      try {
+        musicPad.triggerAttackRelease(chords[step % chords.length], '2n', time, 0.4);
+      } catch {}
+      step++;
+    }, 2);  // every 2 seconds
+    musicLoop.start(0);
+    if (Tone.Transport.state !== 'started') Tone.Transport.start();
   } catch {}
+}
+
+function stopMusic() {
+  if (musicLoop) {
+    try { musicLoop.stop(); musicLoop.dispose(); } catch {}
+    musicLoop = null;
+  }
 }
 
 class RiseScene extends Phaser.Scene {
@@ -429,6 +448,7 @@ class RiseScene extends Phaser.Scene {
     this.flashAmount = 0;
     this.milestonesHit = new Set();
     this.bigMessage = null;        // { text, life, color }
+    this.highestHubReached = 0;
   }
 
   create() {
@@ -494,6 +514,7 @@ class RiseScene extends Phaser.Scene {
     this.flashAmount = 0;
     this.milestonesHit = new Set();
     this.bigMessage = null;
+    this.highestHubReached = 0;
     this.player = null;
     this.generateClouds();
     this.generateHubs();
@@ -524,6 +545,7 @@ class RiseScene extends Phaser.Scene {
     this.flashAmount = 0;
     this.milestonesHit = new Set();
     this.bigMessage = null;
+    this.highestHubReached = 0;
     document.getElementById('hud-score').textContent = '🏆 0';
     document.getElementById('hud-combo').classList.remove('visible');
     this.generateClouds();
@@ -817,6 +839,7 @@ class RiseScene extends Phaser.Scene {
     this.player.releaseTimer = 0;
     this.player.airborneCatchTimer = 0;
     this.player.mood = 'happy';
+    this.player._moodFrames = 0;
 
     if (!silent) {
       this.spawnParticles(this.player.x, this.player.y, hub.color);
@@ -840,32 +863,29 @@ class RiseScene extends Phaser.Scene {
       }
     }
 
-    if (hub.uid > 0) {
-      const newScoreBefore = this.score;
-      const wasNew = hub.uid > newScoreBefore;
-      // Track high-water mark of hub reached, plus gold bonus
-      if (wasNew) {
-        // Use additive bonus for gold so it's visibly distinct from a regular catch.
-        this.score = Math.max(this.score, hub.uid) + (hub.variant === 'gold' ? 5 : 0);
-        document.getElementById('hud-score').textContent = '🏆 ' + this.score;
+    // Score & progression: only credit if this is a NEW hub (not one we've reached before)
+    if (hub.uid > 0 && hub.uid > this.highestHubReached) {
+      this.highestHubReached = hub.uid;
+      const earned = hub.variant === 'gold' ? 5 : 1;
+      this.score += earned;
+      document.getElementById('hud-score').textContent = '🏆 ' + this.score;
 
-        // Combo: chain when this hub uid is exactly the next expected
-        this.combo += 1;
-        this.comboTimer = COMBO_TIMEOUT_FRAMES;
-        if (!silent) this.checkComboMilestone();
+      // Combo grows on every new hub
+      this.combo += 1;
+      this.comboTimer = COMBO_TIMEOUT_FRAMES;
+      if (!silent) this.checkComboMilestone();
 
-        if (!silent) {
-          if (hub.variant !== 'gold') {
-            this.popups.push({
-              x: this.player.x, y: this.player.y - 22,
-              text: '+1', color: '#ffffff',
-              life: 0.9, vy: -1.0, size: 18
-            });
-          }
-          if (this.score <= 5 || this.score % 3 === 0) playSound('score');
+      if (!silent) {
+        if (hub.variant !== 'gold') {
+          this.popups.push({
+            x: this.player.x, y: this.player.y - 22,
+            text: '+1', color: '#ffffff',
+            life: 0.9, vy: -1.0, size: 18
+          });
         }
-        this.checkScoreMilestone();
+        if (this.score <= 5 || this.score % 3 === 0) playSound('score');
       }
+      this.checkScoreMilestone();
     }
   }
 
@@ -1095,10 +1115,10 @@ class RiseScene extends Phaser.Scene {
     // Collect stars (always — even while attached, in case rope swings through one)
     for (const star of this.collectibles) {
       if (star.collected) continue;
-      const sy = star.baseY + Math.sin(this.time.now * 0.003 + star.phase) * 4;
-      star.y = sy;
+      const bobY = star.baseY + Math.sin(this.time.now * 0.003 + star.phase) * 4;
+      star.y = bobY;
       const dx = star.x - this.player.x;
-      const dy = star.y - this.player.y;
+      const dy = bobY - this.player.y;
       if (dx * dx + dy * dy < STAR_COLLECT_RADIUS * STAR_COLLECT_RADIUS) {
         this.collectStar(star);
       }
@@ -1171,6 +1191,7 @@ class RiseScene extends Phaser.Scene {
     this.combo = 0;
     document.getElementById('hud-combo').classList.remove('visible');
     setMusicLevel(0);
+    stopMusic();
     playSound('gameover');
     if (navigator.vibrate) {
       try { navigator.vibrate([40, 60, 80]); } catch {}
@@ -1206,6 +1227,8 @@ class RiseScene extends Phaser.Scene {
       shakeX = (Math.random() - 0.5) * this.shake;
       shakeY = (Math.random() - 0.5) * this.shake;
     }
+    this._shakeX = shakeX;
+    this._shakeY = shakeY;
     if (this.g.x !== shakeX || this.g.y !== shakeY) {
       this.g.x = shakeX;
       this.g.y = shakeY;
@@ -1233,7 +1256,8 @@ class RiseScene extends Phaser.Scene {
   drawCollectibles() {
     for (const star of this.collectibles) {
       if (star.collected) continue;
-      const sy = star.y - this.cameraY;
+      const bobY = star.baseY + Math.sin(this.time.now * 0.003 + star.phase) * 4;
+      const sy = bobY - this.cameraY;
       if (sy < -30 || sy > this.gameHeight + 30) continue;
       const pulse = 0.85 + 0.15 * Math.sin(this.time.now * 0.005 + star.phase);
       const r = 8 * pulse;
@@ -1291,7 +1315,7 @@ class RiseScene extends Phaser.Scene {
       stroke: '#1a0030',
       strokeThickness: Math.max(3, Math.round(size * 0.16))
     });
-    txt.setPosition(x, y);
+    txt.setPosition(x + (this._shakeX || 0), y + (this._shakeY || 0));
     txt.setAlpha(alpha);
     txt.setVisible(true);
     txt.setDepth(10);
@@ -1530,11 +1554,12 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v7 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v8 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+
 
 
 

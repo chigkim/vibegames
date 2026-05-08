@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Rise! — Vibe Games</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    touch-action: none;
+  }
+  canvas {
+    display: block;
+    max-width: 100vw;
+    max-height: 100vh;
+    touch-action: none;
+  }
+  #ui-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    background: rgba(255,255,255,0.13);
+    backdrop-filter: blur(18px);
+    border-radius: 28px;
+    padding: 40px 36px;
+    border: 2px solid rgba(255,255,255,0.25);
+    box-shadow: 0 12px 60px rgba(0,0,0,0.35);
+    pointer-events: all;
+    max-width: 320px;
+    width: 88vw;
+    text-align: center;
+  }
+  .screen.active { display: flex; }
+  .screen h1 {
+    font-size: 3.2rem;
+    font-weight: 900;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #ffe066, #ff6b9d, #6bceff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+  .screen .subtitle {
+    font-size: 1.05rem;
+    color: rgba(255,255,255,0.8);
+    line-height: 1.5;
+    font-weight: 500;
+  }
+  .screen .instructions {
+    font-size: 0.92rem;
+    color: rgba(255,255,255,0.65);
+    background: rgba(0,0,0,0.18);
+    border-radius: 14px;
+    padding: 12px 16px;
+    line-height: 1.65;
+  }
+  .btn {
+    padding: 16px 44px;
+    font-size: 1.2rem;
+    font-weight: 800;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s;
+    letter-spacing: 0.5px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+  .btn:active { transform: scale(0.96); }
+  .btn-start { background: linear-gradient(135deg, #ffe066, #ff8c42); color: #1a0a00; }
+  .btn-restart { background: linear-gradient(135deg, #6bceff, #a78bfa); color: #0a0020; }
+  .score-display {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ffe066;
+  }
+  .best-score {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.6);
+  }
+  #hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 14px 18px 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  #hud-score {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    letter-spacing: -0.5px;
+  }
+  #mute-btn {
+    pointer-events: all;
+    background: rgba(255,255,255,0.18);
+    border: 1.5px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    width: 44px; height: 44px;
+    font-size: 1.3rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+  #mute-btn:active { transform: scale(0.9); }
+  #hud.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="hud-score">🏆 0</div>
+  <button id="mute-btn">🔊</button>
+</div>
+
+<div id="ui-overlay">
+  <div id="screen-ready" class="screen active">
+    <h1>RISE!</h1>
+    <div class="subtitle">Swing from rope to rope and climb as high as you can! ☁️</div>
+    <div class="instructions">
+      🟡 Tap to <strong>release</strong> from a rope<br>
+      🔵 Tap again to <strong>grab</strong> the next rope<br>
+      🚀 Climb as high as possible!
+    </div>
+    <button class="btn btn-start" id="btn-start">Let's Go! 🎉</button>
+  </div>
+
+  <div id="screen-gameover" class="screen">
+    <h1>Oh No! 😢</h1>
+    <div class="score-display" id="final-score">Score: 0</div>
+    <div class="best-score" id="best-score-display">Best: 0</div>
+    <button class="btn btn-restart" id="btn-restart">Play Again! 🔄</button>
+  </div>
+</div>
+
+<script>
+// ======== CANVAS SETUP ========
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = Math.min(window.innerWidth, 420);
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', () => { resize(); });
+
+// ======== AUDIO ========
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let muted = false;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+}
+
+function playSound(type) {
+  if (muted || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const t = audioCtx.currentTime;
+  if (type === 'catch') {
+    osc.frequency.setValueAtTime(520, t);
+    osc.frequency.exponentialRampToValueAtTime(820, t + 0.12);
+    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    osc.start(t); osc.stop(t + 0.18);
+  } else if (type === 'release') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(300, t);
+    osc.frequency.exponentialRampToValueAtTime(180, t + 0.1);
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    osc.start(t); osc.stop(t + 0.12);
+  } else if (type === 'score') {
+    [0, 0.1, 0.2].forEach((delay, i) => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.frequency.value = [440, 550, 660][i];
+      g.gain.setValueAtTime(0.15, t + delay);
+      g.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.12);
+      o.start(t + delay); o.stop(t + delay + 0.15);
+    });
+  } else if (type === 'gameover') {
+    osc.frequency.setValueAtTime(400, t);
+    osc.frequency.exponentialRampToValueAtTime(120, t + 0.5);
+    gain.gain.setValueAtTime(0.3, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    osc.start(t); osc.stop(t + 0.5);
+  }
+}
+
+const muteBtn = document.getElementById('mute-btn');
+muteBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  muted = !muted;
+  muteBtn.textContent = muted ? '🔇' : '🔊';
+});
+
+// ======== GAME STATE ========
+const GRAVITY = 0.38;
+const CATCH_RADIUS = 52;
+const MAGNETIC_RADIUS = 90;
+const FALL_THRESHOLD = 300;
+
+let state = 'ready';
+let score = 0;
+let bestScore = parseInt(localStorage.getItem('rise_best') || '0');
+let cameraY = 0;
+let cameraTargetY = 0;
+
+// Player
+let player = {};
+// Hubs
+let hubs = [];
+let particles = [];
+let clouds = [];
+let hubsGenerated = 0;
+
+// ======== COLORS ========
+const HUB_COLORS = ['#ff6b9d','#ff8c42','#ffe066','#6bceff','#a78bfa','#5eead4','#f472b6'];
+const ROPE_COLORS = ['#c77dff','#4cc9f0','#f8961e','#90e0ef','#ff6b6b','#b5e48c'];
+
+// ======== HUB GENERATION ========
+function createHub(x, y, index) {
+  const isEarly = index < 3;
+  const speed = isEarly ? 0.018 : 0.018 + Math.min((index - 3) * 0.004, 0.03);
+  const dir = index < 2 ? 1 : (Math.random() < (index > 6 ? 0.45 : 0.3) ? -1 : 1);
+  const radius = 28 + Math.random() * 14;
+  const ropeCount = isEarly ? 3 : (2 + Math.floor(Math.random() * 3));
+  const ropes = [];
+  for (let i = 0; i < ropeCount; i++) {
+    const angleOffset = (i / ropeCount) * Math.PI * 2;
+    const len = isEarly ? (55 + i * 20) : (40 + Math.random() * 55);
+    ropes.push({ angleOffset, length: len, color: ROPE_COLORS[Math.floor(Math.random() * ROPE_COLORS.length)] });
+  }
+  return { x, y, radius, rotation: 0, speed: speed * dir, ropes,
+    color: HUB_COLORS[index % HUB_COLORS.length], index };
+}
+
+function generateHubs() {
+  const CW = canvas.width;
+  // First hub: easy center
+  hubs.push(createHub(CW / 2, -180, 0));
+  hubsGenerated = 1;
+
+  for (let i = 1; i < 8; i++) {
+    addHub();
+  }
+}
+
+function addHub() {
+  const last = hubs[hubs.length - 1];
+  const CW = canvas.width;
+  const isEarly = hubsGenerated < 4;
+  const gapY = isEarly ? (160 + hubsGenerated * 10) : (160 + Math.min(hubsGenerated * 3, 60) + Math.random() * 40);
+  const xRange = isEarly ? 60 : 100;
+  const x = Math.max(55, Math.min(CW - 55, last.x + (Math.random() - 0.5) * xRange * 2));
+  const y = last.y - gapY;
+  hubs.push(createHub(x, y, hubsGenerated));
+  hubsGenerated++;
+}
+
+// ======== ROPE ENDPOINTS ========
+function getRopeEndpoint(hub, rope) {
+  const angle = hub.rotation + rope.angleOffset;
+  const ax = hub.x + Math.cos(angle) * hub.radius;
+  const ay = hub.y + Math.sin(angle) * hub.radius;
+  const ex = ax + Math.cos(angle) * rope.length;
+  const ey = ay + Math.sin(angle) * rope.length;
+  return { ax, ay, ex, ey, angle };
+}
+
+// ======== PARTICLES ========
+function spawnParticles(x, y, color) {
+  for (let i = 0; i < 10; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.5 + Math.random() * 3;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1,
+      decay: 0.03 + Math.random() * 0.03,
+      r: 3 + Math.random() * 5,
+      color
+    });
+  }
+}
+
+function spawnTrail(x, y) {
+  for (let i = 0; i < 5; i++) {
+    particles.push({
+      x: x + (Math.random() - 0.5) * 10,
+      y: y + (Math.random() - 0.5) * 10,
+      vx: (Math.random() - 0.5) * 1.5,
+      vy: (Math.random() - 0.5) * 1.5,
+      life: 0.7,
+      decay: 0.05,
+      r: 2 + Math.random() * 3,
+      color: '#fff'
+    });
+  }
+}
+
+// ======== CLOUD GENERATION ========
+function generateClouds() {
+  clouds = [];
+  for (let i = 0; i < 20; i++) {
+    clouds.push({
+      x: Math.random() * canvas.width,
+      y: -(Math.random() * 4000),
+      w: 60 + Math.random() * 80,
+      h: 28 + Math.random() * 28,
+      alpha: 0.35 + Math.random() * 0.3
+    });
+  }
+}
+
+// ======== PLAYER INIT ========
+function initPlayer() {
+  const CW = canvas.width;
+  player = {
+    x: CW / 2,
+    y: 80,  // screen coords — will be above first hub
+    vx: 0,
+    vy: 0,
+    attached: false,
+    hubIndex: -1,
+    ropeIndex: -1,
+    grabCooldown: 0,
+    justReleased: false,
+    releaseTimer: 0,
+    faceDir: 1
+  };
+}
+
+// ======== ATTACH PLAYER ========
+function attachPlayer(hubIdx, ropeIdx) {
+  player.attached = true;
+  player.hubIndex = hubIdx;
+  player.ropeIndex = ropeIdx;
+  player.vx = 0; player.vy = 0;
+  player.grabCooldown = 12;
+  player.justReleased = false;
+  player.releaseTimer = 0;
+
+  const hub = hubs[hubIdx];
+  spawnParticles(player.x, player.y + cameraY, hub.color);
+  playSound('catch');
+
+  // Score when reaching new hubs
+  if (hubIdx > 0) {
+    const newScore = Math.max(score, hubIdx);
+    if (newScore > score) {
+      score = newScore;
+      document.getElementById('hud-score').textContent = '🏆 ' + score;
+      if (score % 3 === 0) playSound('score');
+    }
+  }
+}
+
+// ======== RELEASE PLAYER ========
+function releasePlayer() {
+  if (!player.attached) return;
+  const hub = hubs[player.hubIndex];
+  const rope = hub.ropes[player.ropeIndex];
+  const ep = getRopeEndpoint(hub, rope);
+
+  // Tangent velocity
+  const totalLen = hub.radius + rope.length;
+  const tangentSpeed = hub.speed * totalLen * 1.8;
+  const angle = ep.angle + Math.PI / 2 * Math.sign(hub.speed);
+
+  player.vx = Math.cos(angle) * tangentSpeed * 60;
+  player.vy = Math.sin(angle) * tangentSpeed * 60;
+
+  // Modest upward boost if going downward
+  if (player.vy > 2) player.vy -= 4;
+
+  player.attached = false;
+  player.justReleased = true;
+  player.releaseTimer = 0;
+  player.grabCooldown = 8;
+
+  playSound('release');
+  spawnTrail(player.x, player.y + cameraY);
+}
+
+// ======== GAME INIT ========
+function initGame() {
+  score = 0;
+  cameraY = 0;
+  cameraTargetY = 0;
+  hubs = [];
+  particles = [];
+  hubsGenerated = 0;
+  document.getElementById('hud-score').textContent = '🏆 0';
+  generateClouds();
+  generateHubs();
+  initPlayer();
+
+  // Attach to first rope of first hub automatically
+  const firstHub = hubs[0];
+  attachPlayer(0, 0);
+  // Position player at rope endpoint in screen coords
+  const ep = getRopeEndpoint(firstHub, firstHub.ropes[0]);
+  player.x = ep.ex - firstHub.x + firstHub.x;
+  player.y = ep.ey - cameraY;
+}
+
+// ======== INPUT ========
+function handleTap() {
+  if (state !== 'playing') return;
+  initAudio();
+
+  if (player.grabCooldown > 0) return;
+
+  if (player.attached) {
+    releasePlayer();
+  } else {
+    // Try to grab nearest rope
+    tryGrab();
+  }
+}
+
+function tryGrab() {
+  let bestDist = CATCH_RADIUS * 2.5;
+  let bestHub = -1;
+  let bestRope = -1;
+
+  const worldY = player.y + cameraY;
+
+  for (let hi = 0; hi < hubs.length; hi++) {
+    const hub = hubs[hi];
+    // Only look at hubs above or near player
+    if (hub.y - cameraY > player.y + 100) continue;
+    for (let ri = 0; ri < hub.ropes.length; ri++) {
+      const ep = getRopeEndpoint(hub, hub.ropes[ri]);
+      const dx = ep.ex - player.x;
+      const dy = ep.ey - worldY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestHub = hi;
+        bestRope = ri;
+      }
+    }
+  }
+
+  if (bestHub >= 0) {
+    attachPlayer(bestHub, bestRope);
+  }
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  handleTap();
+}, { passive: false });
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { e.preventDefault(); handleTap(); }
+});
+
+// ======== SCREENS ========
+document.getElementById('btn-start').addEventListener('click', () => {
+  initAudio();
+  initGame();
+  state = 'playing';
+  document.getElementById('screen-ready').classList.remove('active');
+  document.getElementById('hud').classList.remove('hidden');
+});
+
+document.getElementById('btn-restart').addEventListener('click', () => {
+  initAudio();
+  initGame();
+  state = 'playing';
+  document.getElementById('screen-gameover').classList.remove('active');
+  document.getElementById('hud').classList.remove('hidden');
+});
+
+function showGameOver() {
+  state = 'gameover';
+  playSound('gameover');
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem('rise_best', bestScore);
+  }
+  document.getElementById('final-score').textContent = 'Score: ' + score;
+  document.getElementById('best-score-display').textContent = 'Best: ' + bestScore;
+  document.getElementById('screen-gameover').classList.add('active');
+  document.getElementById('hud').classList.add('hidden');
+}
+
+// ======== UPDATE ========
+let lastTime = 0;
+
+function update(dt) {
+  if (state !== 'playing') return;
+
+  // Update hubs
+  for (const hub of hubs) {
+    hub.rotation += hub.speed;
+  }
+
+  // Player update
+  if (player.grabCooldown > 0) player.grabCooldown--;
+  if (player.releaseTimer !== undefined) player.releaseTimer++;
+
+  if (player.attached) {
+    const hub = hubs[player.hubIndex];
+    const rope = hub.ropes[player.ropeIndex];
+    const ep = getRopeEndpoint(hub, rope);
+    const worldY = ep.ey;
+    player.x = ep.ex;
+    player.y = worldY - cameraY;
+    // Face direction of movement
+    player.faceDir = hub.speed >= 0 ? 1 : -1;
+
+  } else {
+    // Gravity & movement
+    player.vy += GRAVITY;
+    player.x += player.vx * dt;
+    player.y += player.vy * dt;
+
+    // Face dir
+    if (Math.abs(player.vx) > 0.5) player.faceDir = player.vx > 0 ? 1 : -1;
+
+    // Magnetic pull toward nearest rope endpoint above
+    const worldY = player.y + cameraY;
+    let nearestDist = MAGNETIC_RADIUS;
+    let nearestEP = null;
+    for (const hub of hubs) {
+      if (hub.y - cameraY > player.y + 80) continue;
+      for (const rope of hub.ropes) {
+        const ep = getRopeEndpoint(hub, rope);
+        const dx = ep.ex - player.x;
+        const dy = ep.ey - worldY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestEP = ep;
+        }
+      }
+    }
+    if (nearestEP && nearestDist < CATCH_RADIUS) {
+      // Auto-catch
+      if (player.grabCooldown <= 0) {
+        // Find which hub/rope this is
+        for (let hi = 0; hi < hubs.length; hi++) {
+          const hub = hubs[hi];
+          for (let ri = 0; ri < hub.ropes.length; ri++) {
+            const ep = getRopeEndpoint(hub, hub.ropes[ri]);
+            const dx = ep.ex - player.x;
+            const dy = ep.ey - worldY;
+            if (Math.sqrt(dx*dx+dy*dy) < CATCH_RADIUS) {
+              attachPlayer(hi, ri);
+              break;
+            }
+          }
+          if (player.attached) break;
+        }
+      }
+    } else if (nearestEP && nearestDist < MAGNETIC_RADIUS * 0.7) {
+      // Magnetic pull
+      const factor = 0.06;
+      player.vx += (nearestEP.ex - player.x) * factor;
+      player.vy += (nearestEP.ey - worldY) * factor;
+    }
+
+    // Clamp x
+    player.x = Math.max(18, Math.min(canvas.width - 18, player.x));
+
+    // Release timer fallback: if airborne too long without catching, gravity speeds up
+    if (player.releaseTimer > 180) {
+      player.vy += 0.15;
+    }
+  }
+
+  // Camera follow
+  const screenTarget = canvas.height * 0.55;
+  if (player.y < screenTarget) {
+    cameraTargetY += screenTarget - player.y;
+    player.y = screenTarget;
+  }
+  cameraY += (cameraTargetY - cameraY) * 0.1;
+
+  // Generate more hubs
+  const topHub = hubs[hubs.length - 1];
+  if (topHub.y - cameraY > -canvas.height * 0.5) {
+    addHub();
+  }
+
+  // Particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.05;
+    p.life -= p.decay;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  // Game over: fell below camera
+  if (player.y - cameraY > canvas.height + FALL_THRESHOLD) {
+    showGameOver();
+  }
+  if (player.y > canvas.height + FALL_THRESHOLD) {
+    showGameOver();
+  }
+}
+
+// ======== DRAW ========
+function drawSky() {
+  const worldTop = cameraY;
+  const progress = Math.min(worldTop / 3000, 1);
+  const c1 = lerpColor('#87ceeb', '#1a1a3e', progress);
+  const c2 = lerpColor('#ffd1dc', '#000020', progress);
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, c1);
+  grad.addColorStop(1, c2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function lerpColor(a, b, t) {
+  const ah = parseInt(a.slice(1), 16);
+  const bh = parseInt(b.slice(1), 16);
+  const ar = (ah >> 16) & 0xff, ag = (ah >> 8) & 0xff, ab = ah & 0xff;
+  const br = (bh >> 16) & 0xff, bg = (bh >> 8) & 0xff, bb = bh & 0xff;
+  const rr = Math.round(ar + (br - ar) * t);
+  const rg = Math.round(ag + (bg - ag) * t);
+  const rb = Math.round(ab + (bb - ab) * t);
+  return '#' + ((rr << 16) | (rg << 8) | rb).toString(16).padStart(6, '0');
+}
+
+function drawClouds() {
+  ctx.save();
+  for (const cloud of clouds) {
+    const screenY = cloud.y + cameraY;
+    if (screenY < -100 || screenY > canvas.height + 100) continue;
+    ctx.globalAlpha = cloud.alpha;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.ellipse(cloud.x, screenY, cloud.w / 2, cloud.h / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cloud.x + cloud.w * 0.25, screenY - cloud.h * 0.25, cloud.w * 0.35, cloud.h * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cloud.x - cloud.w * 0.25, screenY - cloud.h * 0.2, cloud.w * 0.3, cloud.h * 0.35, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawHub(hub) {
+  const sx = hub.x;
+  const sy = hub.y - cameraY;
+  if (sy < -150 || sy > canvas.height + 150) return;
+
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(hub.rotation);
+
+  // Hub body
+  ctx.beginPath();
+  ctx.arc(0, 0, hub.radius, 0, Math.PI * 2);
+  ctx.fillStyle = hub.color;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Spokes
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < hub.ropes.length; i++) {
+    const a = hub.ropes[i].angleOffset;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(Math.cos(a) * hub.radius, Math.sin(a) * hub.radius);
+    ctx.stroke();
+  }
+
+  // Center dot
+  ctx.beginPath();
+  ctx.arc(0, 0, 6, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fill();
+
+  ctx.restore();
+
+  // Draw ropes
+  for (let ri = 0; ri < hub.ropes.length; ri++) {
+    const rope = hub.ropes[ri];
+    const ep = getRopeEndpoint(hub, rope);
+    const epScreenY = ep.ey - cameraY;
+    const isActive = player.attached && player.hubIndex === hubs.indexOf(hub) && player.ropeIndex === ri;
+
+    // Is player near this rope?
+    const dx = ep.ex - player.x;
+    const dy = ep.ey - (player.y + cameraY);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const isNear = !player.attached && dist < MAGNETIC_RADIUS;
+
+    ctx.save();
+    // Rope line
+    ctx.beginPath();
+    ctx.moveTo(ep.ax, ep.ay - cameraY);
+    ctx.lineTo(ep.ex, epScreenY);
+    ctx.strokeStyle = rope.color;
+    ctx.lineWidth = isActive ? 5 : 3.5;
+    ctx.lineCap = 'round';
+    if (isNear) {
+      ctx.shadowColor = '#ffe066';
+      ctx.shadowBlur = 14;
+    }
+    ctx.stroke();
+
+    // Knot/handle at end
+    ctx.beginPath();
+    ctx.arc(ep.ex, epScreenY, isActive ? 10 : 8, 0, Math.PI * 2);
+    ctx.fillStyle = isNear ? '#ffe066' : (isActive ? '#fff' : 'rgba(255,255,255,0.75)');
+    if (isNear) {
+      ctx.shadowColor = '#ffe066';
+      ctx.shadowBlur = 20;
+    }
+    ctx.fill();
+    ctx.strokeStyle = rope.color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawPlayer() {
+  const px = player.x;
+  const py = player.y;
+  ctx.save();
+  ctx.translate(px, py);
+
+  // Body shadow
+  ctx.beginPath();
+  ctx.arc(0, 2, 20, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fill();
+
+  // Body
+  ctx.beginPath();
+  ctx.arc(0, 0, 20, 0, Math.PI * 2);
+  const bodyGrad = ctx.createRadialGradient(-4, -4, 2, 0, 0, 20);
+  bodyGrad.addColorStop(0, '#ffe8b0');
+  bodyGrad.addColorStop(1, '#ffba49');
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+  ctx.strokeStyle = '#ff8c42';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Eyes
+  const eyeX = player.faceDir * 6;
+  ctx.beginPath();
+  ctx.arc(eyeX - 4, -4, 4.5, 0, Math.PI * 2);
+  ctx.arc(eyeX + 4, -4, 4.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#222';
+  ctx.fill();
+
+  // Eye shine
+  ctx.beginPath();
+  ctx.arc(eyeX - 3, -5.5, 1.5, 0, Math.PI * 2);
+  ctx.arc(eyeX + 5, -5.5, 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+
+  // Smile
+  ctx.beginPath();
+  ctx.arc(eyeX, 5, 7, 0.2, Math.PI - 0.2);
+  ctx.strokeStyle = '#ff6b35';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    const screenY = p.y - cameraY;
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.beginPath();
+    ctx.arc(p.x, screenY, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ======== MAIN LOOP ========
+function loop(timestamp) {
+  const dt = Math.min((timestamp - lastTime) / 16.67, 3);
+  lastTime = timestamp;
+
+  if (state === 'playing') {
+    update(dt);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawSky();
+    drawClouds();
+    for (const hub of hubs) drawHub(hub);
+    drawParticles();
+    drawPlayer();
+  } else if (state === 'ready' || state === 'gameover') {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (hubs.length > 0) {
+      drawSky();
+      drawClouds();
+      for (const hub of hubs) {
+        hub.rotation += hub.speed * 0.3;
+        drawHub(hub);
+      }
+    } else {
+      // Just draw sky
+      ctx.fillStyle = '#87ceeb';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// Init background hubs for title screen
+generateClouds();
+generateHubs();
+// Prevent page scroll
+document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+requestAnimationFrame(loop);
+</script>
+
+<!-- Version info -->
+<div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
+  Rise! &nbsp;v1 &nbsp;·&nbsp; 2026-05-08
+</div>
+
+</body>
+</html>

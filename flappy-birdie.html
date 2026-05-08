@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Flappy Birdie! v4</title>
+<title>Flappy Birdie! v5</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 body {
@@ -12,7 +12,9 @@ body {
   align-items:center;
   justify-content:center;
   height:100vh;
+  height:100dvh;
   width:100vw;
+  width:100dvw;
   overflow:hidden;
   font-family:'Comic Sans MS','Chalkboard SE',cursive;
   touch-action:none;
@@ -21,46 +23,46 @@ body {
 }
 #wrap {
   position:relative;
-  width:100vw;
-  max-width:480px;
-  height:100vh;
-  max-height:760px;
+  width:min(100vw, 1280px);
+  width:min(100dvw, 1280px);
+  height:min(100vh, 1280px);
+  height:min(100dvh, 1280px);
   overflow:hidden;
-  border-radius:12px;
+  border-radius:clamp(0px, 1.3vmin, 12px);
 }
 #game-root, canvas { display:block; width:100%; height:100%; touch-action:none; }
 #hud {
   position:absolute;
-  top:12px;
+  top:clamp(12px, 2vmin, 22px);
   left:0;
   right:0;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:0 12px;
+  padding:0 clamp(12px, 2vmin, 22px);
   pointer-events:none;
   z-index:10;
 }
 .hud-pill {
   background:rgba(255,255,255,0.88);
   border-radius:30px;
-  padding:6px 14px;
-  font-size:15px;
+  padding:clamp(6px, 1vmin, 11px) clamp(14px, 2vmin, 22px);
+  font-size:clamp(15px, 2.1vmin, 22px);
   font-weight:bold;
   box-shadow:0 3px 10px rgba(0,0,0,0.12);
 }
 #pill-level { color:#7c3aed; }
 #pill-stars { color:#d97706; }
-#pill-obs { color:#dc2626; font-size:13px; }
+#pill-obs { color:#dc2626; font-size:clamp(13px, 1.8vmin, 19px); }
 #version-badge {
   position:absolute;
-  bottom:7px;
-  right:9px;
+  bottom:clamp(7px, 1.2vmin, 13px);
+  right:clamp(9px, 1.5vmin, 16px);
   background:rgba(0,0,0,0.18);
   color:rgba(255,255,255,0.7);
   border-radius:8px;
   padding:2px 7px;
-  font-size:10px;
+  font-size:clamp(10px, 1.35vmin, 14px);
   pointer-events:none;
   z-index:10;
   letter-spacing:1px;
@@ -78,23 +80,23 @@ body {
 #overlay-card {
   background:#fff;
   border-radius:28px;
-  padding:24px 32px;
+  padding:clamp(24px, 4vmin, 44px) clamp(32px, 5vmin, 56px);
   text-align:center;
-  max-width:295px;
+  max-width:min(88vw, 440px);
   box-shadow:0 8px 40px rgba(0,0,0,0.2);
   animation:popIn 0.35s cubic-bezier(.4,0,.2,1);
 }
 @keyframes popIn { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
-#ov-emoji { font-size:54px; line-height:1.1; }
-#ov-title { font-size:21px; font-weight:bold; margin:7px 0 4px; }
-#ov-sub { font-size:13px; color:#555; margin-bottom:10px; line-height:1.6; }
-#ov-stars { font-size:15px; margin-bottom:8px; min-height:20px; }
+#ov-emoji { font-size:clamp(54px, 8vmin, 84px); line-height:1.1; }
+#ov-title { font-size:clamp(21px, 3vmin, 32px); font-weight:bold; margin:7px 0 4px; }
+#ov-sub { font-size:clamp(13px, 1.8vmin, 19px); color:#555; margin-bottom:10px; line-height:1.6; }
+#ov-stars { font-size:clamp(15px, 2vmin, 22px); margin-bottom:8px; min-height:20px; }
 #ov-btn {
   color:#fff;
   border:none;
   border-radius:50px;
-  padding:12px 36px;
-  font-size:17px;
+  padding:clamp(12px, 2vmin, 18px) clamp(36px, 5vmin, 54px);
+  font-size:clamp(17px, 2.4vmin, 25px);
   font-family:inherit;
   font-weight:bold;
   cursor:pointer;
@@ -107,7 +109,7 @@ body {
   margin-top:7px;
   background:none;
   border:none;
-  font-size:12px;
+  font-size:clamp(12px, 1.7vmin, 17px);
   color:#aaa;
   cursor:pointer;
   font-family:inherit;
@@ -115,7 +117,7 @@ body {
 }
 .star-pop {
   position:absolute;
-  font-size:26px;
+  font-size:clamp(26px, 4vmin, 42px);
   pointer-events:none;
   z-index:30;
   animation:starFloat 1.1s ease-out forwards;
@@ -144,7 +146,7 @@ body {
     <div class="hud-pill" id="pill-stars">⭐ 0</div>
     <div class="hud-pill" id="pill-obs">0 / 6</div>
   </div>
-  <div id="version-badge">v4 Phaser + Tone</div>
+  <div id="version-badge">v5 - Updated 2026-05-08 19:24 EDT - Phaser + Tone</div>
   <div id="overlay">
     <div id="overlay-card">
       <div id="ov-emoji">🐦</div>
@@ -188,6 +190,8 @@ const GRAVITY = 0.22;
 const FLAP = -5.4;
 const BXFRAC = 0.27;
 const GH = 65;
+const GAME_MAX_WIDTH = 1280;
+const GAME_MAX_HEIGHT = 1280;
 
 let flappyScene = null;
 let curLv = 0;
@@ -199,9 +203,10 @@ let starSynth = null;
 let levelSynth = null;
 
 function gameSize() {
+  const viewport = window.visualViewport || window;
   return {
-    width: wrap.clientWidth || 375,
-    height: wrap.clientHeight || 667
+    width: Math.min(wrap.clientWidth || Math.round(viewport.width || window.innerWidth) || 375, GAME_MAX_WIDTH),
+    height: Math.min(wrap.clientHeight || Math.round(viewport.height || window.innerHeight) || 667, GAME_MAX_HEIGHT)
   };
 }
 
@@ -360,6 +365,8 @@ class FlappyScene extends Phaser.Scene {
     const size = gameSize();
     this.w = size.width;
     this.h = size.height;
+    this.S = Math.max(1, Math.min(this.w / 480, this.h / 760, 1.55));
+    this.groundH = GH * this.S;
     this.scale.resize(size.width, size.height);
     if (this.bird) this.bird.x = this.w * BXFRAC;
   }
@@ -391,7 +398,7 @@ class FlappyScene extends Phaser.Scene {
         this.bgRainbows.push({ x: Math.random() * this.w, y: this.h * 0.12 + Math.random() * this.h * 0.28, s: 0.5 + Math.random() * 0.6, vx: 0.1, temp: false });
       }
     }
-    this.spawnPipe(this.w + 260);
+    this.spawnPipe(this.w + 260 * (this.S || 1));
   }
 
   startLevel() {
@@ -405,12 +412,18 @@ class FlappyScene extends Phaser.Scene {
 
   spawnPipe(x) {
     const L = lv();
-    const topH = 70 + Math.random() * (this.h - GH - L.gap - 70);
+    const S = this.S || 1;
+    const gap = L.gap * S;
+    const groundH = this.groundH || GH;
+    const topMin = 70 * S;
+    const topRange = Math.max(70 * S, this.h - groundH - gap - topMin * 2);
+    const topH = topMin + Math.random() * topRange;
     const type = Phaser.Utils.Array.GetRandom(L.types);
-    this.pipes.push({ x, topH, botY: topH + L.gap, w: 90, passed: false, type, wob: Math.random() * Math.PI * 2 });
-    if (Math.random() < 0.75) this.stars.push({ x: x + 45, y: topH + L.gap / 2, r: 13, got: false, wob: Math.random() * Math.PI * 2 });
+    const pipeW = 90 * S;
+    this.pipes.push({ x, topH, botY: topH + gap, w: pipeW, passed: false, type, wob: Math.random() * Math.PI * 2 });
+    if (Math.random() < 0.75) this.stars.push({ x: x + pipeW / 2, y: topH + gap / 2, r: 13 * S, got: false, wob: Math.random() * Math.PI * 2 });
     if (L.rainbow && Math.random() < L.rbChance) {
-      this.bgRainbows.push({ x: x + 20 + Math.random() * 40, y: topH + L.gap / 2, s: 0.35 + Math.random() * 0.3, vx: L.speed, temp: true });
+      this.bgRainbows.push({ x: x + 20 * S + Math.random() * 40 * S, y: topH + gap / 2, s: 0.35 + Math.random() * 0.3, vx: L.speed * S, temp: true });
     }
   }
 
@@ -418,11 +431,12 @@ class FlappyScene extends Phaser.Scene {
     initAudio();
     if (!this.bird.alive || this.lvDone) return;
     if (!this.started) this.started = true;
-    this.bird.vy = FLAP;
+    const S = this.S || 1;
+    this.bird.vy = FLAP * S;
     this.bird.flap = 9;
     playFlap();
     for (let i = 0; i < 5; i++) {
-      this.particles.push({ x: this.bird.x, y: this.bird.y, vx: (Math.random() - 0.5) * 2.5, vy: Math.random() * 1.5 + 0.5, life: 18, max: 18 });
+      this.particles.push({ x: this.bird.x, y: this.bird.y, vx: (Math.random() - 0.5) * 2.5 * S, vy: (Math.random() * 1.5 + 0.5) * S, life: 18, max: 18 });
     }
   }
 
@@ -434,8 +448,11 @@ class FlappyScene extends Phaser.Scene {
 
   updateGame(dt) {
     const L = lv();
+    const S = this.S || 1;
+    const speed = L.speed * S;
+    const groundH = this.groundH || GH;
     this.frame += dt;
-    this.groundOff = (this.groundOff + L.speed * dt) % 40;
+    this.groundOff = (this.groundOff + speed * dt) % (40 * S);
 
     if (!this.started) {
       this.bird.y = this.h * 0.42 + Math.sin(this.frame * 0.055) * 9;
@@ -444,20 +461,20 @@ class FlappyScene extends Phaser.Scene {
       return;
     }
 
-    this.bird.vy += GRAVITY * dt;
-    if (this.bird.vy > 6.5) this.bird.vy = 6.5;
+    this.bird.vy += GRAVITY * S * dt;
+    if (this.bird.vy > 6.5 * S) this.bird.vy = 6.5 * S;
     this.bird.y += this.bird.vy * dt;
     this.bird.angle = Phaser.Math.Clamp(this.bird.vy * 4, -28, 38);
     if (this.bird.flap > 0) this.bird.flap -= dt;
 
     this.moveBackground(dt);
-    if (!this.lvDone && (this.pipes.length === 0 || this.pipes[this.pipes.length - 1].x < this.w - L.spacing) && this.passed < L.count) {
-      this.spawnPipe(this.w + 50);
+    if (!this.lvDone && (this.pipes.length === 0 || this.pipes[this.pipes.length - 1].x < this.w - L.spacing * S) && this.passed < L.count) {
+      this.spawnPipe(this.w + 50 * S);
     }
 
     for (let i = this.pipes.length - 1; i >= 0; i--) {
       const pipe = this.pipes[i];
-      pipe.x -= L.speed * dt;
+      pipe.x -= speed * dt;
       if (!pipe.passed && pipe.x + pipe.w < this.bird.x) {
         pipe.passed = true;
         this.passed++;
@@ -468,21 +485,21 @@ class FlappyScene extends Phaser.Scene {
           window.setTimeout(() => this.showLevelDone(), 900);
         }
       }
-      if (pipe.x + pipe.w < -30) this.pipes.splice(i, 1);
+      if (pipe.x + pipe.w < -30 * S) this.pipes.splice(i, 1);
     }
 
     for (let i = this.stars.length - 1; i >= 0; i--) {
       const star = this.stars[i];
-      star.x -= L.speed * dt;
+      star.x -= speed * dt;
       star.wob += 0.07 * dt;
-      if (!star.got && Phaser.Math.Distance.Between(this.bird.x, this.bird.y, star.x, star.y) < star.r + 13) {
+      if (!star.got && Phaser.Math.Distance.Between(this.bird.x, this.bird.y, star.x, star.y) < star.r + 13 * S) {
         star.got = true;
         totalStars++;
         pillStars.textContent = '⭐ ' + totalStars;
         playStar();
         spawnStarPop(star.x, star.y);
       }
-      if (star.x < -30) this.stars.splice(i, 1);
+      if (star.x < -30 * S) this.stars.splice(i, 1);
     }
 
     for (let i = this.particles.length - 1; i >= 0; i--) {
@@ -493,19 +510,19 @@ class FlappyScene extends Phaser.Scene {
       if (p.life <= 0) this.particles.splice(i, 1);
     }
 
-    if (this.bird.y < 18) {
-      this.bird.y = 18;
+    if (this.bird.y < 18 * S) {
+      this.bird.y = 18 * S;
       this.bird.vy = 1;
     }
-    if (!this.lvDone && this.bird.y > this.h - GH - 13) {
+    if (!this.lvDone && this.bird.y > this.h - groundH - 13 * S) {
       this.die();
       return;
     }
 
     if (!this.lvDone) {
-      const br = 13;
+      const br = 13 * S;
       for (const pipe of this.pipes) {
-        const inX = this.bird.x + br > pipe.x + 8 && this.bird.x - br < pipe.x + pipe.w - 8;
+        const inX = this.bird.x + br > pipe.x + 8 * S && this.bird.x - br < pipe.x + pipe.w - 8 * S;
         if (inX && (this.bird.y - br < pipe.topH || this.bird.y + br > pipe.botY)) {
           this.die();
           return;
@@ -530,7 +547,7 @@ class FlappyScene extends Phaser.Scene {
   die() {
     if (this.lvDone) return;
     this.bird.alive = false;
-    this.bird.vy = FLAP * 0.3;
+    this.bird.vy = FLAP * 0.3 * (this.S || 1);
     playDie();
     this.running = false;
     window.setTimeout(() => this.showDied(), 900);
@@ -632,30 +649,32 @@ class FlappyScene extends Phaser.Scene {
 
   drawSunMoon() {
     const L = lv();
+    const S = this.S || 1;
     if (L.sun) {
-      const sy = 48 + Math.sin(this.frame * 0.004) * 6;
+      const sy = 48 * S + Math.sin(this.frame * 0.004) * 6 * S;
       this.g.fillStyle(0xffd700, 1);
-      this.g.fillCircle(this.w - 52, sy, 26);
-      this.g.lineStyle(2, 0xffd700, 0.45);
+      this.g.fillCircle(this.w - 52 * S, sy, 26 * S);
+      this.g.lineStyle(2 * S, 0xffd700, 0.45);
       for (let a = 0; a < 8; a++) {
         const ang = a * Math.PI / 4 + this.frame * 0.005;
-        this.g.lineBetween(this.w - 52 + Math.cos(ang) * 30, sy + Math.sin(ang) * 30, this.w - 52 + Math.cos(ang) * 42, sy + Math.sin(ang) * 42);
+        this.g.lineBetween(this.w - 52 * S + Math.cos(ang) * 30 * S, sy + Math.sin(ang) * 30 * S, this.w - 52 * S + Math.cos(ang) * 42 * S, sy + Math.sin(ang) * 42 * S);
       }
     }
     if (L.moon) {
       this.g.fillStyle(0xfff9c4, 1);
-      this.g.fillCircle(this.w - 52, 52, 24);
+      this.g.fillCircle(this.w - 52 * S, 52 * S, 24 * S);
       this.g.fillStyle(L.sky1, 1);
-      this.g.fillCircle(this.w - 42, 47, 20);
+      this.g.fillCircle(this.w - 42 * S, 47 * S, 20 * S);
     }
   }
 
   drawRainbow(rb) {
+    const s = (this.S || 1) * rb.s;
     const colors = [0xff0000, 0xff7f00, 0xffff00, 0x00cc00, 0x0044ff, 0x8800ff];
     for (let i = 0; i < colors.length; i++) {
-      this.g.lineStyle(8 * rb.s, colors[i], 0.42);
+      this.g.lineStyle(8 * s, colors[i], 0.42);
       this.g.beginPath();
-      this.g.arc(rb.x, rb.y, (80 + i * 10) * rb.s, Math.PI, 0, false);
+      this.g.arc(rb.x, rb.y, (80 + i * 10) * s, Math.PI, 0, false);
       this.g.strokePath();
     }
   }
@@ -665,7 +684,7 @@ class FlappyScene extends Phaser.Scene {
   }
 
   drawPuffyCloud(cx, cy, scale, color, alpha) {
-    const s = scale || 1;
+    const s = (scale || 1) * (this.S || 1);
     this.g.fillStyle(color, alpha == null ? 1 : alpha);
     this.g.fillCircle(cx, cy, 22 * s);
     this.g.fillCircle(cx + 28 * s, cy - 7 * s, 19 * s);
@@ -687,13 +706,14 @@ class FlappyScene extends Phaser.Scene {
 
   drawCloudObs(pipe) {
     const L = lv();
+    const groundH = this.groundH || GH;
     const x = pipe.x;
     const w = pipe.w;
     const t = this.frame * 0.02 + pipe.wob;
     const base = L.num === 2 ? 0xfce4ec : L.num === 3 ? 0x7986cb : L.num === 4 ? 0xa5d6a7 : L.num === 5 ? colorLerp(0xff9ec9, 0x9ed7ff, (Math.sin(this.frame * 0.02) + 1) / 2) : 0xe3f2fd;
     const shade = L.num === 2 ? 0xf48fb1 : L.num === 3 ? 0x5c6bc0 : L.num === 4 ? 0x66bb6a : L.num === 5 ? colorLerp(0xff6b9d, 0x6bceff, (Math.sin(this.frame * 0.02) + 1) / 2) : 0xbbdefb;
     this.drawCloudBlock(x, 0, w, pipe.topH, true, t, base, shade);
-    this.drawCloudBlock(x, pipe.botY, w, this.h - GH - pipe.botY, false, t, base, shade);
+    this.drawCloudBlock(x, pipe.botY, w, this.h - groundH - pipe.botY, false, t, base, shade);
   }
 
   drawCloudBlock(x, y, w, h, top, t, base, shade) {
@@ -715,55 +735,62 @@ class FlappyScene extends Phaser.Scene {
   }
 
   drawCandyObs(pipe) {
+    const groundH = this.groundH || GH;
     this.drawStripedPole(pipe.x, 0, pipe.w, pipe.topH, [0xf06292, 0xffffff], 0xe91e63);
-    this.drawStripedPole(pipe.x, pipe.botY, pipe.w, this.h - GH - pipe.botY, [0xf06292, 0xffffff], 0xe91e63);
+    this.drawStripedPole(pipe.x, pipe.botY, pipe.w, this.h - groundH - pipe.botY, [0xf06292, 0xffffff], 0xe91e63);
   }
 
   drawNightObs(pipe) {
+    const groundH = this.groundH || GH;
     this.drawPatternPole(pipe.x, 0, pipe.w, pipe.topH, 0x1a237e, 0x3949ab, true);
-    this.drawPatternPole(pipe.x, pipe.botY, pipe.w, this.h - GH - pipe.botY, 0x1a237e, 0x3949ab, true);
+    this.drawPatternPole(pipe.x, pipe.botY, pipe.w, this.h - groundH - pipe.botY, 0x1a237e, 0x3949ab, true);
   }
 
   drawLeafObs(pipe) {
+    const groundH = this.groundH || GH;
     this.drawPatternPole(pipe.x, 0, pipe.w, pipe.topH, 0x2e7d32, 0x1b5e20, false);
-    this.drawPatternPole(pipe.x, pipe.botY, pipe.w, this.h - GH - pipe.botY, 0x2e7d32, 0x1b5e20, false);
+    this.drawPatternPole(pipe.x, pipe.botY, pipe.w, this.h - groundH - pipe.botY, 0x2e7d32, 0x1b5e20, false);
   }
 
   drawRainbowObs(pipe) {
+    const groundH = this.groundH || GH;
     const colors = [0xff4444, 0xff9900, 0xffee00, 0x44dd44, 0x4488ff, 0xaa44ff];
     this.drawRainbowPole(pipe.x, 0, pipe.w, pipe.topH, colors);
-    this.drawRainbowPole(pipe.x, pipe.botY, pipe.w, this.h - GH - pipe.botY, colors);
+    this.drawRainbowPole(pipe.x, pipe.botY, pipe.w, this.h - groundH - pipe.botY, colors);
   }
 
   drawStripedPole(x, y, w, h, colors, stroke) {
     if (h <= 0) return;
-    for (let s = 0; s < h; s += 20) {
-      this.g.fillStyle(colors[Math.floor(s / 20) % colors.length], 1);
-      this.g.fillRect(x, y + s, w, Math.min(20, h - s));
+    const S = this.S || 1;
+    const stripeH = 20 * S;
+    for (let s = 0; s < h; s += stripeH) {
+      this.g.fillStyle(colors[Math.floor(s / stripeH) % colors.length], 1);
+      this.g.fillRect(x, y + s, w, Math.min(stripeH, h - s));
     }
-    this.g.lineStyle(2, stroke, 1);
+    this.g.lineStyle(2 * S, stroke, 1);
     this.g.strokeRect(x, y, w, h);
     this.g.fillStyle(0xf8bbd0, 1);
-    this.g.fillRoundedRect(x - 5, y, w + 10, 22, 8);
+    this.g.fillRoundedRect(x - 5 * S, y, w + 10 * S, 22 * S, 8 * S);
   }
 
   drawPatternPole(x, y, w, h, fill, stroke, night) {
     if (h <= 0) return;
+    const S = this.S || 1;
     this.g.fillStyle(fill, 1);
     this.g.fillRect(x, y, w, h);
-    this.g.lineStyle(3, stroke, 1);
+    this.g.lineStyle(3 * S, stroke, 1);
     this.g.strokeRect(x, y, w, h);
     if (night) {
       this.g.fillStyle(0xffffc8, 0.7);
-      for (let i = 0; i < 7; i++) this.g.fillCircle(x + 8 + i * (w / 7), y + 8 + i * 10, 1.8);
+      for (let i = 0; i < 7; i++) this.g.fillCircle(x + 8 * S + i * (w / 7), y + 8 * S + i * 10 * S, 1.8 * S);
       this.g.fillStyle(0xfff9c4, 1);
-      this.g.fillCircle(x + w / 2, y === 0 ? h - 12 : y + 12, 11);
+      this.g.fillCircle(x + w / 2, y === 0 ? h - 12 * S : y + 12 * S, 11 * S);
     } else {
       this.g.fillStyle(0x4caf50, 1);
       for (let i = 0; i < 3; i++) {
         const lx = x + w / 4 + i * (w / 3);
-        const ly = y === 0 ? h - 4 : y + 4;
-        this.g.fillEllipse(lx, ly + 14, 18, 36);
+        const ly = y === 0 ? h - 4 * S : y + 4 * S;
+        this.g.fillEllipse(lx, ly + 14 * S, 18 * S, 36 * S);
       }
     }
   }
@@ -781,28 +808,32 @@ class FlappyScene extends Phaser.Scene {
 
   drawStar(star) {
     if (star.got) return;
-    const bob = Math.sin(star.wob) * 5;
+    const bob = Math.sin(star.wob) * 5 * (this.S || 1);
     this.drawText('⭐', star.x, star.y + bob, 26, '#ffd700');
   }
 
   drawGround() {
     const L = lv();
+    const S = this.S || 1;
+    const groundH = this.groundH || GH;
     this.g.fillStyle(L.gr, 1);
-    this.g.fillRect(0, this.h - GH, this.w, GH);
+    this.g.fillRect(0, this.h - groundH, this.w, groundH);
     this.g.fillStyle(L.grd, 1);
-    this.g.fillRect(0, this.h - GH + 22, this.w, GH);
+    this.g.fillRect(0, this.h - groundH + 22 * S, this.w, groundH);
     this.g.fillStyle(L.gr, 1);
-    for (let bx = -(this.groundOff % 40); bx < this.w + 40; bx += 40) this.g.fillCircle(bx, this.h - GH + 4, 15);
-    this.g.lineStyle(2, L.grd, 1);
-    this.g.lineBetween(0, this.h - GH + 20, this.w, this.h - GH + 20);
+    for (let bx = -(this.groundOff % (40 * S)); bx < this.w + 40 * S; bx += 40 * S) this.g.fillCircle(bx, this.h - groundH + 4 * S, 15 * S);
+    this.g.lineStyle(2 * S, L.grd, 1);
+    this.g.lineBetween(0, this.h - groundH + 20 * S, this.w, this.h - groundH + 20 * S);
   }
 
   drawProgress() {
     const pct = Math.min(this.passed / lv().count, 1);
+    const S = this.S || 1;
+    const groundH = this.groundH || GH;
     const bw = this.w * 0.5;
-    const bh = 7;
+    const bh = 7 * S;
     const bx = (this.w - bw) / 2;
-    const by = this.h - GH - 15;
+    const by = this.h - groundH - 15 * S;
     this.g.fillStyle(0x000000, 0.18);
     this.g.fillRoundedRect(bx, by, bw, bh, 4);
     if (pct > 0) {
@@ -815,7 +846,7 @@ class FlappyScene extends Phaser.Scene {
     for (const p of this.particles) {
       const alpha = p.life / p.max;
       this.g.fillStyle(0xffe664, alpha);
-      this.g.fillCircle(p.x, p.y, 3 * alpha);
+      this.g.fillCircle(p.x, p.y, 3 * alpha * (this.S || 1));
     }
   }
 
@@ -825,6 +856,7 @@ class FlappyScene extends Phaser.Scene {
     this.g.save();
     this.g.translateCanvas(b.x, b.y);
     this.g.rotateCanvas(Phaser.Math.DegToRad(b.angle));
+    this.g.scaleCanvas(this.S || 1, this.S || 1);
     this.g.fillStyle(0x000000, 0.12);
     this.g.fillEllipse(2, 18, 28, 10);
     this.g.fillStyle(0xffd700, 1);
@@ -853,9 +885,10 @@ class FlappyScene extends Phaser.Scene {
   }
 
   drawText(text, x, y, size, color, weight, alpha) {
+    const S = this.S || 1;
     const label = this.add.text(x, y, text, {
       fontFamily: 'Comic Sans MS, Chalkboard SE, cursive',
-      fontSize: size + 'px',
+      fontSize: Math.round(size * S) + 'px',
       fontStyle: weight === 'bold' ? 'bold' : 'normal',
       color: color || '#000'
     }).setOrigin(0.5);

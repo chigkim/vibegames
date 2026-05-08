@@ -252,7 +252,11 @@
 <script src="./libs/tone-15.1.22.js"></script>
 <script src="./libs/zzfx-1.3.2.micro.min.js"></script>
 <script>
-const GAME_MAX_WIDTH = 420;
+// Game size adapts to the device viewport. On phones, this fills the screen;
+// on tablets, we let the canvas grow to a larger max so the game isn't tiny.
+// Internal game logic uses these dimensions directly (Phaser.Scale.NONE).
+const GAME_MAX_WIDTH = 720;
+const GAME_MAX_HEIGHT = 1280;
 const GRAVITY = 0.38;
 const CATCH_RADIUS = 52;
 const STAR_COLLECT_RADIUS = 38;
@@ -285,7 +289,7 @@ let lastStartRequestAt = 0;
 function gameSize() {
   return {
     width: Math.min(window.innerWidth, GAME_MAX_WIDTH),
-    height: window.innerHeight
+    height: Math.min(window.innerHeight, GAME_MAX_HEIGHT)
   };
 }
 
@@ -565,9 +569,19 @@ class RiseScene extends Phaser.Scene {
     const size = gameSize();
     this.gameWidth = size.width;
     this.gameHeight = size.height;
+    // Scale factor: how much bigger the canvas is than the original 420px design.
+    // Used to scale hub size, rope length, player size, catch radii, etc. so the
+    // game feels chunky on tablets instead of cramped little dots in a big canvas.
+    this.S = Math.max(1, Math.min(this.gameWidth / 420, this.gameHeight / 750, 2));
+    // Pre-compute scaled physics radii used in many places.
+    this.catchR = CATCH_RADIUS * this.S;
+    this.magnetR = MAGNETIC_RADIUS * this.S;
+    this.starR = STAR_COLLECT_RADIUS * this.S;
+    this.playerR = 20 * this.S;
+    this.fallThresh = FALL_THRESHOLD * this.S;
     this.scale.resize(size.width, size.height);
     if (this.player) {
-      this.player.x = Phaser.Math.Clamp(this.player.x, 18, this.gameWidth - 18);
+      this.player.x = Phaser.Math.Clamp(this.player.x, this.playerR - 2, this.gameWidth - (this.playerR - 2));
     }
   }
 
@@ -634,7 +648,7 @@ class RiseScene extends Phaser.Scene {
     const firstHub = this.hubs[0];
     const longestRope = Math.max(...firstHub.ropes.map(r => r.length));
     this.player.x = firstHub.x;
-    this.player.y = firstHub.y + firstHub.radius + longestRope + 12;
+    this.player.y = firstHub.y + firstHub.radius + longestRope + 12 * (this.S || 1);
     this.player.mood = 'normal';
 
     this.cameraY = this.player.y - this.gameHeight * 0.7;  // show hub above
@@ -645,13 +659,14 @@ class RiseScene extends Phaser.Scene {
   }
 
   createHub(x, y, index) {
+    const S = this.S || 1;
     const isEarly = index < 4;
     // Slower speed ramp - cap reached around hub 12-15 instead of 10
     let speed = isEarly ? 0.018 : 0.018 + Math.min((index - 4) * 0.0028, 0.027);
     // Direction flips less often, only after hub 5
     const flipChance = index < 5 ? 0 : Math.min(0.15 + (index - 5) * 0.02, 0.4);
     const dir = index === 0 ? -1 : (index === 1 ? 1 : (Math.random() < flipChance ? -1 : 1));
-    const radius = 28 + Math.random() * 14;
+    const radius = (28 + Math.random() * 14) * S;
     // Keep min 3 ropes through hub 7, then 2-4
     const ropeCount = index < 7 ? 3 : 2 + Math.floor(Math.random() * 3);
     const ropes = [];
@@ -667,7 +682,7 @@ class RiseScene extends Phaser.Scene {
 
     for (let i = 0; i < ropeCount; i++) {
       const angleOffset = (i / ropeCount) * Math.PI * 2;
-      const length = isEarly ? 55 + i * 20 : 40 + Math.random() * 55;
+      const length = (isEarly ? 55 + i * 20 : 40 + Math.random() * 55) * S;
       ropes.push({
         angleOffset,
         length,
@@ -694,8 +709,9 @@ class RiseScene extends Phaser.Scene {
   }
 
   generateHubs() {
+    const S = this.S || 1;
     // Place first hub at center; clamp by its reach to stay safely on-screen.
-    const first = this.createHub(this.gameWidth / 2, -180, 0);
+    const first = this.createHub(this.gameWidth / 2, -180 * S, 0);
     const reach = this.hubReach(first);
     const minX = reach, maxX = this.gameWidth - reach;
     first.x = (minX > maxX) ? this.gameWidth / 2 : Phaser.Math.Clamp(this.gameWidth / 2, minX, maxX);
@@ -707,17 +723,19 @@ class RiseScene extends Phaser.Scene {
   // Compute the maximum horizontal distance from hub center that any part
   // of the swinging system can reach (rope tip + player body).
   hubReach(hub) {
+    const S = this.S || 1;
     const maxRopeLen = Math.max(...hub.ropes.map(r => r.length));
-    return hub.radius + maxRopeLen + 22;  // 22 = player radius + small buffer
+    return hub.radius + maxRopeLen + 22 * S;  // 22 = player radius + small buffer
   }
 
   addHub() {
+    const S = this.S || 1;
     const last = this.hubs[this.hubs.length - 1];
     const isEarly = this.hubsGenerated < 4;
-    const gapY = isEarly
+    const gapY = (isEarly
       ? 160 + this.hubsGenerated * 10
-      : 160 + Math.min(this.hubsGenerated * 3, 60) + Math.random() * 40;
-    const xRange = isEarly ? 60 : 100;
+      : 160 + Math.min(this.hubsGenerated * 3, 60) + Math.random() * 40) * S;
+    const xRange = (isEarly ? 60 : 100) * S;
     const proposedX = last.x + (Math.random() - 0.5) * xRange * 2;
     const y = last.y - gapY;
     // Build hub first so we know its rope reach, then clamp x within safe screen bounds.
@@ -859,15 +877,16 @@ class RiseScene extends Phaser.Scene {
   }
 
   spawnStarBurst(x, y) {
+    const S = this.S || 1;
     for (let i = 0; i < 12; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 2 + Math.random() * 4;
+      const speed = (2 + Math.random() * 4) * S;
       this.particles.push({
         x, y,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 1,
+        vy: Math.sin(angle) * speed - 1 * S,
         life: 1, decay: 0.04 + Math.random() * 0.03,
-        r: 2 + Math.random() * 3,
+        r: (2 + Math.random() * 3) * S,
         color: ['#ffe066', '#fff5b8', '#ffba49'][Math.floor(Math.random() * 3)]
       });
     }
@@ -1058,8 +1077,9 @@ class RiseScene extends Phaser.Scene {
       x += vx;
       y += vy;
       // Soft horizontal clamp to match the actual airborne clamp.
-      if (x < 18) { x = 18; vx = 0; }
-      else if (x > this.gameWidth - 18) { x = this.gameWidth - 18; vx = 0; }
+      const pad = this.playerR - 2;
+      if (x < pad) { x = pad; vx = 0; }
+      else if (x > this.gameWidth - pad) { x = this.gameWidth - pad; vx = 0; }
       points.push({ x, y });
 
       // Check if this point lands on a rope endpoint
@@ -1076,7 +1096,7 @@ class RiseScene extends Phaser.Scene {
           const rex = ax + Math.cos(futureAngle) * h.ropes[ri].length;
           const rey = ay + Math.sin(futureAngle) * h.ropes[ri].length;
           const dx = rex - x, dy = rey - y;
-          if (dx * dx + dy * dy < CATCH_RADIUS * CATCH_RADIUS) {
+          if (dx * dx + dy * dy < this.catchR * this.catchR) {
             catchHub = hi;
             catchRope = ri;
             return { points, catchHub, catchRope, catchPoint: { x: rex, y: rey } };
@@ -1119,7 +1139,7 @@ class RiseScene extends Phaser.Scene {
   tryGrab() {
     if (!this.canCatchWhileAirborne()) return;
 
-    let bestDist = CATCH_RADIUS;
+    let bestDist = this.catchR;
     let bestHub = -1;
     let bestRope = -1;
 
@@ -1141,9 +1161,10 @@ class RiseScene extends Phaser.Scene {
   }
 
   spawnParticles(x, y, color) {
+    const S = this.S || 1;
     for (let i = 0; i < 10; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 1.5 + Math.random() * 3;
+      const speed = (1.5 + Math.random() * 3) * S;
       this.particles.push({
         x,
         y,
@@ -1151,22 +1172,23 @@ class RiseScene extends Phaser.Scene {
         vy: Math.sin(angle) * speed,
         life: 1,
         decay: 0.03 + Math.random() * 0.03,
-        r: 3 + Math.random() * 5,
+        r: (3 + Math.random() * 5) * S,
         color
       });
     }
   }
 
   spawnTrail(x, y) {
+    const S = this.S || 1;
     for (let i = 0; i < 5; i++) {
       this.particles.push({
-        x: x + (Math.random() - 0.5) * 10,
-        y: y + (Math.random() - 0.5) * 10,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: (Math.random() - 0.5) * 1.5,
+        x: x + (Math.random() - 0.5) * 10 * S,
+        y: y + (Math.random() - 0.5) * 10 * S,
+        vx: (Math.random() - 0.5) * 1.5 * S,
+        vy: (Math.random() - 0.5) * 1.5 * S,
         life: 0.7,
         decay: 0.05,
-        r: 2 + Math.random() * 3,
+        r: (2 + Math.random() * 3) * S,
         color: '#fff'
       });
     }
@@ -1249,22 +1271,23 @@ class RiseScene extends Phaser.Scene {
         else if (this.player.mood === 'launch' && this.player.releaseTimer > 25) this.player.mood = 'normal';
 
         // Continuous flight trail when moving fast
+        const S = this.S || 1;
         const speed2 = this.player.vx * this.player.vx + this.player.vy * this.player.vy;
-        if (speed2 > 16 && Math.random() < 0.5) {
+        if (speed2 > 16 * S * S && Math.random() < 0.5) {
           this.particles.push({
-            x: this.player.x + (Math.random() - 0.5) * 6,
-            y: this.player.y + (Math.random() - 0.5) * 6,
-            vx: (Math.random() - 0.5) * 0.3,
-            vy: (Math.random() - 0.5) * 0.3,
+            x: this.player.x + (Math.random() - 0.5) * 6 * S,
+            y: this.player.y + (Math.random() - 0.5) * 6 * S,
+            vx: (Math.random() - 0.5) * 0.3 * S,
+            vy: (Math.random() - 0.5) * 0.3 * S,
             life: 0.5,
             decay: 0.06,
-            r: 1.5 + Math.random() * 2.5,
+            r: (1.5 + Math.random() * 2.5) * S,
             color: '#ffffff'
           });
         }
       }
 
-      let nearestDist = MAGNETIC_RADIUS;
+      let nearestDist = this.magnetR;
       let nearest = null;
       for (let hi = 0; hi < this.hubs.length; hi++) {
         const hub = this.hubs[hi];
@@ -1283,16 +1306,16 @@ class RiseScene extends Phaser.Scene {
       // Before first catch: just hold to grab the first rope that swings into range.
       // After first catch: standard catch logic.
       const canCatch = this.inputHeld;
-      if (canCatch && nearest && nearestDist < CATCH_RADIUS && this.player.grabCooldown <= 0) {
+      if (canCatch && nearest && nearestDist < this.catchR && this.player.grabCooldown <= 0) {
         this.attachPlayer(nearest.hi, nearest.ri);
-      } else if (this.hasCaughtFirst && canCatch && nearest && nearestDist < MAGNETIC_RADIUS * 0.7) {
+      } else if (this.hasCaughtFirst && canCatch && nearest && nearestDist < this.magnetR * 0.7) {
         const factor = 0.06;
         this.player.vx += (nearest.ep.ex - this.player.x) * factor;
         this.player.vy += (nearest.ep.ey - this.player.y) * factor;
       }
 
       if (this.hasCaughtFirst) {
-        this.player.x = Phaser.Math.Clamp(this.player.x, 18, this.gameWidth - 18);
+        this.player.x = Phaser.Math.Clamp(this.player.x, this.playerR - 2, this.gameWidth - (this.playerR - 2));
         if (this.player.releaseTimer > 240) this.player.vy += 0.1;
       }
     }
@@ -1304,7 +1327,7 @@ class RiseScene extends Phaser.Scene {
       star.y = bobY;
       const dx = star.x - this.player.x;
       const dy = bobY - this.player.y;
-      if (dx * dx + dy * dy < STAR_COLLECT_RADIUS * STAR_COLLECT_RADIUS) {
+      if (dx * dx + dy * dy < this.starR * this.starR) {
         this.collectStar(star);
       }
     }
@@ -1319,7 +1342,7 @@ class RiseScene extends Phaser.Scene {
       // Position the hub at a screen Y such that hub.y - swingReach (top of arc)
       // and hub.y + swingReach (bottom of arc) both fit within the screen
       // with a small margin for the player's body.
-      const margin = 24;  // player radius + small buffer
+      const margin = 24 * (this.S || 1);  // player radius + small buffer
       // Need: swingReach + margin <= hub_screen_y <= gameHeight - swingReach - margin
       // Pick the upper half of that range so progress feels upward.
       const minHubScreenY = swingReach + margin;
@@ -1380,7 +1403,7 @@ class RiseScene extends Phaser.Scene {
 
     this.updateParticles();
 
-    if (this.hasCaughtFirst && this.player.y - this.cameraY > this.gameHeight + FALL_THRESHOLD) {
+    if (this.hasCaughtFirst && this.player.y - this.cameraY > this.gameHeight + this.fallThresh) {
       this.showGameOver();
     }
   }
@@ -1470,13 +1493,14 @@ class RiseScene extends Phaser.Scene {
   }
 
   drawCollectibles() {
+    const S = this.S || 1;
     for (const star of this.collectibles) {
       if (star.collected) continue;
-      const bobY = star.baseY + Math.sin(this.time.now * 0.003 + star.phase) * 4;
+      const bobY = star.baseY + Math.sin(this.time.now * 0.003 + star.phase) * 4 * S;
       const sy = bobY - this.cameraY;
       if (sy < -30 || sy > this.gameHeight + 30) continue;
       const pulse = 0.85 + 0.15 * Math.sin(this.time.now * 0.005 + star.phase);
-      const r = 8 * pulse;
+      const r = 8 * S * pulse;
       // Glow
       this.g.fillStyle(0xffe066, 0.25);
       this.g.fillCircle(star.x, sy, r * 2.2);
@@ -1494,6 +1518,7 @@ class RiseScene extends Phaser.Scene {
   }
 
   drawLandingGuide() {
+    const S = this.S || 1;
     const result = this.predictTrajectory();
     if (!result || result.points.length === 0) return;
 
@@ -1512,9 +1537,9 @@ class RiseScene extends Phaser.Scene {
       // Fade dots over distance so the start is bright and the tail dims
       const t = i / result.points.length;
       const alpha = (1 - t) * 0.7 + 0.15;
-      const r = 3 - t * 1.2;
+      const r = (3 - t * 1.2) * S;
       this.g.fillStyle(dotColor, alpha);
-      this.g.fillCircle(sx, sy, Math.max(1.2, r));
+      this.g.fillCircle(sx, sy, Math.max(1.2 * S, r));
     }
 
     // Draw a target marker at the landing point
@@ -1523,19 +1548,19 @@ class RiseScene extends Phaser.Scene {
       const ty = result.catchPoint.y - this.cameraY;
       if (ty > -30 && ty < this.gameHeight + 30) {
         const pulse = 0.7 + 0.3 * Math.sin(this.time.now * 0.012);
-        this.g.lineStyle(2.5, ringColor, 0.85);
-        this.g.strokeCircle(tx, ty, 14 * pulse);
-        this.g.lineStyle(2, ringColor, 0.5);
-        this.g.strokeCircle(tx, ty, 22 * pulse);
+        this.g.lineStyle(2.5 * S, ringColor, 0.85);
+        this.g.strokeCircle(tx, ty, 14 * S * pulse);
+        this.g.lineStyle(2 * S, ringColor, 0.5);
+        this.g.strokeCircle(tx, ty, 22 * S * pulse);
         // Crosshair
-        this.g.lineStyle(2, ringColor, 0.8);
+        this.g.lineStyle(2 * S, ringColor, 0.8);
         this.g.beginPath();
-        this.g.moveTo(tx - 8, ty); this.g.lineTo(tx + 8, ty);
-        this.g.moveTo(tx, ty - 8); this.g.lineTo(tx, ty + 8);
+        this.g.moveTo(tx - 8 * S, ty); this.g.lineTo(tx + 8 * S, ty);
+        this.g.moveTo(tx, ty - 8 * S); this.g.lineTo(tx, ty + 8 * S);
         this.g.strokePath();
       }
     } else if (result.points.length > 0) {
-      // No catch — show a falling-arrow at the last visible point as a warning
+      // No catch — show a small red dot at the last visible point as a warning
       const lastVisible = result.points
         .filter(p => p.y - this.cameraY < this.gameHeight + 20);
       if (lastVisible.length > 0) {
@@ -1544,7 +1569,7 @@ class RiseScene extends Phaser.Scene {
         const sy = p.y - this.cameraY;
         if (sy < this.gameHeight + 20) {
           this.g.fillStyle(0xff6b6b, 0.7);
-          this.g.fillCircle(sx, sy, 6);
+          this.g.fillCircle(sx, sy, 6 * S);
         }
       }
     }
@@ -1571,6 +1596,8 @@ class RiseScene extends Phaser.Scene {
   }
 
   drawTextOutlined(text, x, y, size, color, alpha, bold) {
+    const S = this.S || 1;
+    const scaledSize = size * S;
     if (!this._textPool) this._textPool = [];
     const idx = this._textPoolUsed | 0;
     let txt = this._textPool[idx];
@@ -1582,11 +1609,11 @@ class RiseScene extends Phaser.Scene {
     txt.setText(text);
     txt.setStyle({
       fontFamily: '"Bowlby One SC", "DM Sans", sans-serif',
-      fontSize: Math.round(size) + 'px',
+      fontSize: Math.round(scaledSize) + 'px',
       color,
       fontStyle: bold ? '900' : '700',
       stroke: '#1a0030',
-      strokeThickness: Math.max(3, Math.round(size * 0.16))
+      strokeThickness: Math.max(3, Math.round(scaledSize * 0.16))
     });
     txt.setPosition(x + (this._shakeX || 0), y + (this._shakeY || 0));
     txt.setAlpha(alpha);
@@ -1638,6 +1665,7 @@ class RiseScene extends Phaser.Scene {
   }
 
   drawHub(hub) {
+    const S = this.S || 1;
     const sx = hub.x;
     const sy = hub.y - this.cameraY;
     if (sy < -150 || sy > this.gameHeight + 150) return;
@@ -1648,38 +1676,38 @@ class RiseScene extends Phaser.Scene {
       const epScreenY = ep.ey - this.cameraY;
       const isActive = this.player && this.player.attached && this.player.hubIndex === hub.index && this.player.ropeIndex === ri;
       const dist = this.player ? Phaser.Math.Distance.Between(ep.ex, ep.ey, this.player.x, this.player.y) : Infinity;
-      const isNear = this.player && !this.player.attached && dist < MAGNETIC_RADIUS;
+      const isNear = this.player && !this.player.attached && dist < this.magnetR;
 
       if (isNear) {
-        this.g.lineStyle(9, 0xffe066, 0.18);
+        this.g.lineStyle(9 * S, 0xffe066, 0.18);
         this.g.beginPath();
         this.g.moveTo(ep.ax, ep.ay - this.cameraY);
         this.g.lineTo(ep.ex, epScreenY);
         this.g.strokePath();
       }
 
-      this.g.lineStyle(isActive ? 5 : 3.5, hexColor(rope.color), 1);
+      this.g.lineStyle((isActive ? 5 : 3.5) * S, hexColor(rope.color), 1);
       this.g.beginPath();
       this.g.moveTo(ep.ax, ep.ay - this.cameraY);
       this.g.lineTo(ep.ex, epScreenY);
       this.g.strokePath();
 
-      this.g.fillStyle(isNear ? 0xffe066 : (isActive ? 0xffffff : 0xffffff), isActive || isNear ? 1 : 0.75);
-      this.g.fillCircle(ep.ex, epScreenY, isActive ? 10 : 8);
-      this.g.lineStyle(2, hexColor(rope.color), 1);
-      this.g.strokeCircle(ep.ex, epScreenY, isActive ? 10 : 8);
+      this.g.fillStyle(isNear ? 0xffe066 : 0xffffff, isActive || isNear ? 1 : 0.75);
+      this.g.fillCircle(ep.ex, epScreenY, (isActive ? 10 : 8) * S);
+      this.g.lineStyle(2 * S, hexColor(rope.color), 1);
+      this.g.strokeCircle(ep.ex, epScreenY, (isActive ? 10 : 8) * S);
     }
 
     // Special hub glow
     if (hub.variant === 'gold') {
       const pulse = 0.7 + 0.3 * Math.sin(this.time.now * 0.005);
       this.g.fillStyle(0xffd700, 0.18 * pulse);
-      this.g.fillCircle(sx, sy, hub.radius + 16);
+      this.g.fillCircle(sx, sy, hub.radius + 16 * S);
       this.g.fillStyle(0xffd700, 0.3 * pulse);
-      this.g.fillCircle(sx, sy, hub.radius + 8);
+      this.g.fillCircle(sx, sy, hub.radius + 8 * S);
     } else if (hub.variant === 'bouncy') {
       this.g.fillStyle(0xff4d8d, 0.16);
-      this.g.fillCircle(sx, sy, hub.radius + 10);
+      this.g.fillCircle(sx, sy, hub.radius + 10 * S);
     }
 
     this.g.fillStyle(hexColor(hub.color), 1);
@@ -1687,16 +1715,16 @@ class RiseScene extends Phaser.Scene {
 
     // Gold hub: extra gold rim
     if (hub.variant === 'gold') {
-      this.g.lineStyle(4, 0xffffff, 0.85);
+      this.g.lineStyle(4 * S, 0xffffff, 0.85);
       this.g.strokeCircle(sx, sy, hub.radius);
-      this.g.lineStyle(2, 0xfff5b8, 1);
-      this.g.strokeCircle(sx, sy, hub.radius - 4);
+      this.g.lineStyle(2 * S, 0xfff5b8, 1);
+      this.g.strokeCircle(sx, sy, hub.radius - 4 * S);
     } else {
-      this.g.lineStyle(3, 0xffffff, 0.5);
+      this.g.lineStyle(3 * S, 0xffffff, 0.5);
       this.g.strokeCircle(sx, sy, hub.radius);
     }
 
-    this.g.lineStyle(2, 0xffffff, 0.35);
+    this.g.lineStyle(2 * S, 0xffffff, 0.35);
     for (const rope of hub.ropes) {
       const angle = hub.rotation + rope.angleOffset;
       this.g.beginPath();
@@ -1706,12 +1734,12 @@ class RiseScene extends Phaser.Scene {
     }
 
     this.g.fillStyle(hub.variant === 'gold' ? 0xffe066 : 0xffffff, hub.variant === 'gold' ? 1 : 0.7);
-    this.g.fillCircle(sx, sy, hub.variant === 'gold' ? 8 : 6);
+    this.g.fillCircle(sx, sy, (hub.variant === 'gold' ? 8 : 6) * S);
 
     // Star icon on gold hub center
     if (hub.variant === 'gold') {
       this.g.fillStyle(0xffd700, 1);
-      this.g.fillCircle(sx, sy, 4);
+      this.g.fillCircle(sx, sy, 4 * S);
     }
   }
 
@@ -1724,64 +1752,65 @@ class RiseScene extends Phaser.Scene {
   }
 
   drawPlayer() {
+    const S = this.S || 1;
     const px = this.player.x;
     // Gentle hover bob while waiting for the first catch — purely cosmetic,
     // does not affect physics or collision.
     const waitBob = (this.state === 'playing' && !this.hasCaughtFirst && !this.player.attached)
-      ? Math.sin(this.time.now * 0.004) * 4
+      ? Math.sin(this.time.now * 0.004) * 4 * S
       : 0;
     const py = this.player.y - this.cameraY + waitBob;
-    const eyeX = this.player.faceDir * 6;
+    const eyeX = this.player.faceDir * 6 * S;
     const mood = this.player.mood || 'normal';
 
     this.g.fillStyle(0x000000, 0.2);
-    this.g.fillCircle(px, py + 2, 20);
+    this.g.fillCircle(px, py + 2 * S, 20 * S);
     this.g.fillStyle(0xffba49, 1);
-    this.g.fillCircle(px, py, 20);
+    this.g.fillCircle(px, py, 20 * S);
     this.g.fillStyle(0xffe8b0, 0.55);
-    this.g.fillCircle(px - 5, py - 6, 9);
-    this.g.lineStyle(2, 0xff8c42, 1);
-    this.g.strokeCircle(px, py, 20);
+    this.g.fillCircle(px - 5 * S, py - 6 * S, 9 * S);
+    this.g.lineStyle(2 * S, 0xff8c42, 1);
+    this.g.strokeCircle(px, py, 20 * S);
 
     // Eyes — bigger when scared/launch, normal otherwise
-    const eyeR = (mood === 'scared' || mood === 'launch') ? 5.5 : 4.5;
+    const eyeR = ((mood === 'scared' || mood === 'launch') ? 5.5 : 4.5) * S;
     this.g.fillStyle(0xffffff, 1);
     if (mood === 'scared' || mood === 'launch') {
       // White eye sclera for surprise look
-      this.g.fillCircle(px + eyeX - 4, py - 4, eyeR);
-      this.g.fillCircle(px + eyeX + 4, py - 4, eyeR);
+      this.g.fillCircle(px + eyeX - 4 * S, py - 4 * S, eyeR);
+      this.g.fillCircle(px + eyeX + 4 * S, py - 4 * S, eyeR);
       // Smaller pupils
       this.g.fillStyle(0x222222, 1);
-      this.g.fillCircle(px + eyeX - 4, py - 4, 2.8);
-      this.g.fillCircle(px + eyeX + 4, py - 4, 2.8);
+      this.g.fillCircle(px + eyeX - 4 * S, py - 4 * S, 2.8 * S);
+      this.g.fillCircle(px + eyeX + 4 * S, py - 4 * S, 2.8 * S);
     } else {
       this.g.fillStyle(0x222222, 1);
-      this.g.fillCircle(px + eyeX - 4, py - 4, eyeR);
-      this.g.fillCircle(px + eyeX + 4, py - 4, eyeR);
+      this.g.fillCircle(px + eyeX - 4 * S, py - 4 * S, eyeR);
+      this.g.fillCircle(px + eyeX + 4 * S, py - 4 * S, eyeR);
     }
     // Eye shine
     this.g.fillStyle(0xffffff, 1);
-    this.g.fillCircle(px + eyeX - 3, py - 5.5, 1.5);
-    this.g.fillCircle(px + eyeX + 5, py - 5.5, 1.5);
+    this.g.fillCircle(px + eyeX - 3 * S, py - 5.5 * S, 1.5 * S);
+    this.g.fillCircle(px + eyeX + 5 * S, py - 5.5 * S, 1.5 * S);
 
     // Mouth — varies by mood
     if (mood === 'happy') {
       // Big smile
-      this.g.lineStyle(2.5, 0xff6b35, 1);
+      this.g.lineStyle(2.5 * S, 0xff6b35, 1);
       this.g.beginPath();
-      this.g.arc(px + eyeX, py + 4, 8, 0.1, Math.PI - 0.1, false);
+      this.g.arc(px + eyeX, py + 4 * S, 8 * S, 0.1, Math.PI - 0.1, false);
       this.g.strokePath();
     } else if (mood === 'scared' || mood === 'launch') {
       // O-shaped mouth
       this.g.fillStyle(0x6b2222, 1);
-      this.g.fillCircle(px + eyeX, py + 6, mood === 'scared' ? 4 : 3);
-      this.g.lineStyle(1.5, 0xff6b35, 1);
-      this.g.strokeCircle(px + eyeX, py + 6, mood === 'scared' ? 4 : 3);
+      this.g.fillCircle(px + eyeX, py + 6 * S, (mood === 'scared' ? 4 : 3) * S);
+      this.g.lineStyle(1.5 * S, 0xff6b35, 1);
+      this.g.strokeCircle(px + eyeX, py + 6 * S, (mood === 'scared' ? 4 : 3) * S);
     } else {
       // Default smile
-      this.g.lineStyle(2, 0xff6b35, 1);
+      this.g.lineStyle(2 * S, 0xff6b35, 1);
       this.g.beginPath();
-      this.g.arc(px + eyeX, py + 5, 7, 0.2, Math.PI - 0.2, false);
+      this.g.arc(px + eyeX, py + 5 * S, 7 * S, 0.2, Math.PI - 0.2, false);
       this.g.strokePath();
     }
   }
@@ -1868,11 +1897,12 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v14 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v15 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+
 
 
 

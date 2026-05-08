@@ -622,9 +622,21 @@ class RiseScene extends Phaser.Scene {
   }
 
   generateHubs() {
-    this.hubs.push(this.createHub(this.gameWidth / 2, -180, 0));
+    // Place first hub at center; clamp by its reach to stay safely on-screen.
+    const first = this.createHub(this.gameWidth / 2, -180, 0);
+    const reach = this.hubReach(first);
+    const minX = reach, maxX = this.gameWidth - reach;
+    first.x = (minX > maxX) ? this.gameWidth / 2 : Phaser.Math.Clamp(this.gameWidth / 2, minX, maxX);
+    this.hubs.push(first);
     this.hubsGenerated = 1;
     for (let i = 1; i < 8; i++) this.addHub();
+  }
+
+  // Compute the maximum horizontal distance from hub center that any part
+  // of the swinging system can reach (rope tip + player body).
+  hubReach(hub) {
+    const maxRopeLen = Math.max(...hub.ropes.map(r => r.length));
+    return hub.radius + maxRopeLen + 22;  // 22 = player radius + small buffer
   }
 
   addHub() {
@@ -634,9 +646,20 @@ class RiseScene extends Phaser.Scene {
       ? 160 + this.hubsGenerated * 10
       : 160 + Math.min(this.hubsGenerated * 3, 60) + Math.random() * 40;
     const xRange = isEarly ? 60 : 100;
-    const x = Phaser.Math.Clamp(last.x + (Math.random() - 0.5) * xRange * 2, 55, this.gameWidth - 55);
+    const proposedX = last.x + (Math.random() - 0.5) * xRange * 2;
     const y = last.y - gapY;
-    this.hubs.push(this.createHub(x, y, this.hubsGenerated));
+    // Build hub first so we know its rope reach, then clamp x within safe screen bounds.
+    const hub = this.createHub(proposedX, y, this.hubsGenerated);
+    const reach = this.hubReach(hub);
+    const minX = reach;
+    const maxX = this.gameWidth - reach;
+    if (minX > maxX) {
+      // Screen narrower than the hub's swing diameter — center it.
+      hub.x = this.gameWidth / 2;
+    } else {
+      hub.x = Phaser.Math.Clamp(proposedX, minX, maxX);
+    }
+    this.hubs.push(hub);
     this.hubsGenerated++;
   }
 
@@ -1605,11 +1628,12 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v10 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v11 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+
 
 
 

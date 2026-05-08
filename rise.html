@@ -108,6 +108,52 @@
     font-size: 1rem;
     color: rgba(255,255,255,0.6);
   }
+  .guide-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0,0,0,0.18);
+    border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 14px;
+    padding: 10px 16px;
+    cursor: pointer;
+    user-select: none;
+    color: rgba(255,255,255,0.85);
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .guide-toggle:hover {
+    background: rgba(0,0,0,0.28);
+    border-color: rgba(255,255,255,0.3);
+  }
+  .guide-toggle input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    border: 2px solid rgba(255,255,255,0.45);
+    border-radius: 6px;
+    margin: 0;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .guide-toggle input:checked {
+    background: linear-gradient(135deg, #ffe066, #ff8c42);
+    border-color: #ffe066;
+  }
+  .guide-toggle input:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -54%);
+    color: #1a0a00;
+    font-weight: 900;
+    font-size: 16px;
+    line-height: 1;
+  }
   #hud {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -182,6 +228,10 @@
       🚀 Climb as high as you can!
     </div>
     <div class="best-score" id="ready-best-score" style="display:none;">🏆 Best: 0</div>
+    <label class="guide-toggle">
+      <input type="checkbox" id="ready-guide-toggle">
+      <span>🎯 Show landing guide</span>
+    </label>
     <button class="btn btn-start" id="btn-start">Let's Go! 🎉</button>
   </div>
 
@@ -190,6 +240,10 @@
     <div class="subtitle" id="encourage-msg">Nice climb!</div>
     <div class="score-display" id="final-score">Score: 0</div>
     <div class="best-score" id="best-score-display">Best: 0</div>
+    <label class="guide-toggle">
+      <input type="checkbox" id="gameover-guide-toggle">
+      <span>🎯 Show landing guide</span>
+    </label>
     <button class="btn btn-restart" id="btn-restart">Play Again! 🔄</button>
   </div>
 </div>
@@ -212,6 +266,7 @@ const ROPE_COLORS = ['#c77dff', '#4cc9f0', '#f8961e', '#90e0ef', '#ff6b6b', '#b5
 const MILESTONES = [5, 10, 15, 25, 40, 60, 80, 100];
 
 let muted = false;
+let guideEnabled = false;
 let audioReady = false;
 let scoreSynth = null;
 let gameOverSynth = null;
@@ -261,6 +316,20 @@ function saveBestScore(value) {
   } catch {
     // Storage can be unavailable in private browsing or restricted embeds.
   }
+}
+
+function loadGuidePref() {
+  try {
+    return localStorage.getItem('rise_guide') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function saveGuidePref(on) {
+  try {
+    localStorage.setItem('rise_guide', on ? '1' : '0');
+  } catch {}
 }
 
 async function initAudio() {
@@ -956,6 +1025,68 @@ class RiseScene extends Phaser.Scene {
     this.spawnTrail(this.player.x, this.player.y);
   }
 
+  // ---- Landing-guide prediction --------------------------------------------
+  // Mirror the release math + airborne integration to predict where the
+  // player would land if they let go RIGHT NOW. Returns an array of
+  // {x, y} world points (sampled per simulated frame) and the index of
+  // the rope/hub it would catch on (or -1 if none within the prediction window).
+  predictTrajectory() {
+    if (!this.player || !this.player.attached) return null;
+    const hub = this.hubs[this.player.hubIndex];
+    const rope = hub.ropes[this.player.ropeIndex];
+    const ep = this.getRopeEndpoint(hub, rope);
+    const totalLen = hub.radius + rope.length;
+    const tangentSpeed = Math.abs(hub.speed) * totalLen * 1.8;
+    const angle = ep.angle + Math.PI / 2 * Math.sign(hub.speed || 1);
+    const launchSpeed = Math.min(tangentSpeed * 6, 20);
+
+    let vx = Math.cos(angle) * launchSpeed;
+    let vy = Math.sin(angle) * launchSpeed;
+    if (vy > 3) vy -= Math.min(vy * 0.3, 5);
+
+    let x = ep.ex;
+    let y = ep.ey;
+    const points = [];
+    let catchHub = -1;
+    let catchRope = -1;
+    const maxFrames = 90;  // ~1.5s look-ahead — enough to reach the next hub
+    for (let f = 0; f < maxFrames; f++) {
+      vy += GRAVITY;
+      x += vx;
+      y += vy;
+      // Soft horizontal clamp to match the actual airborne clamp.
+      if (x < 18) { x = 18; vx = 0; }
+      else if (x > this.gameWidth - 18) { x = this.gameWidth - 18; vx = 0; }
+      points.push({ x, y });
+
+      // Check if this point lands on a rope endpoint
+      for (let hi = 0; hi < this.hubs.length; hi++) {
+        // Don't re-grab the hub we're predicting from in the first few frames
+        if (hi === this.player.hubIndex && f < 12) continue;
+        const h = this.hubs[hi];
+        if (h.y - this.cameraY > this.gameHeight + 200) continue;
+        for (let ri = 0; ri < h.ropes.length; ri++) {
+          // Predict the rope's position at frame f (it's also rotating!)
+          const futureAngle = h.rotation + h.speed * f + h.ropes[ri].angleOffset;
+          const ax = h.x + Math.cos(futureAngle) * h.radius;
+          const ay = h.y + Math.sin(futureAngle) * h.radius;
+          const rex = ax + Math.cos(futureAngle) * h.ropes[ri].length;
+          const rey = ay + Math.sin(futureAngle) * h.ropes[ri].length;
+          const dx = rex - x, dy = rey - y;
+          if (dx * dx + dy * dy < CATCH_RADIUS * CATCH_RADIUS) {
+            catchHub = hi;
+            catchRope = ri;
+            return { points, catchHub, catchRope, catchPoint: { x: rex, y: rey } };
+          }
+        }
+      }
+
+      // Stop if trajectory falls way below screen
+      if (y - this.cameraY > this.gameHeight + 300) break;
+    }
+    return { points, catchHub, catchRope, catchPoint: null };
+  }
+
   handleGrabStart() {
     if (this.state !== 'playing') return;
     initAudio();
@@ -1317,6 +1448,10 @@ class RiseScene extends Phaser.Scene {
     this.drawClouds();
     this.drawCollectibles();
     for (const hub of this.hubs) this.drawHub(hub);
+    // Landing guide: prediction overlay drawn under the player so it doesn't obscure them
+    if (guideEnabled && this.state === 'playing' && this.player && this.player.attached) {
+      this.drawLandingGuide();
+    }
     this.drawParticles();
     if (this.player) this.drawPlayer();
 
@@ -1352,6 +1487,63 @@ class RiseScene extends Phaser.Scene {
       // Sparkle highlight
       this.g.fillStyle(0xffffff, 0.9);
       this.g.fillCircle(star.x - r * 0.3, sy - r * 0.3, r * 0.25);
+    }
+  }
+
+  drawLandingGuide() {
+    const result = this.predictTrajectory();
+    if (!result || result.points.length === 0) return;
+
+    // Color: green if it lands on a rope, soft yellow otherwise
+    const lands = result.catchHub >= 0;
+    const dotColor = lands ? 0x6ee7b7 : 0xffe066;
+    const ringColor = lands ? 0x10b981 : 0xff8c42;
+
+    // Draw dotted preview path: a small circle every few sample points
+    const stride = 4;  // every 4 frames of simulation = ~one dot every 67ms
+    for (let i = stride; i < result.points.length; i += stride) {
+      const p = result.points[i];
+      const sx = p.x;
+      const sy = p.y - this.cameraY;
+      if (sy < -20 || sy > this.gameHeight + 20) continue;
+      // Fade dots over distance so the start is bright and the tail dims
+      const t = i / result.points.length;
+      const alpha = (1 - t) * 0.7 + 0.15;
+      const r = 3 - t * 1.2;
+      this.g.fillStyle(dotColor, alpha);
+      this.g.fillCircle(sx, sy, Math.max(1.2, r));
+    }
+
+    // Draw a target marker at the landing point
+    if (result.catchPoint) {
+      const tx = result.catchPoint.x;
+      const ty = result.catchPoint.y - this.cameraY;
+      if (ty > -30 && ty < this.gameHeight + 30) {
+        const pulse = 0.7 + 0.3 * Math.sin(this.time.now * 0.012);
+        this.g.lineStyle(2.5, ringColor, 0.85);
+        this.g.strokeCircle(tx, ty, 14 * pulse);
+        this.g.lineStyle(2, ringColor, 0.5);
+        this.g.strokeCircle(tx, ty, 22 * pulse);
+        // Crosshair
+        this.g.lineStyle(2, ringColor, 0.8);
+        this.g.beginPath();
+        this.g.moveTo(tx - 8, ty); this.g.lineTo(tx + 8, ty);
+        this.g.moveTo(tx, ty - 8); this.g.lineTo(tx, ty + 8);
+        this.g.strokePath();
+      }
+    } else if (result.points.length > 0) {
+      // No catch — show a falling-arrow at the last visible point as a warning
+      const lastVisible = result.points
+        .filter(p => p.y - this.cameraY < this.gameHeight + 20);
+      if (lastVisible.length > 0) {
+        const p = lastVisible[lastVisible.length - 1];
+        const sx = p.x;
+        const sy = p.y - this.cameraY;
+        if (sy < this.gameHeight + 20) {
+          this.g.fillStyle(0xff6b6b, 0.7);
+          this.g.fillCircle(sx, sy, 6);
+        }
+      }
     }
   }
 
@@ -1643,6 +1835,28 @@ document.getElementById('mute-btn').addEventListener('click', (event) => {
   setMuted(!muted);
 });
 
+// Landing-guide checkbox: shared preference between title and game-over screens,
+// persisted in localStorage. Toggling either checkbox updates the global flag,
+// the other checkbox, and immediately affects the next run.
+const guideToggleReady = document.getElementById('ready-guide-toggle');
+const guideToggleGameover = document.getElementById('gameover-guide-toggle');
+function setGuidePref(on) {
+  guideEnabled = !!on;
+  saveGuidePref(guideEnabled);
+  guideToggleReady.checked = guideEnabled;
+  guideToggleGameover.checked = guideEnabled;
+}
+// Initialize from storage
+guideEnabled = loadGuidePref();
+guideToggleReady.checked = guideEnabled;
+guideToggleGameover.checked = guideEnabled;
+guideToggleReady.addEventListener('change', () => setGuidePref(guideToggleReady.checked));
+guideToggleGameover.addEventListener('change', () => setGuidePref(guideToggleGameover.checked));
+// Stop pointer events from bubbling to canvas
+[guideToggleReady, guideToggleGameover].forEach(box => {
+  box.addEventListener('pointerdown', e => e.stopPropagation());
+});
+
 const startButton = document.getElementById('btn-start');
 const restartButton = document.getElementById('btn-restart');
 startButton.addEventListener('pointerup', requestStartGame);
@@ -1655,11 +1869,12 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v12 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v13 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+
 
 
 

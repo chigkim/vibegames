@@ -79,6 +79,7 @@ canvas { display:block; width:100%; height:100%; }
   z-index:50;
 }
 #overlay-card {
+  position:relative;
   background:#fff;
   border-radius:24px; padding:24px 28px;
   text-align:center; max-width:300px;
@@ -141,6 +142,7 @@ canvas { display:block; width:100%; height:100%; }
   <!-- Game overlay (celebration / between rounds) -->
   <div id="overlay" style="display:none">
     <div id="overlay-card">
+      <div style="position:absolute;top:8px;right:12px;font-size:11px;opacity:0.4;font-family:monospace;">v1</div>
       <div id="ov-emoji">🎉</div>
       <div id="ov-title">Great job!</div>
       <div id="ov-sub"></div>
@@ -151,6 +153,7 @@ canvas { display:block; width:100%; height:100%; }
   <!-- Vehicle picker -->
   <div id="picker">
     <h1>🚨 Hero Rescue! 🚨</h1>
+    <div style="font-size:12px;opacity:0.55;margin-top:-8px;margin-bottom:4px;font-family:monospace;">v1</div>
     <button class="pick-btn pick-amb" id="btn-amb">
       <div class="pick-icon">🚑</div>
       <div class="pick-text">

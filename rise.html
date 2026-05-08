@@ -59,7 +59,7 @@
   .screen h1 {
     font-size: 3.2rem;
     font-weight: 900;
-    letter-spacing: 0;
+    letter-spacing: -1px;
     background: linear-gradient(135deg, #ffe066, #ff6b9d, #6bceff);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -119,7 +119,7 @@
     font-weight: 900;
     color: #fff;
     text-shadow: 0 2px 12px rgba(0,0,0,0.4);
-    letter-spacing: 0;
+    letter-spacing: -0.5px;
   }
   #mute-btn {
     pointer-events: all;
@@ -150,9 +150,9 @@
     <h1>RISE!</h1>
     <div class="subtitle">Swing from rope to rope and climb as high as you can! ☁️</div>
     <div class="instructions">
-      Hold to <strong>grab</strong> a rope<br>
-      Release to <strong>let go</strong><br>
-      Time your swing carefully!
+      🟡 <strong>Hold</strong> to grab a rope<br>
+      🔵 <strong>Let go</strong> to release and fly!<br>
+      🚀 Climb as high as you can!
     </div>
     <button class="btn btn-start" id="btn-start">Let's Go! 🎉</button>
   </div>
@@ -455,13 +455,24 @@ class RiseScene extends Phaser.Scene {
 
   generateClouds() {
     this.clouds = [];
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 35; i++) {
+      const t = i / 34;
+      this.clouds.push({
+        x: Math.random() * (this.gameWidth + 60) - 30,
+        y: -(t * 8000 + Math.random() * 300),
+        w: 60 + Math.random() * 90,
+        h: 28 + Math.random() * 32,
+        alpha: 0.3 + Math.random() * 0.35
+      });
+    }
+    // Extra clouds near the start
+    for (let i = 0; i < 6; i++) {
       this.clouds.push({
         x: Math.random() * this.gameWidth,
-        y: -(Math.random() * 4000),
-        w: 60 + Math.random() * 80,
-        h: 28 + Math.random() * 28,
-        alpha: 0.35 + Math.random() * 0.3
+        y: -(i * 120 + 60),
+        w: 50 + Math.random() * 70,
+        h: 24 + Math.random() * 24,
+        alpha: 0.25 + Math.random() * 0.25
       });
     }
   }
@@ -523,7 +534,8 @@ class RiseScene extends Phaser.Scene {
 
     this.player.vx = Math.cos(angle) * launchSpeed;
     this.player.vy = Math.sin(angle) * launchSpeed;
-    if (this.player.vy > 2) this.player.vy -= 4;
+    // Gentle upward nudge if mostly going downward — scale by how downward it is
+    if (this.player.vy > 3) this.player.vy -= Math.min(this.player.vy * 0.3, 5);
 
     this.player.attached = false;
     this.player.releaseTimer = 0;
@@ -552,7 +564,11 @@ class RiseScene extends Phaser.Scene {
   }
 
   canCatchWhileAirborne() {
-    return this.player.attached || this.player.airborneCatchTimer <= AIRBORNE_CATCH_FRAMES;
+    // Always allow catching if attached (for the hold-to-grab check).
+    // When airborne: allow catching within the grace window after release,
+    // OR if the player is actively holding the input at any time.
+    if (this.player.attached) return true;
+    return this.player.airborneCatchTimer <= AIRBORNE_CATCH_FRAMES || this.inputHeld;
   }
 
   tryGrab() {
@@ -659,7 +675,7 @@ class RiseScene extends Phaser.Scene {
         }
       }
 
-      const canCatch = this.inputHeld && this.canCatchWhileAirborne();
+      const canCatch = this.inputHeld;
       if (canCatch && nearest && nearestDist < CATCH_RADIUS && this.player.grabCooldown <= 0) {
         this.attachPlayer(nearest.hi, nearest.ri);
       } else if (canCatch && nearest && nearestDist < MAGNETIC_RADIUS * 0.7) {
@@ -681,6 +697,13 @@ class RiseScene extends Phaser.Scene {
 
     const topHub = this.hubs[this.hubs.length - 1];
     if (topHub.y - this.cameraY > -this.gameHeight * 0.5) this.addHub();
+
+    // Cull hubs far below the camera to keep array bounded
+    while (this.hubs.length > 3 && this.hubs[0].y - this.cameraY > this.gameHeight + 600) {
+      this.hubs.shift();
+      // Re-index
+      for (let i = 0; i < this.hubs.length; i++) this.hubs[i].index = i;
+    }
 
     this.updateParticles();
 
@@ -876,8 +899,9 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v2 Phaser &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v3 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+

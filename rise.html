@@ -403,11 +403,15 @@ class RiseScene extends Phaser.Scene {
   }
 
   createHub(x, y, index) {
-    const isEarly = index < 3;
-    const speed = isEarly ? 0.018 : 0.018 + Math.min((index - 3) * 0.004, 0.03);
-    const dir = index === 0 ? -1 : (index === 1 ? 1 : (Math.random() < (index > 6 ? 0.45 : 0.3) ? -1 : 1));
+    const isEarly = index < 4;
+    // Slower speed ramp - cap reached around hub 12-15 instead of 10
+    const speed = isEarly ? 0.018 : 0.018 + Math.min((index - 4) * 0.0028, 0.027);
+    // Direction flips less often, only after hub 5
+    const flipChance = index < 5 ? 0 : Math.min(0.15 + (index - 5) * 0.02, 0.4);
+    const dir = index === 0 ? -1 : (index === 1 ? 1 : (Math.random() < flipChance ? -1 : 1));
     const radius = 28 + Math.random() * 14;
-    const ropeCount = isEarly ? 3 : 2 + Math.floor(Math.random() * 3);
+    // Keep min 3 ropes through hub 7, then 2-4
+    const ropeCount = index < 7 ? 3 : 2 + Math.floor(Math.random() * 3);
     const ropes = [];
 
     for (let i = 0; i < ropeCount; i++) {
@@ -489,6 +493,17 @@ class RiseScene extends Phaser.Scene {
         depth: 0.7 + Math.random() * 0.4
       });
     }
+    // Stars at high altitudes (visible after sky darkens)
+    this.stars = [];
+    for (let i = 0; i < 60; i++) {
+      this.stars.push({
+        x: Math.random() * this.gameWidth,
+        y: -(2500 + Math.random() * 8000),
+        r: 0.8 + Math.random() * 1.6,
+        twinkle: Math.random() * Math.PI * 2,
+        depth: 0.4 + Math.random() * 0.3
+      });
+    }
   }
 
   initPlayer() {
@@ -537,7 +552,8 @@ class RiseScene extends Phaser.Scene {
       if (newScore > this.score) {
         this.score = newScore;
         document.getElementById('hud-score').textContent = '🏆 ' + this.score;
-        if (this.score % 3 === 0) playSound('score');
+        // Score chime: play on first 5 hubs, then every 3rd hub for celebration
+        if (this.score <= 5 || this.score % 3 === 0) playSound('score');
       }
     }
   }
@@ -654,6 +670,13 @@ class RiseScene extends Phaser.Scene {
       this.updatePlaying(dt);
     } else {
       for (const hub of this.hubs) hub.rotation += hub.speed * 0.3;
+      // Let the dead player keep falling for visual effect
+      if (this.state === 'gameover' && this.player && !this.player.attached) {
+        this.player.vy += GRAVITY;
+        this.player.y += this.player.vy * dt;
+        this.player.x += this.player.vx * dt * 0.95;  // air drag
+      }
+      this.updateParticles();
     }
 
     this.renderScene();
@@ -663,16 +686,20 @@ class RiseScene extends Phaser.Scene {
     for (const hub of this.hubs) hub.rotation += hub.speed;
 
     if (this.player.grabCooldown > 0) this.player.grabCooldown--;
-    this.player.releaseTimer++;
 
     if (this.player.attached) {
+      // releaseTimer should NOT increment while attached
       const hub = this.hubs[this.player.hubIndex];
       const rope = hub.ropes[this.player.ropeIndex];
       const ep = this.getRopeEndpoint(hub, rope);
+      const prevX = this.player.x;
       this.player.x = ep.ex;
       this.player.y = ep.ey;
-      this.player.faceDir = hub.speed >= 0 ? 1 : -1;
+      // Face direction based on actual screen-x movement
+      const dx = ep.ex - prevX;
+      if (Math.abs(dx) > 0.4) this.player.faceDir = dx > 0 ? 1 : -1;
     } else {
+      this.player.releaseTimer++;
       this.player.airborneCatchTimer += dt;
       this.player.vy += GRAVITY;
       if (!this.canCatchWhileAirborne()) this.player.vy += MISSED_CATCH_GRAVITY;
@@ -729,7 +756,10 @@ class RiseScene extends Phaser.Scene {
     if (playerScreenY < screenTarget) {
       this.cameraTargetY = Math.min(this.cameraTargetY, this.player.y - screenTarget);
     }
-    this.cameraY += (this.cameraTargetY - this.cameraY) * 0.1;
+    // Adaptive lerp: catch up faster when far behind
+    const camDelta = this.cameraTargetY - this.cameraY;
+    const camLerp = Math.abs(camDelta) > 200 ? 0.2 : 0.1;
+    this.cameraY += camDelta * camLerp;
 
     const topHub = this.hubs[this.hubs.length - 1];
     if (topHub.y - this.cameraY > -this.gameHeight * 0.5) this.addHub();
@@ -797,6 +827,7 @@ class RiseScene extends Phaser.Scene {
   renderScene() {
     this.g.clear();
     this.drawSky();
+    this.drawStars();
     this.drawClouds();
     for (const hub of this.hubs) this.drawHub(hub);
     this.drawParticles();
@@ -810,6 +841,21 @@ class RiseScene extends Phaser.Scene {
     const c2 = lerpColorInt(0xffd1dc, 0x000020, progress);
     this.g.fillGradientStyle(c1, c1, c2, c2, 1);
     this.g.fillRect(0, 0, this.gameWidth, this.gameHeight);
+  }
+
+  drawStars() {
+    if (!this.stars) return;
+    const altitude = Math.max(-this.cameraY, 0);
+    const skyDarkness = Math.min(Math.max((altitude - 800) / 2000, 0), 1);
+    if (skyDarkness <= 0.05) return;
+    const time = this.time.now * 0.002;
+    for (const star of this.stars) {
+      const screenY = star.y - this.cameraY * star.depth;
+      if (screenY < -10 || screenY > this.gameHeight + 10) continue;
+      const twinkle = 0.55 + 0.45 * Math.sin(time + star.twinkle);
+      this.g.fillStyle(0xffffff, skyDarkness * twinkle);
+      this.g.fillCircle(star.x, screenY, star.r);
+    }
   }
 
   drawClouds() {
@@ -956,11 +1002,12 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v5 &nbsp;·&nbsp; 2026-05-08
+  Rise! &nbsp;v6 &nbsp;·&nbsp; 2026-05-08
 </div>
 
 </body>
 </html>
+
 
 
 

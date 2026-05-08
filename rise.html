@@ -176,7 +176,9 @@ let audioCtx = null;
 let muted = false;
 
 function initAudio() {
+  if (!AudioCtx) return;
   if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
 function playSound(type) {
@@ -233,7 +235,7 @@ const FALL_THRESHOLD = 300;
 
 let state = 'ready';
 let score = 0;
-let bestScore = parseInt(localStorage.getItem('rise_best') || '0');
+let bestScore = loadBestScore();
 let cameraY = 0;
 let cameraTargetY = 0;
 
@@ -249,11 +251,27 @@ let hubsGenerated = 0;
 const HUB_COLORS = ['#ff6b9d','#ff8c42','#ffe066','#6bceff','#a78bfa','#5eead4','#f472b6'];
 const ROPE_COLORS = ['#c77dff','#4cc9f0','#f8961e','#90e0ef','#ff6b6b','#b5e48c'];
 
+function loadBestScore() {
+  try {
+    return parseInt(localStorage.getItem('rise_best') || '0', 10) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function saveBestScore(value) {
+  try {
+    localStorage.setItem('rise_best', value);
+  } catch {
+    // Storage can be unavailable in private browsing or restricted embeds.
+  }
+}
+
 // ======== HUB GENERATION ========
 function createHub(x, y, index) {
   const isEarly = index < 3;
   const speed = isEarly ? 0.018 : 0.018 + Math.min((index - 3) * 0.004, 0.03);
-  const dir = index < 2 ? 1 : (Math.random() < (index > 6 ? 0.45 : 0.3) ? -1 : 1);
+  const dir = index === 0 ? -1 : (index === 1 ? 1 : (Math.random() < (index > 6 ? 0.45 : 0.3) ? -1 : 1));
   const radius = 28 + Math.random() * 14;
   const ropeCount = isEarly ? 3 : (2 + Math.floor(Math.random() * 3));
   const ropes = [];
@@ -350,7 +368,7 @@ function initPlayer() {
   const CW = canvas.width;
   player = {
     x: CW / 2,
-    y: 80,  // screen coords — will be above first hub
+    y: 0,
     vx: 0,
     vy: 0,
     attached: false,
@@ -365,6 +383,12 @@ function initPlayer() {
 
 // ======== ATTACH PLAYER ========
 function attachPlayer(hubIdx, ropeIdx) {
+  const hub = hubs[hubIdx];
+  const rope = hub.ropes[ropeIdx];
+  const ep = getRopeEndpoint(hub, rope);
+
+  player.x = ep.ex;
+  player.y = ep.ey;
   player.attached = true;
   player.hubIndex = hubIdx;
   player.ropeIndex = ropeIdx;
@@ -373,8 +397,7 @@ function attachPlayer(hubIdx, ropeIdx) {
   player.justReleased = false;
   player.releaseTimer = 0;
 
-  const hub = hubs[hubIdx];
-  spawnParticles(player.x, player.y + cameraY, hub.color);
+  spawnParticles(player.x, player.y, hub.color);
   playSound('catch');
 
   // Score when reaching new hubs
@@ -397,11 +420,12 @@ function releasePlayer() {
 
   // Tangent velocity
   const totalLen = hub.radius + rope.length;
-  const tangentSpeed = hub.speed * totalLen * 1.8;
-  const angle = ep.angle + Math.PI / 2 * Math.sign(hub.speed);
+  const tangentSpeed = Math.abs(hub.speed) * totalLen * 1.8;
+  const angle = ep.angle + Math.PI / 2 * Math.sign(hub.speed || 1);
+  const launchSpeed = Math.min(tangentSpeed * 6, 20);
 
-  player.vx = Math.cos(angle) * tangentSpeed * 60;
-  player.vy = Math.sin(angle) * tangentSpeed * 60;
+  player.vx = Math.cos(angle) * launchSpeed;
+  player.vy = Math.sin(angle) * launchSpeed;
 
   // Modest upward boost if going downward
   if (player.vy > 2) player.vy -= 4;
@@ -412,7 +436,7 @@ function releasePlayer() {
   player.grabCooldown = 8;
 
   playSound('release');
-  spawnTrail(player.x, player.y + cameraY);
+  spawnTrail(player.x, player.y);
 }
 
 // ======== GAME INIT ========
@@ -429,12 +453,11 @@ function initGame() {
   initPlayer();
 
   // Attach to first rope of first hub automatically
-  const firstHub = hubs[0];
   attachPlayer(0, 0);
-  // Position player at rope endpoint in screen coords
-  const ep = getRopeEndpoint(firstHub, firstHub.ropes[0]);
-  player.x = ep.ex - firstHub.x + firstHub.x;
-  player.y = ep.ey - cameraY;
+
+  // Start with the attached player visible instead of letting the camera chase in.
+  cameraY = player.y - canvas.height * 0.55;
+  cameraTargetY = cameraY;
 }
 
 // ======== INPUT ========
@@ -457,16 +480,14 @@ function tryGrab() {
   let bestHub = -1;
   let bestRope = -1;
 
-  const worldY = player.y + cameraY;
-
   for (let hi = 0; hi < hubs.length; hi++) {
     const hub = hubs[hi];
     // Only look at hubs above or near player
-    if (hub.y - cameraY > player.y + 100) continue;
+    if (hub.y > player.y + 100) continue;
     for (let ri = 0; ri < hub.ropes.length; ri++) {
       const ep = getRopeEndpoint(hub, hub.ropes[ri]);
       const dx = ep.ex - player.x;
-      const dy = ep.ey - worldY;
+      const dy = ep.ey - player.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < bestDist) {
         bestDist = dist;
@@ -512,7 +533,7 @@ function showGameOver() {
   playSound('gameover');
   if (score > bestScore) {
     bestScore = score;
-    localStorage.setItem('rise_best', bestScore);
+    saveBestScore(bestScore);
   }
   document.getElementById('final-score').textContent = 'Score: ' + score;
   document.getElementById('best-score-display').textContent = 'Best: ' + bestScore;
@@ -539,9 +560,8 @@ function update(dt) {
     const hub = hubs[player.hubIndex];
     const rope = hub.ropes[player.ropeIndex];
     const ep = getRopeEndpoint(hub, rope);
-    const worldY = ep.ey;
     player.x = ep.ex;
-    player.y = worldY - cameraY;
+    player.y = ep.ey;
     // Face direction of movement
     player.faceDir = hub.speed >= 0 ? 1 : -1;
 
@@ -555,15 +575,14 @@ function update(dt) {
     if (Math.abs(player.vx) > 0.5) player.faceDir = player.vx > 0 ? 1 : -1;
 
     // Magnetic pull toward nearest rope endpoint above
-    const worldY = player.y + cameraY;
     let nearestDist = MAGNETIC_RADIUS;
     let nearestEP = null;
     for (const hub of hubs) {
-      if (hub.y - cameraY > player.y + 80) continue;
+      if (hub.y > player.y + 80) continue;
       for (const rope of hub.ropes) {
         const ep = getRopeEndpoint(hub, rope);
         const dx = ep.ex - player.x;
-        const dy = ep.ey - worldY;
+        const dy = ep.ey - player.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < nearestDist) {
           nearestDist = dist;
@@ -580,7 +599,7 @@ function update(dt) {
           for (let ri = 0; ri < hub.ropes.length; ri++) {
             const ep = getRopeEndpoint(hub, hub.ropes[ri]);
             const dx = ep.ex - player.x;
-            const dy = ep.ey - worldY;
+            const dy = ep.ey - player.y;
             if (Math.sqrt(dx*dx+dy*dy) < CATCH_RADIUS) {
               attachPlayer(hi, ri);
               break;
@@ -593,7 +612,7 @@ function update(dt) {
       // Magnetic pull
       const factor = 0.06;
       player.vx += (nearestEP.ex - player.x) * factor;
-      player.vy += (nearestEP.ey - worldY) * factor;
+      player.vy += (nearestEP.ey - player.y) * factor;
     }
 
     // Clamp x
@@ -607,9 +626,9 @@ function update(dt) {
 
   // Camera follow
   const screenTarget = canvas.height * 0.55;
-  if (player.y < screenTarget) {
-    cameraTargetY += screenTarget - player.y;
-    player.y = screenTarget;
+  const playerScreenY = player.y - cameraY;
+  if (playerScreenY < screenTarget) {
+    cameraTargetY = Math.min(cameraTargetY, player.y - screenTarget);
   }
   cameraY += (cameraTargetY - cameraY) * 0.1;
 
@@ -633,15 +652,12 @@ function update(dt) {
   if (player.y - cameraY > canvas.height + FALL_THRESHOLD) {
     showGameOver();
   }
-  if (player.y > canvas.height + FALL_THRESHOLD) {
-    showGameOver();
-  }
 }
 
 // ======== DRAW ========
 function drawSky() {
-  const worldTop = cameraY;
-  const progress = Math.min(worldTop / 3000, 1);
+  const altitude = Math.max(-cameraY, 0);
+  const progress = Math.min(altitude / 3000, 1);
   const c1 = lerpColor('#87ceeb', '#1a1a3e', progress);
   const c2 = lerpColor('#ffd1dc', '#000020', progress);
   const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -665,7 +681,7 @@ function lerpColor(a, b, t) {
 function drawClouds() {
   ctx.save();
   for (const cloud of clouds) {
-    const screenY = cloud.y + cameraY;
+    const screenY = cloud.y - cameraY;
     if (screenY < -100 || screenY > canvas.height + 100) continue;
     ctx.globalAlpha = cloud.alpha;
     ctx.fillStyle = '#fff';
@@ -729,7 +745,7 @@ function drawHub(hub) {
 
     // Is player near this rope?
     const dx = ep.ex - player.x;
-    const dy = ep.ey - (player.y + cameraY);
+    const dy = ep.ey - player.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     const isNear = !player.attached && dist < MAGNETIC_RADIUS;
 
@@ -765,7 +781,7 @@ function drawHub(hub) {
 
 function drawPlayer() {
   const px = player.x;
-  const py = player.y;
+  const py = player.y - cameraY;
   ctx.save();
   ctx.translate(px, py);
 

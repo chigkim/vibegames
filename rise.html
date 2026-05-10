@@ -554,7 +554,7 @@ class RiseScene extends Phaser.Scene {
     this.bigMessage = null;        // { text, life, color }
     this.highestHubReached = 0;
     this.lifeStars = 0;
-    this.graceFrames = 0;
+    this.floatFrames = 0;
   }
 
   create() {
@@ -637,7 +637,7 @@ class RiseScene extends Phaser.Scene {
     this.highestHubReached = 0;
     this.hasCaughtFirst = false;
     this.lifeStars = 0;
-    this.graceFrames = 0;
+    this.floatFrames = 0;
     this.player = null;
     this.generateClouds();
     this.generateHubs();
@@ -671,7 +671,7 @@ class RiseScene extends Phaser.Scene {
     this.highestHubReached = 0;
     this.hasCaughtFirst = false;  // no falling/penalty until first catch
     this.lifeStars = 0;
-    this.graceFrames = 0;
+    this.floatFrames = 0;
     document.getElementById('hud-score').textContent = '🏆 0';
     document.getElementById('hud-stars').style.display = 'none';
     document.getElementById('hud-combo').classList.remove('visible');
@@ -925,28 +925,21 @@ class RiseScene extends Phaser.Scene {
     }
   }
 
-  spendLifeStar() {
+  triggerApexFloat() {
     this.lifeStars--;
-    this.graceFrames = 6;
-    // Rescue: strong upward launch + snap camera down to show the player
-    this.player.vy = -24;
-    this.player.vx *= 0.3;
-    this.cameraY = this.player.y - this.gameHeight * 0.75;
-    this.cameraTargetY = this.cameraY;
-    this.flashAmount = 0.65;
-    this.shake = 10;
-    this.spawnStarBurst(this.player.x, this.player.y);
+    this.floatFrames = 120; // 2 seconds
+    this.flashAmount = 0.4;
     this.spawnStarBurst(this.player.x, this.player.y);
     this.popups.push({
       x: this.player.x,
-      y: this.player.y - 40,
-      text: '⭐ SAVED!',
+      y: this.player.y - 30,
+      text: '⭐ FLOAT!',
       color: '#ffe066',
-      life: 1.8, vy: -0.9, size: 30
+      life: 1.4, vy: -0.7, size: 26
     });
     playSound('starsave');
     this.updateStarsHud();
-    if (navigator.vibrate) try { navigator.vibrate([15, 30, 15]); } catch {}
+    if (navigator.vibrate) try { navigator.vibrate([10, 20, 10]); } catch {}
   }
 
   spawnStarBurst(x, y) {
@@ -1335,13 +1328,28 @@ class RiseScene extends Phaser.Scene {
       if (this.hasCaughtFirst) {
         this.player.releaseTimer++;
         this.player.airborneCatchTimer += dt;
-        this.player.vy += GRAVITY;
+
+        const prevVy = this.player.vy;
+        if (this.floatFrames > 0) {
+          // Floating: gentle bob, no net gravity, light air resistance
+          this.floatFrames = Math.max(0, this.floatFrames - dt);
+          this.player.vy = Math.sin(this.time.now * 0.004) * 0.8;
+          this.player.vx *= 0.97;
+        } else {
+          this.player.vy += GRAVITY;
+          // Apex detection: vy just crossed from negative to positive
+          if (prevVy < 0 && this.player.vy >= 0 && this.lifeStars > 0) {
+            this.triggerApexFloat();
+          }
+        }
+
         this.player.x += this.player.vx * dt;
         this.player.y += this.player.vy * dt;
         if (Math.abs(this.player.vx) > 0.5) this.player.faceDir = this.player.vx > 0 ? 1 : -1;
 
-        // Mood by airborne speed - scared when falling fast
-        if (this.player.vy > 8) this.player.mood = 'scared';
+        // Mood: scared when falling fast, normal during float
+        if (this.floatFrames > 0) this.player.mood = 'happy';
+        else if (this.player.vy > 8) this.player.mood = 'scared';
         else if (this.player.mood === 'launch' && this.player.releaseTimer > 25) this.player.mood = 'normal';
 
         // Continuous flight trail when moving fast
@@ -1476,16 +1484,8 @@ class RiseScene extends Phaser.Scene {
 
     this.updateParticles();
 
-    if (this.graceFrames > 0) this.graceFrames = Math.max(0, this.graceFrames - dt);
-
     if (this.hasCaughtFirst && this.player.y - this.cameraY > this.gameHeight + this.fallThresh) {
-      if (this.graceFrames > 0) {
-        // grace window still open — bounce already applied, just wait
-      } else if (this.lifeStars > 0) {
-        this.spendLifeStar();
-      } else {
-        this.showGameOver();
-      }
+      this.showGameOver();
     }
   }
 
@@ -1560,6 +1560,7 @@ class RiseScene extends Phaser.Scene {
       this.drawLandingGuide();
     }
     this.drawParticles();
+    if (this.player && this.floatFrames > 0) this.drawFloatAura();
     if (this.player) this.drawPlayer();
 
     // Flash overlay (drawn last, before HUD popups)
@@ -1571,6 +1572,29 @@ class RiseScene extends Phaser.Scene {
     this.drawPopups();
     this.drawBigMessage();
     this.recycleText();
+  }
+
+  drawFloatAura() {
+    const S = this.S || 1;
+    const px = this.player.x;
+    const py = this.player.y - this.cameraY;
+    const t = this.time.now * 0.005;
+    const fade = this.floatFrames / 120;
+    const pulse = 0.6 + 0.4 * Math.sin(t);
+    this.g.fillStyle(0xffe066, 0.15 * pulse * fade);
+    this.g.fillCircle(px, py, 38 * S);
+    this.g.fillStyle(0xffd700, 0.1 * pulse * fade);
+    this.g.fillCircle(px, py, 52 * S);
+    // Three orbiting sparkles
+    for (let i = 0; i < 3; i++) {
+      const angle = t * 2.5 + (i / 3) * Math.PI * 2;
+      const sx = px + Math.cos(angle) * 30 * S;
+      const sy = py + Math.sin(angle) * 30 * S;
+      this.g.fillStyle(0xffffff, 0.8 * fade);
+      this.g.fillCircle(sx, sy, 3 * S);
+      this.g.fillStyle(0xffe066, 0.6 * fade);
+      this.g.fillCircle(sx, sy, 2 * S);
+    }
   }
 
   drawCollectibles() {
@@ -2157,7 +2181,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v21 &nbsp;-&nbsp; Updated 2026-05-10 15:00 EDT
+  Rise! &nbsp;v22 &nbsp;-&nbsp; Updated 2026-05-10 15:30 EDT
 </div>
 
 </body>

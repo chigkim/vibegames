@@ -242,7 +242,7 @@
     <div class="instructions">
       🟡 <strong>Hold</strong> to grab a rope<br>
       🔵 <strong>Let go</strong> to release and fly!<br>
-      ⭐ <strong>Grab stars</strong> for emergency saves!<br>
+      ⭐ <strong>Grab stars</strong> to extend your catch window!<br>
       🚀 Climb as high as you can!
     </div>
     <div class="best-score" id="ready-best-score" style="display:none;">🏆 Best: 0</div>
@@ -279,7 +279,8 @@ const GRAVITY = 0.38;
 const CATCH_RADIUS = 52;
 const STAR_COLLECT_RADIUS = 38;
 const MAGNETIC_RADIUS = 90;
-const AIRBORNE_CATCH_FRAMES = 60;
+const BASE_CATCH_WINDOW = 45;   // frames (0.75s) given on each fresh press
+const STAR_CATCH_BONUS  = 45;   // frames (0.75s) added per star when window expires
 const FALL_THRESHOLD = 300;
 const COMBO_TIMEOUT_FRAMES = 90;  // 1.5s at 60fps to chain catches
 const HUB_COLORS = ['#ff6b9d', '#ff8c42', '#ffe066', '#6bceff', '#a78bfa', '#5eead4', '#f472b6'];
@@ -554,7 +555,7 @@ class RiseScene extends Phaser.Scene {
     this.bigMessage = null;        // { text, life, color }
     this.highestHubReached = 0;
     this.lifeStars = 0;
-    this.floatFrames = 0;
+    this.catchWindowFrames = 0;
   }
 
   create() {
@@ -637,7 +638,7 @@ class RiseScene extends Phaser.Scene {
     this.highestHubReached = 0;
     this.hasCaughtFirst = false;
     this.lifeStars = 0;
-    this.floatFrames = 0;
+    this.catchWindowFrames = 0;
     this.player = null;
     this.generateClouds();
     this.generateHubs();
@@ -671,7 +672,7 @@ class RiseScene extends Phaser.Scene {
     this.highestHubReached = 0;
     this.hasCaughtFirst = false;  // no falling/penalty until first catch
     this.lifeStars = 0;
-    this.floatFrames = 0;
+    this.catchWindowFrames = 0;
     document.getElementById('hud-score').textContent = '🏆 0';
     document.getElementById('hud-stars').style.display = 'none';
     document.getElementById('hud-combo').classList.remove('visible');
@@ -850,7 +851,6 @@ class RiseScene extends Phaser.Scene {
       ropeIndex: -1,
       grabCooldown: 0,
       releaseTimer: 0,
-      airborneCatchTimer: 0,
       faceDir: 1,
       mood: 'normal'  // 'normal', 'happy', 'scared', 'launch'
     };
@@ -925,22 +925,6 @@ class RiseScene extends Phaser.Scene {
     }
   }
 
-  triggerApexFloat() {
-    this.lifeStars--;
-    this.floatFrames = 120; // 2 seconds
-    this.flashAmount = 0.4;
-    this.spawnStarBurst(this.player.x, this.player.y);
-    this.popups.push({
-      x: this.player.x,
-      y: this.player.y - 30,
-      text: '⭐ FLOAT!',
-      color: '#ffe066',
-      life: 1.4, vy: -0.7, size: 26
-    });
-    playSound('starsave');
-    this.updateStarsHud();
-    if (navigator.vibrate) try { navigator.vibrate([10, 20, 10]); } catch {}
-  }
 
   spawnStarBurst(x, y) {
     const S = this.S || 1;
@@ -1108,7 +1092,7 @@ class RiseScene extends Phaser.Scene {
 
     this.player.attached = false;
     this.player.releaseTimer = 0;
-    this.player.airborneCatchTimer = 0;
+    this.catchWindowFrames = 0;
     this.player.grabCooldown = 8;
     this.player.mood = 'launch';
     playSound('release');
@@ -1182,7 +1166,9 @@ class RiseScene extends Phaser.Scene {
     if (this.state !== 'playing') return;
     initAudio();
     this.inputHeld = true;
-    if (!this.canCatchWhileAirborne()) return;
+    if (!this.player.attached) {
+      this.catchWindowFrames = BASE_CATCH_WINDOW; // fresh press opens the window
+    }
     if (this.player.grabCooldown > 0) return;
     if (!this.player.attached) this.tryGrab();
   }
@@ -1193,15 +1179,11 @@ class RiseScene extends Phaser.Scene {
       return;
     }
     this.inputHeld = false;
-    if (this.player.attached) this.releasePlayer();
-  }
-
-  canCatchWhileAirborne() {
-    // Always allow catching if attached (for the hold-to-grab check).
-    // When airborne: allow catching within the grace window after release,
-    // OR if the player is actively holding the input at any time.
-    if (this.player.attached) return true;
-    return this.player.airborneCatchTimer <= AIRBORNE_CATCH_FRAMES || this.inputHeld;
+    if (this.player.attached) {
+      this.releasePlayer();
+    } else {
+      this.catchWindowFrames = 0; // releasing button closes the window
+    }
   }
 
   tryGrab() {
@@ -1327,29 +1309,26 @@ class RiseScene extends Phaser.Scene {
       // no fall threshold. They just wait for a rope to swing into reach.
       if (this.hasCaughtFirst) {
         this.player.releaseTimer++;
-        this.player.airborneCatchTimer += dt;
-
-        const prevVy = this.player.vy;
-        if (this.floatFrames > 0) {
-          // Floating: gentle bob, no net gravity, light air resistance
-          this.floatFrames = Math.max(0, this.floatFrames - dt);
-          this.player.vy = Math.sin(this.time.now * 0.004) * 0.8;
-          this.player.vx *= 0.97;
-        } else {
-          this.player.vy += GRAVITY;
-          // Apex detection: vy just crossed from negative to positive
-          if (prevVy < 0 && this.player.vy >= 0 && this.lifeStars > 0) {
-            this.triggerApexFloat();
-          }
-        }
-
+        this.player.vy += GRAVITY;
         this.player.x += this.player.vx * dt;
         this.player.y += this.player.vy * dt;
         if (Math.abs(this.player.vx) > 0.5) this.player.faceDir = this.player.vx > 0 ? 1 : -1;
 
-        // Mood: scared when falling fast, normal during float
-        if (this.floatFrames > 0) this.player.mood = 'happy';
-        else if (this.player.vy > 8) this.player.mood = 'scared';
+        // Tick catch window; extend with a star when it expires while still held
+        if (this.catchWindowFrames > 0) {
+          this.catchWindowFrames -= dt;
+          if (this.catchWindowFrames <= 0 && this.inputHeld && this.lifeStars > 0) {
+            this.lifeStars--;
+            this.catchWindowFrames = STAR_CATCH_BONUS;
+            this.updateStarsHud();
+            this.popups.push({ x: this.player.x, y: this.player.y - 20, text: '⭐', color: '#ffe066', life: 0.8, vy: -1.0, size: 20 });
+            playSound('star', 0);
+            if (navigator.vibrate) try { navigator.vibrate(8); } catch {}
+          }
+        }
+
+        // Mood by airborne speed
+        if (this.player.vy > 8) this.player.mood = 'scared';
         else if (this.player.mood === 'launch' && this.player.releaseTimer > 25) this.player.mood = 'normal';
 
         // Continuous flight trail when moving fast
@@ -1385,9 +1364,9 @@ class RiseScene extends Phaser.Scene {
         }
       }
 
-      // Before first catch: just hold to grab the first rope that swings into range.
-      // After first catch: standard catch logic.
-      const canCatch = this.inputHeld;
+      // Before first catch: just hold to grab the first rope (no window needed).
+      // After first catch: require an active catch window.
+      const canCatch = this.inputHeld && (!this.hasCaughtFirst || this.catchWindowFrames > 0);
       if (canCatch && nearest && nearestDist < this.catchR && this.player.grabCooldown <= 0) {
         this.attachPlayer(nearest.hi, nearest.ri);
       } else if (this.hasCaughtFirst && canCatch && nearest && nearestDist < this.magnetR * 0.7) {
@@ -1560,7 +1539,6 @@ class RiseScene extends Phaser.Scene {
       this.drawLandingGuide();
     }
     this.drawParticles();
-    if (this.player && this.floatFrames > 0) this.drawFloatAura();
     if (this.player) this.drawPlayer();
 
     // Flash overlay (drawn last, before HUD popups)
@@ -1572,29 +1550,6 @@ class RiseScene extends Phaser.Scene {
     this.drawPopups();
     this.drawBigMessage();
     this.recycleText();
-  }
-
-  drawFloatAura() {
-    const S = this.S || 1;
-    const px = this.player.x;
-    const py = this.player.y - this.cameraY;
-    const t = this.time.now * 0.005;
-    const fade = this.floatFrames / 120;
-    const pulse = 0.6 + 0.4 * Math.sin(t);
-    this.g.fillStyle(0xffe066, 0.15 * pulse * fade);
-    this.g.fillCircle(px, py, 38 * S);
-    this.g.fillStyle(0xffd700, 0.1 * pulse * fade);
-    this.g.fillCircle(px, py, 52 * S);
-    // Three orbiting sparkles
-    for (let i = 0; i < 3; i++) {
-      const angle = t * 2.5 + (i / 3) * Math.PI * 2;
-      const sx = px + Math.cos(angle) * 30 * S;
-      const sy = py + Math.sin(angle) * 30 * S;
-      this.g.fillStyle(0xffffff, 0.8 * fade);
-      this.g.fillCircle(sx, sy, 3 * S);
-      this.g.fillStyle(0xffe066, 0.6 * fade);
-      this.g.fillCircle(sx, sy, 2 * S);
-    }
   }
 
   drawCollectibles() {
@@ -2181,7 +2136,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v22 &nbsp;-&nbsp; Updated 2026-05-10 15:30 EDT
+  Rise! &nbsp;v23 &nbsp;-&nbsp; Updated 2026-05-10 16:00 EDT
 </div>
 
 </body>

@@ -926,6 +926,7 @@ class RiseScene extends Phaser.Scene {
     }
     if (best && bestD > 0) {
       this.player.vx += (best.ex - this.player.x) / bestD * 5;
+      this.player.vy += (best.ey - this.player.y) / bestD * 5;
     }
   }
 
@@ -1322,8 +1323,9 @@ class RiseScene extends Phaser.Scene {
         const prevVy = this.player.vy;
         if (this.floatFrames > 0) {
           this.floatFrames = Math.max(0, this.floatFrames - dt);
-          this.player.vy = Math.sin(this.time.now * 0.004) * 0.8;
+          this.player.vy += GRAVITY * 0.08; // near-zero gravity during float
           this.player.vx *= 0.97;
+          this.player.vy *= 0.97;
           if (this.floatFrames <= 0) {
             if (this.lifeStars > 0) {
               // Spend next star: extend float and nudge again
@@ -2188,7 +2190,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v31 &nbsp;-&nbsp; Updated 2026-05-10 20:00 EDT
+  Rise! &nbsp;v32 &nbsp;-&nbsp; Updated 2026-05-10 20:30 EDT
 </div>
 
 </body>

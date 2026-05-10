@@ -673,7 +673,8 @@ class RiseScene extends Phaser.Scene {
     this.lifeStars = 0;
     this.catchWindowFrames = 0;
     document.getElementById('hud-score').textContent = '🏆 0';
-    document.getElementById('hud-stars').style.display = 'none';
+    document.getElementById('hud-stars').textContent = '⭐ 0';
+    document.getElementById('hud-stars').style.display = 'block';
     document.getElementById('hud-combo').classList.remove('visible');
     this.generateClouds();
     this.generateHubs();
@@ -912,15 +913,12 @@ class RiseScene extends Phaser.Scene {
 
   updateStarsHud() {
     const el = document.getElementById('hud-stars');
+    el.textContent = '⭐ ' + this.lifeStars;
     if (this.lifeStars > 0) {
-      el.textContent = '⭐ ' + this.lifeStars;
-      el.style.display = 'block';
       el.classList.remove('pop');
       void el.offsetWidth;
       el.classList.add('pop');
       setTimeout(() => el.classList.remove('pop'), 200);
-    } else {
-      el.style.display = 'none';
     }
   }
 
@@ -2143,7 +2141,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v27 &nbsp;-&nbsp; Updated 2026-05-10 18:00 EDT
+  Rise! &nbsp;v28 &nbsp;-&nbsp; Updated 2026-05-10 18:30 EDT
 </div>
 
 </body>

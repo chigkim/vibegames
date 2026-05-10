@@ -1758,242 +1758,245 @@ class RiseScene extends Phaser.Scene {
   }
 
   drawPlayer() {
-    const S = this.S || 1;
-    const px = this.player.x;
+    const S   = this.S || 1;
+    const px  = this.player.x;
     const waitBob = (this.state === 'playing' && !this.hasCaughtFirst && !this.player.attached)
       ? Math.sin(this.time.now * 0.004) * 4 * S : 0;
-    const py = this.player.y - this.cameraY + waitBob;
-    const mood = this.player.mood || 'normal';
+    const py  = this.player.y - this.cameraY + waitBob;
+    const mood     = this.player.mood || 'normal';
     const attached = !!this.player.attached;
-    const fd = this.player.faceDir || 1;
-    const now = this.time.now;
-    const R = 18 * S;
-    const g = this.g;
+    const fd       = this.player.faceDir || 1;
+    const now      = this.time.now;
+    const g        = this.g;
 
-    // Orange tabby palette
+    // ── Palette
     const FUR   = 0xf4903c;
     const FURLT = 0xfff0e0;
     const FURDK = 0xc96820;
+    const STRIPE= 0xd0641a;
     const PINK  = 0xff9eaa;
     const EYEG  = 0x5aad6a;
     const PUP   = 0x111111;
     const WHT   = 0xffffff;
-    const pawR  = 5.5 * S;
 
-    // ── TAIL (behind body) ──────────────────────────────────────
-    // Phaser Graphics has no bezierCurveTo — approximate with lineTo segments
-    const td = -fd;
-    const tx0 = px + td * 10 * S, ty0 = py + R - 3 * S;
-    const tcx1 = px + td * 32 * S, tcy1 = py + 12 * S;
-    const tcx2 = px + td * 36 * S, tcy2 = py - 4 * S;
-    const tx3 = px + td * 26 * S,  ty3 = py - 8 * S;
-    g.lineStyle(4.5 * S, FUR, 1);
-    g.beginPath();
-    g.moveTo(tx0, ty0);
-    for (let i = 1; i <= 8; i++) {
-      const t = i / 8, mt = 1 - t;
-      g.lineTo(
-        mt*mt*mt*tx0 + 3*mt*mt*t*tcx1 + 3*mt*t*t*tcx2 + t*t*t*tx3,
-        mt*mt*mt*ty0 + 3*mt*mt*t*tcy1 + 3*mt*t*t*tcy2 + t*t*t*ty3
-      );
-    }
+    // Layout: body is an oval below center; head is a circle above
+    const bodyW = 17 * S, bodyH = 20 * S;
+    const bodyCX = px, bodyCY = py + 8 * S;
+    const headCX = px + fd * 2 * S, headCY = py - 14 * S;
+    const headR  = 16 * S;
+    const pawR   = 6.5 * S;
+    const armH   = 13 * S;
+
+    // ── TAIL (drawn first, behind everything)
+    const td  = -fd;
+    const tx0 = bodyCX + td * 10 * S, ty0 = bodyCY + bodyH - 6 * S;
+    const tcx1 = bodyCX + td * 38 * S, tcy1 = bodyCY + 6 * S;
+    const tcx2 = bodyCX + td * 44 * S, tcy2 = bodyCY - 24 * S;
+    const tx3  = bodyCX + td * 32 * S, ty3  = bodyCY - 34 * S;
+    const bezier = (t, p0, p1, p2, p3) => {
+      const mt = 1 - t;
+      return mt*mt*mt*p0 + 3*mt*mt*t*p1 + 3*mt*t*t*p2 + t*t*t*p3;
+    };
+    g.lineStyle(6 * S, FURDK, 0.7);
+    g.beginPath(); g.moveTo(tx0, ty0);
+    for (let i = 1; i <= 10; i++) { const t = i/10;
+      g.lineTo(bezier(t,tx0,tcx1,tcx2,tx3), bezier(t,ty0,tcy1,tcy2,ty3)); }
     g.strokePath();
-    g.fillStyle(FURDK, 0.8);
-    g.fillCircle(px + td * 26 * S, py - 8 * S, 5 * S);
-    g.fillStyle(FUR, 0.65);
-    g.fillCircle(px + td * 26 * S, py - 8 * S, 3 * S);
+    g.lineStyle(4.5 * S, FUR, 1);
+    g.beginPath(); g.moveTo(tx0, ty0);
+    for (let i = 1; i <= 10; i++) { const t = i/10;
+      g.lineTo(bezier(t,tx0,tcx1,tcx2,tx3), bezier(t,ty0,tcy1,tcy2,ty3)); }
+    g.strokePath();
+    // Fluffy tail tip
+    g.fillStyle(FURLT, 0.92); g.fillCircle(tx3, ty3, 7.5 * S);
+    g.fillStyle(FUR,   0.70); g.fillCircle(tx3, ty3, 6 * S);
+    g.fillStyle(FURLT, 0.92); g.fillCircle(tx3, ty3, 3.5 * S);
 
-    // ── ARMS / PAWS ─────────────────────────────────────────────
+    // ── BACK LEGS
     if (attached) {
-      // Both paws grip at top of body where the rope endpoint sits
-      const gripY = py - R + 4 * S;
-      g.lineStyle(6 * S, FUR, 1);
-      g.beginPath();
-      g.moveTo(px - 11 * S, py - 6 * S);
-      g.lineTo(px - 6 * S, gripY);
-      g.moveTo(px + 11 * S, py - 6 * S);
-      g.lineTo(px + 6 * S, gripY);
-      g.strokePath();
-      // Paw pads
-      const pawLX = px - 6 * S, pawRX = px + 6 * S;
+      // Tucked feet showing under body
+      g.fillStyle(FUR, 1);
+      g.fillCircle(bodyCX - 10 * S, bodyCY + bodyH, pawR * 0.9);
+      g.fillCircle(bodyCX + 10 * S, bodyCY + bodyH, pawR * 0.9);
+      g.fillStyle(FURLT, 0.8);
+      g.fillCircle(bodyCX - 10 * S, bodyCY + bodyH + 1 * S, pawR * 0.45);
+      g.fillCircle(bodyCX + 10 * S, bodyCY + bodyH + 1 * S, pawR * 0.45);
+    } else {
+      const kick = Math.sin(now * 0.011) * 8 * S;
+      const legW = 7 * S, legH = 14 * S;
+      // Left leg
+      g.fillStyle(FURDK, 0.55);
+      g.fillRoundedRect(bodyCX - 15 * S + 1, bodyCY + bodyH - 3 * S + 1, legW, legH + kick * 0.6, 5 * S);
+      g.fillStyle(FUR, 1);
+      g.fillRoundedRect(bodyCX - 15 * S, bodyCY + bodyH - 4 * S, legW, legH + kick * 0.6, 5 * S);
+      // Right leg
+      g.fillStyle(FURDK, 0.55);
+      g.fillRoundedRect(bodyCX + 9 * S + 1, bodyCY + bodyH - 3 * S + 1, legW, legH - kick * 0.6, 5 * S);
+      g.fillStyle(FUR, 1);
+      g.fillRoundedRect(bodyCX + 9 * S, bodyCY + bodyH - 4 * S, legW, legH - kick * 0.6, 5 * S);
+      // Back paws (oval)
+      const lyL = bodyCY + bodyH + legH + kick * 0.6 - 4 * S;
+      const lyR = bodyCY + bodyH + legH - kick * 0.6 - 4 * S;
       g.fillStyle(FURLT, 1);
-      g.fillCircle(pawLX, gripY, pawR);
-      g.fillCircle(pawRX, gripY, pawR);
-      g.lineStyle(1.5 * S, FURDK, 1);
-      g.strokeCircle(pawLX, gripY, pawR);
-      g.strokeCircle(pawRX, gripY, pawR);
-      // Claws — 3 per paw pointing upward
-      g.lineStyle(2 * S, FURDK, 0.95);
-      for (let p = 0; p < 2; p++) {
-        const bx = p === 0 ? pawLX : pawRX;
+      g.fillEllipse(bodyCX - 11 * S, lyL, pawR * 2.4, pawR * 1.5);
+      g.fillEllipse(bodyCX + 16 * S, lyR, pawR * 2.4, pawR * 1.5);
+      g.lineStyle(1.5 * S, FURDK, 0.65);
+      g.strokeEllipse(bodyCX - 11 * S, lyL, pawR * 2.4, pawR * 1.5);
+      g.strokeEllipse(bodyCX + 16 * S, lyR, pawR * 2.4, pawR * 1.5);
+    }
+
+    // ── BODY (oval torso)
+    g.fillStyle(FURDK, 0.35);
+    g.fillEllipse(bodyCX + 2 * S, bodyCY + 2 * S, bodyW * 2, bodyH * 2);
+    g.fillStyle(FUR, 1);
+    g.fillEllipse(bodyCX, bodyCY, bodyW * 2, bodyH * 2);
+    g.lineStyle(2 * S, FURDK, 0.85);
+    g.strokeEllipse(bodyCX, bodyCY, bodyW * 2, bodyH * 2);
+    // Belly / chest
+    g.fillStyle(FURLT, 0.68);
+    g.fillEllipse(bodyCX + fd * 1.5 * S, bodyCY + 2 * S, bodyW * 1.05, bodyH * 1.25);
+
+    // ── FRONT ARMS
+    if (attached) {
+      // Arms reach up gripping the rope
+      const gripY = headCY - headR - 2 * S;
+      g.lineStyle(8 * S, FURDK, 0.5);
+      g.beginPath();
+      g.moveTo(bodyCX - 13 * S, bodyCY - bodyH + 4 * S);
+      g.lineTo(bodyCX - 7 * S, gripY + 4 * S);
+      g.moveTo(bodyCX + 13 * S, bodyCY - bodyH + 4 * S);
+      g.lineTo(bodyCX + 7 * S, gripY + 4 * S);
+      g.strokePath();
+      g.lineStyle(7 * S, FUR, 1);
+      g.beginPath();
+      g.moveTo(bodyCX - 13 * S, bodyCY - bodyH + 4 * S);
+      g.lineTo(bodyCX - 7 * S, gripY + 4 * S);
+      g.moveTo(bodyCX + 13 * S, bodyCY - bodyH + 4 * S);
+      g.lineTo(bodyCX + 7 * S, gripY + 4 * S);
+      g.strokePath();
+      // Grip paws
+      const gLX = bodyCX - 7 * S, gRX = bodyCX + 7 * S;
+      g.fillStyle(FURLT, 1); g.fillCircle(gLX, gripY, pawR * 1.1); g.fillCircle(gRX, gripY, pawR * 1.1);
+      g.lineStyle(1.8 * S, FURDK, 0.9); g.strokeCircle(gLX, gripY, pawR * 1.1); g.strokeCircle(gRX, gripY, pawR * 1.1);
+      // Claws
+      for (const bx of [gLX, gRX]) {
         for (let c = -1; c <= 1; c++) {
           g.beginPath();
-          g.moveTo(bx + c * 2.5 * S, gripY - pawR + 1 * S);
-          g.lineTo(bx + c * 3 * S,   gripY - pawR - 6 * S);
+          g.moveTo(bx + c * 2.5 * S, gripY - pawR * 0.9);
+          g.lineTo(bx + c * 3 * S, gripY - pawR - 5.5 * S);
           g.strokePath();
         }
       }
     } else {
-      // Airborne — legs dangle with gentle kick animation
-      const kick = Math.sin(now * 0.012) * 5 * S;
-      g.lineStyle(5 * S, FUR, 1);
+      // Dangling arms with gentle swing
+      const swing = Math.sin(now * 0.009) * 4 * S;
+      const aLX = bodyCX - bodyW - 5 * S + swing, aRX = bodyCX + bodyW + 5 * S - swing;
+      const aY  = bodyCY + armH;
+      g.lineStyle(8 * S, FURDK, 0.45);
       g.beginPath();
-      g.moveTo(px - 10 * S, py + 6 * S);
-      g.lineTo(px - 15 * S, py + 18 * S + kick);
-      g.moveTo(px + 10 * S, py + 6 * S);
-      g.lineTo(px + 15 * S, py + 18 * S - kick);
+      g.moveTo(bodyCX - bodyW + 2 * S, bodyCY - 4 * S); g.lineTo(aLX, aY);
+      g.moveTo(bodyCX + bodyW - 2 * S, bodyCY - 4 * S); g.lineTo(aRX, aY);
       g.strokePath();
-      g.fillStyle(FURLT, 1);
-      g.fillCircle(px - 15 * S, py + 20 * S + kick, pawR);
-      g.fillCircle(px + 15 * S, py + 20 * S - kick, pawR);
-      g.lineStyle(1.5 * S, FURDK, 1);
-      g.strokeCircle(px - 15 * S, py + 20 * S + kick, pawR);
-      g.strokeCircle(px + 15 * S, py + 20 * S - kick, pawR);
+      g.lineStyle(7 * S, FUR, 1);
+      g.beginPath();
+      g.moveTo(bodyCX - bodyW + 2 * S, bodyCY - 4 * S); g.lineTo(aLX, aY);
+      g.moveTo(bodyCX + bodyW - 2 * S, bodyCY - 4 * S); g.lineTo(aRX, aY);
+      g.strokePath();
+      // Front paws
+      g.fillStyle(FURLT, 1); g.fillCircle(aLX, aY, pawR); g.fillCircle(aRX, aY, pawR);
+      g.lineStyle(1.5 * S, FURDK, 0.8); g.strokeCircle(aLX, aY, pawR); g.strokeCircle(aRX, aY, pawR);
     }
 
-    // ── SHADOW ──────────────────────────────────────────────────
-    g.fillStyle(0x000000, 0.18);
-    g.fillCircle(px, py + 2 * S, R);
-
-    // ── BODY ────────────────────────────────────────────────────
+    // ── HEAD (drawn over body so it pops forward)
+    g.fillStyle(FURDK, 0.3);
+    g.fillCircle(headCX + 2 * S, headCY + 2 * S, headR);
     g.fillStyle(FUR, 1);
-    g.fillCircle(px, py, R);
-    g.lineStyle(2 * S, FURDK, 1);
-    g.strokeCircle(px, py, R);
+    g.fillCircle(headCX, headCY, headR);
+    g.lineStyle(2 * S, FURDK, 0.88);
+    g.strokeCircle(headCX, headCY, headR);
+    // Face patch
+    g.fillStyle(FURLT, 0.52);
+    g.fillEllipse(headCX + fd * 2 * S, headCY + 4 * S, 19 * S, 22 * S);
 
-    // Face / belly lighter patch
-    g.fillStyle(FURLT, 0.6);
-    g.fillEllipse(px + fd * 2 * S, py + 3 * S, 20 * S, 24 * S);
+    // ── EARS
+    const earData = [
+      [headCX - 15*S, headCY - 8*S, headCX - 5*S, headCY - 10*S, headCX - 11*S, headCY - 27*S,
+       headCX - 13*S, headCY - 10*S, headCX - 7*S, headCY - 11*S, headCX - 11*S, headCY - 23*S],
+      [headCX + 5*S, headCY - 10*S, headCX + 15*S, headCY - 8*S, headCX + 11*S, headCY - 27*S,
+       headCX + 7*S, headCY - 11*S, headCX + 13*S, headCY - 10*S, headCX + 11*S, headCY - 23*S]
+    ];
+    for (const [x1,y1,x2,y2,x3,y3, ix1,iy1,ix2,iy2,ix3,iy3] of earData) {
+      g.fillStyle(FUR, 1);
+      g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.lineTo(x3,y3); g.closePath(); g.fillPath();
+      g.lineStyle(1.5*S, FURDK, 0.88);
+      g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.lineTo(x3,y3); g.closePath(); g.strokePath();
+      g.fillStyle(PINK, 0.82);
+      g.beginPath(); g.moveTo(ix1,iy1); g.lineTo(ix2,iy2); g.lineTo(ix3,iy3); g.closePath(); g.fillPath();
+    }
 
-    // ── EARS ────────────────────────────────────────────────────
-    // Left ear outer
-    g.fillStyle(FUR, 1);
-    g.beginPath();
-    g.moveTo(px - 14 * S, py - 12 * S);
-    g.lineTo(px - 5 * S,  py - 12 * S);
-    g.lineTo(px - 11 * S, py - 28 * S);
-    g.closePath();
-    g.fillPath();
-    g.lineStyle(1.5 * S, FURDK, 0.9);
-    g.beginPath();
-    g.moveTo(px - 14 * S, py - 12 * S);
-    g.lineTo(px - 5 * S,  py - 12 * S);
-    g.lineTo(px - 11 * S, py - 28 * S);
-    g.closePath();
-    g.strokePath();
-    // Left inner ear
-    g.fillStyle(PINK, 0.85);
-    g.beginPath();
-    g.moveTo(px - 12.5 * S, py - 13.5 * S);
-    g.lineTo(px - 6.5 * S,  py - 13.5 * S);
-    g.lineTo(px - 11 * S,   py - 24 * S);
-    g.closePath();
-    g.fillPath();
+    // ── TABBY FOREHEAD STRIPES
+    g.lineStyle(2.2 * S, STRIPE, 0.5);
+    for (let i = -1; i <= 1; i++) {
+      g.beginPath();
+      g.arc(headCX + i * 5 * S, headCY - headR + 3 * S, 4 * S, Math.PI + 0.35, Math.PI * 2 - 0.35, false);
+      g.strokePath();
+    }
 
-    // Right ear outer
-    g.fillStyle(FUR, 1);
-    g.beginPath();
-    g.moveTo(px + 5 * S,  py - 12 * S);
-    g.lineTo(px + 14 * S, py - 12 * S);
-    g.lineTo(px + 11 * S, py - 28 * S);
-    g.closePath();
-    g.fillPath();
-    g.lineStyle(1.5 * S, FURDK, 0.9);
-    g.beginPath();
-    g.moveTo(px + 5 * S,  py - 12 * S);
-    g.lineTo(px + 14 * S, py - 12 * S);
-    g.lineTo(px + 11 * S, py - 28 * S);
-    g.closePath();
-    g.strokePath();
-    // Right inner ear
-    g.fillStyle(PINK, 0.85);
-    g.beginPath();
-    g.moveTo(px + 6.5 * S,  py - 13.5 * S);
-    g.lineTo(px + 12.5 * S, py - 13.5 * S);
-    g.lineTo(px + 11 * S,   py - 24 * S);
-    g.closePath();
-    g.fillPath();
+    // ── EYES
+    const ex  = fd * 1.5 * S;
+    const eLX = headCX + ex - 6.5 * S, eRX = headCX + ex + 6.5 * S;
+    const eY  = headCY - 4 * S;
+    const eR  = (mood === 'scared' || mood === 'launch') ? 6.5 * S : 5.5 * S;
 
-    // ── EYES ────────────────────────────────────────────────────
-    const ex  = fd * 2 * S;
-    const eLX = px + ex - 6 * S;
-    const eRX = px + ex + 6 * S;
-    const eY  = py - 5 * S;
-    const eR  = (mood === 'scared' || mood === 'launch') ? 6 * S : 5 * S;
+    g.fillStyle(WHT, 1); g.fillCircle(eLX, eY, eR); g.fillCircle(eRX, eY, eR);
 
-    g.fillStyle(WHT, 1);
-    g.fillCircle(eLX, eY, eR);
-    g.fillCircle(eRX, eY, eR);
-
-    if (mood === 'scared' || mood === 'launch') {
-      // Wide eyes — round pupils
-      g.fillStyle(EYEG, 1);
-      g.fillCircle(eLX, eY, eR - 1 * S);
-      g.fillCircle(eRX, eY, eR - 1 * S);
+    if (mood === 'happy') {
+      g.fillStyle(EYEG, 1); g.fillCircle(eLX, eY, eR - 0.5*S); g.fillCircle(eRX, eY, eR - 0.5*S);
       g.fillStyle(PUP, 1);
-      g.fillCircle(eLX, eY, 2.2 * S);
-      g.fillCircle(eRX, eY, 2.2 * S);
+      g.fillEllipse(eLX, eY + 0.5*S, 2.2*S, (eR - 0.5*S) * 1.65);
+      g.fillEllipse(eRX, eY + 0.5*S, 2.2*S, (eR - 0.5*S) * 1.65);
+      // Squint crescent
+      g.fillStyle(WHT, 1);
+      g.fillRect(eLX - eR, eY - eR, eR * 2, eR); g.fillRect(eRX - eR, eY - eR, eR * 2, eR);
+    } else if (mood === 'scared' || mood === 'launch') {
+      g.fillStyle(EYEG, 1); g.fillCircle(eLX, eY, eR - 0.5*S); g.fillCircle(eRX, eY, eR - 0.5*S);
+      g.fillStyle(PUP, 1); g.fillCircle(eLX, eY, 2.8*S); g.fillCircle(eRX, eY, 2.8*S);
     } else {
-      // Normal — green iris with vertical slit pupil
-      g.fillStyle(EYEG, 1);
-      g.fillCircle(eLX, eY, eR - 1 * S);
-      g.fillCircle(eRX, eY, eR - 1 * S);
+      g.fillStyle(EYEG, 1); g.fillCircle(eLX, eY, eR - 0.5*S); g.fillCircle(eRX, eY, eR - 0.5*S);
       g.fillStyle(PUP, 1);
-      g.fillEllipse(eLX, eY, 2.2 * S, (eR - 0.8 * S) * 1.7);
-      g.fillEllipse(eRX, eY, 2.2 * S, (eR - 0.8 * S) * 1.7);
+      g.fillEllipse(eLX, eY, 2.2*S, (eR - 0.5*S) * 1.7);
+      g.fillEllipse(eRX, eY, 2.2*S, (eR - 0.5*S) * 1.7);
     }
     // Eye shine
-    g.fillStyle(WHT, 0.9);
-    g.fillCircle(eLX + 1.5 * S, eY - 1.5 * S, 1.5 * S);
-    g.fillCircle(eRX + 1.5 * S, eY - 1.5 * S, 1.5 * S);
+    g.fillStyle(WHT, 0.92);
+    g.fillCircle(eLX + 2*S, eY - 2*S, 1.8*S); g.fillCircle(eRX + 2*S, eY - 2*S, 1.8*S);
 
-    // ── NOSE ────────────────────────────────────────────────────
-    const nX = px + ex;
-    const nY = py + 3 * S;
+    // ── NOSE
+    const nX = headCX + ex, nY = headCY + 5 * S;
     g.fillStyle(PINK, 1);
-    g.beginPath();
-    g.moveTo(nX,          nY - 3 * S);
-    g.lineTo(nX - 3 * S,  nY + 2 * S);
-    g.lineTo(nX + 3 * S,  nY + 2 * S);
-    g.closePath();
-    g.fillPath();
+    g.beginPath(); g.moveTo(nX, nY-3*S); g.lineTo(nX-3.5*S, nY+2.5*S); g.lineTo(nX+3.5*S, nY+2.5*S);
+    g.closePath(); g.fillPath();
 
-    // ── MOUTH ───────────────────────────────────────────────────
+    // ── MOUTH
     g.lineStyle(1.8 * S, FURDK, 0.9);
     if (mood === 'happy') {
-      g.beginPath();
-      g.arc(nX, nY + 5 * S, 6.5 * S, 0.1, Math.PI - 0.1, false);
-      g.strokePath();
+      g.beginPath(); g.arc(nX, nY + 5*S, 6*S, 0.15, Math.PI - 0.15, false); g.strokePath();
     } else if (mood === 'scared' || mood === 'launch') {
-      g.fillStyle(0x6b2222, 1);
-      g.fillCircle(nX, nY + 6.5 * S, 3.5 * S);
-      g.lineStyle(1.5 * S, FURDK, 0.8);
-      g.strokeCircle(nX, nY + 6.5 * S, 3.5 * S);
+      g.fillStyle(0x6b2222, 1); g.fillCircle(nX, nY+6*S, 3.5*S);
+      g.lineStyle(1.5*S, FURDK, 0.8); g.strokeCircle(nX, nY+6*S, 3.5*S);
     } else {
-      // W-shaped cat mouth
       g.beginPath();
-      g.moveTo(nX - 5 * S, nY + 3 * S);
-      g.lineTo(nX - 2 * S, nY + 6 * S);
-      g.lineTo(nX,         nY + 3.5 * S);
-      g.lineTo(nX + 2 * S, nY + 6 * S);
-      g.lineTo(nX + 5 * S, nY + 3 * S);
+      g.moveTo(nX-6*S, nY+3*S); g.lineTo(nX-2*S, nY+6.5*S);
+      g.lineTo(nX, nY+4*S); g.lineTo(nX+2*S, nY+6.5*S); g.lineTo(nX+6*S, nY+3*S);
       g.strokePath();
     }
 
-    // ── WHISKERS ────────────────────────────────────────────────
-    g.lineStyle(1.2 * S, FURDK, 0.42);
-    const wAngles = [-0.15, 0, 0.15];
+    // ── WHISKERS
+    g.lineStyle(1.3 * S, FURDK, 0.35);
     for (let w = 0; w < 3; w++) {
-      const ang = wAngles[w];
-      const wy  = nY + (w - 1) * 3.5 * S;
-      g.beginPath();
-      g.moveTo(nX - 3 * S, wy);
-      g.lineTo(nX - 19 * S, wy + Math.sin(ang) * 5 * S);
-      g.strokePath();
-      g.beginPath();
-      g.moveTo(nX + 3 * S, wy);
-      g.lineTo(nX + 19 * S, wy + Math.sin(ang) * 5 * S);
-      g.strokePath();
+      const wy = nY + (w - 1) * 4 * S;
+      g.beginPath(); g.moveTo(nX-3*S, wy); g.lineTo(nX-22*S, wy + (w-1)*3*S); g.strokePath();
+      g.beginPath(); g.moveTo(nX+3*S, wy); g.lineTo(nX+22*S, wy + (w-1)*3*S); g.strokePath();
     }
   }
 }
@@ -2079,11 +2082,12 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v18 &nbsp;-&nbsp; Updated 2026-05-10 12:30 EDT
+  Rise! &nbsp;v19 &nbsp;-&nbsp; Updated 2026-05-10
 </div>
 
 </body>
 </html>
+
 
 
 

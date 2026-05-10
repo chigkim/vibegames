@@ -280,7 +280,6 @@ const CATCH_RADIUS = 52;
 const STAR_COLLECT_RADIUS = 38;
 const MAGNETIC_RADIUS = 90;
 const AIRBORNE_CATCH_FRAMES = 60;
-const MISSED_CATCH_GRAVITY = 0.2;
 const FALL_THRESHOLD = 300;
 const COMBO_TIMEOUT_FRAMES = 90;  // 1.5s at 60fps to chain catches
 const HUB_COLORS = ['#ff6b9d', '#ff8c42', '#ffe066', '#6bceff', '#a78bfa', '#5eead4', '#f472b6'];
@@ -1337,7 +1336,6 @@ class RiseScene extends Phaser.Scene {
         this.player.releaseTimer++;
         this.player.airborneCatchTimer += dt;
         this.player.vy += GRAVITY;
-        if (!this.canCatchWhileAirborne()) this.player.vy += MISSED_CATCH_GRAVITY;
         this.player.x += this.player.vx * dt;
         this.player.y += this.player.vy * dt;
         if (Math.abs(this.player.vx) > 0.5) this.player.faceDir = this.player.vx > 0 ? 1 : -1;
@@ -1392,7 +1390,6 @@ class RiseScene extends Phaser.Scene {
 
       if (this.hasCaughtFirst) {
         this.player.x = Phaser.Math.Clamp(this.player.x, this.playerR - 2, this.gameWidth - (this.playerR - 2));
-        if (this.player.releaseTimer > 240) this.player.vy += 0.1;
       }
     }
 
@@ -2160,7 +2157,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v20 &nbsp;-&nbsp; Updated 2026-05-10 14:30 EDT
+  Rise! &nbsp;v21 &nbsp;-&nbsp; Updated 2026-05-10 15:00 EDT
 </div>
 
 </body>

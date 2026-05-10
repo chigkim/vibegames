@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/chigkim/vibegames#readme",
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "playwright": "^1.59.1"
   }
 }

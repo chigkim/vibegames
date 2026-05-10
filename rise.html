@@ -1781,15 +1781,22 @@ class RiseScene extends Phaser.Scene {
     const pawR  = 5.5 * S;
 
     // ── TAIL (behind body) ──────────────────────────────────────
+    // Phaser Graphics has no bezierCurveTo — approximate with lineTo segments
     const td = -fd;
+    const tx0 = px + td * 10 * S, ty0 = py + R - 3 * S;
+    const tcx1 = px + td * 32 * S, tcy1 = py + 12 * S;
+    const tcx2 = px + td * 36 * S, tcy2 = py - 4 * S;
+    const tx3 = px + td * 26 * S,  ty3 = py - 8 * S;
     g.lineStyle(4.5 * S, FUR, 1);
     g.beginPath();
-    g.moveTo(px + td * 10 * S, py + R - 3 * S);
-    g.bezierCurveTo(
-      px + td * 32 * S, py + 12 * S,
-      px + td * 36 * S, py - 4 * S,
-      px + td * 26 * S, py - 8 * S
-    );
+    g.moveTo(tx0, ty0);
+    for (let i = 1; i <= 8; i++) {
+      const t = i / 8, mt = 1 - t;
+      g.lineTo(
+        mt*mt*mt*tx0 + 3*mt*mt*t*tcx1 + 3*mt*t*t*tcx2 + t*t*t*tx3,
+        mt*mt*mt*ty0 + 3*mt*mt*t*tcy1 + 3*mt*t*t*tcy2 + t*t*t*ty3
+      );
+    }
     g.strokePath();
     g.fillStyle(FURDK, 0.8);
     g.fillCircle(px + td * 26 * S, py - 8 * S, 5 * S);

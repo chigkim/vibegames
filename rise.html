@@ -279,7 +279,7 @@ const GRAVITY = 0.38;
 const CATCH_RADIUS = 52;
 const STAR_COLLECT_RADIUS = 38;
 const MAGNETIC_RADIUS = 90;
-const APEX_FLOAT_FRAMES = 120;  // frames (2s) of gravity suspension per star
+const APEX_FLOAT_FRAMES = 30;   // frames (0.5s) per star — each star extends float + renudges
 const FALL_THRESHOLD = 300;
 const COMBO_TIMEOUT_FRAMES = 90;  // 1.5s at 60fps to chain catches
 const HUB_COLORS = ['#ff6b9d', '#ff8c42', '#ffe066', '#6bceff', '#a78bfa', '#5eead4', '#f472b6'];
@@ -555,6 +555,7 @@ class RiseScene extends Phaser.Scene {
     this.highestHubReached = 0;
     this.lifeStars = 0;
     this.floatFrames = 0;
+    this.floatExhausted = false;
   }
 
   create() {
@@ -638,6 +639,7 @@ class RiseScene extends Phaser.Scene {
     this.hasCaughtFirst = false;
     this.lifeStars = 0;
     this.floatFrames = 0;
+    this.floatExhausted = false;
     this.player = null;
     this.generateClouds();
     this.generateHubs();
@@ -672,6 +674,7 @@ class RiseScene extends Phaser.Scene {
     this.hasCaughtFirst = false;  // no falling/penalty until first catch
     this.lifeStars = 0;
     this.floatFrames = 0;
+    this.floatExhausted = false;
     document.getElementById('hud-score').textContent = '🏆 0';
     document.getElementById('hud-stars').textContent = '⭐ 0';
     document.getElementById('hud-stars').style.display = 'block';
@@ -911,6 +914,21 @@ class RiseScene extends Phaser.Scene {
     this.checkComboMilestone();
   }
 
+  nudgeTowardNearestRope() {
+    let best = null, bestD = Infinity;
+    for (const hub of this.hubs) {
+      if (hub.y - this.cameraY > this.gameHeight + 200) continue;
+      for (const rope of hub.ropes) {
+        const ep = this.getRopeEndpoint(hub, rope);
+        const d = Math.hypot(ep.ex - this.player.x, ep.ey - this.player.y);
+        if (d < bestD) { bestD = d; best = ep; }
+      }
+    }
+    if (best && bestD > 0) {
+      this.player.vx += (best.ex - this.player.x) / bestD * 5;
+    }
+  }
+
   updateStarsHud() {
     const el = document.getElementById('hud-stars');
     el.textContent = '⭐ ' + this.lifeStars;
@@ -1090,6 +1108,7 @@ class RiseScene extends Phaser.Scene {
     this.player.attached = false;
     this.player.releaseTimer = 0;
     this.floatFrames = 0;
+    this.floatExhausted = false;
     this.player.grabCooldown = 8;
     this.player.mood = 'launch';
     playSound('release');
@@ -1305,10 +1324,23 @@ class RiseScene extends Phaser.Scene {
           this.floatFrames = Math.max(0, this.floatFrames - dt);
           this.player.vy = Math.sin(this.time.now * 0.004) * 0.8;
           this.player.vx *= 0.97;
+          if (this.floatFrames <= 0) {
+            if (this.lifeStars > 0) {
+              // Spend next star: extend float and nudge again
+              this.lifeStars--;
+              this.floatFrames = APEX_FLOAT_FRAMES;
+              this.updateStarsHud();
+              this.nudgeTowardNearestRope();
+              this.popups.push({ x: this.player.x, y: this.player.y - 20, text: '⭐', color: '#ffe066', life: 0.7, vy: -0.8, size: 20 });
+              playSound('star', 0);
+            } else {
+              this.floatExhausted = true; // no more stars — gravity resumes
+            }
+          }
         } else {
           this.player.vy += GRAVITY;
           // Apex: vy just crossed from negative to positive — spend a star to float
-          if (prevVy < 0 && this.player.vy >= 0 && this.lifeStars > 0) {
+          if (prevVy < 0 && this.player.vy >= 0 && this.lifeStars > 0 && !this.floatExhausted) {
             this.lifeStars--;
             this.floatFrames = APEX_FLOAT_FRAMES;
             this.updateStarsHud();
@@ -1317,19 +1349,7 @@ class RiseScene extends Phaser.Scene {
             this.popups.push({ x: this.player.x, y: this.player.y - 30, text: '⭐ FLOAT!', color: '#ffe066', life: 1.4, vy: -0.7, size: 26 });
             playSound('starsave');
             if (navigator.vibrate) try { navigator.vibrate([10, 20, 10]); } catch {}
-            // Nudge horizontally toward the nearest rope
-            let nudgeDist = Infinity, nudgeEp = null;
-            for (const hub of this.hubs) {
-              if (hub.y - this.cameraY > this.gameHeight + 200) continue;
-              for (const rope of hub.ropes) {
-                const ep = this.getRopeEndpoint(hub, rope);
-                const d = Math.hypot(ep.ex - this.player.x, ep.ey - this.player.y);
-                if (d < nudgeDist) { nudgeDist = d; nudgeEp = ep; }
-              }
-            }
-            if (nudgeEp && nudgeDist > 0) {
-              this.player.vx += (nudgeEp.ex - this.player.x) / nudgeDist * 5;
-            }
+            this.nudgeTowardNearestRope();
           }
         }
 
@@ -2168,7 +2188,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v30 &nbsp;-&nbsp; Updated 2026-05-10 19:30 EDT
+  Rise! &nbsp;v31 &nbsp;-&nbsp; Updated 2026-05-10 20:00 EDT
 </div>
 
 </body>

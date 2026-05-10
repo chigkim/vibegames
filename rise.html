@@ -191,6 +191,17 @@
     opacity: 1;
     transform: scale(1);
   }
+  #hud-stars {
+    font-family: 'Bowlby One SC', 'DM Sans', sans-serif;
+    font-size: 1.3rem;
+    color: #ffe066;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.4), 0 0 14px rgba(255,224,102,0.6);
+    margin-top: 3px;
+    transition: transform 0.15s cubic-bezier(.5,1.6,.4,1);
+  }
+  #hud-stars.pop {
+    transform: scale(1.45);
+  }
   #hud-left {
     display: flex;
     flex-direction: column;
@@ -219,6 +230,7 @@
   <div id="hud-left">
     <div id="hud-score">🏆 0</div>
     <div id="hud-combo">x2</div>
+    <div id="hud-stars" style="display:none;">⭐ 0</div>
   </div>
   <button id="mute-btn" aria-label="Toggle sound">🔊</button>
 </div>
@@ -230,6 +242,7 @@
     <div class="instructions">
       🟡 <strong>Hold</strong> to grab a rope<br>
       🔵 <strong>Let go</strong> to release and fly!<br>
+      ⭐ <strong>Grab stars</strong> for emergency saves!<br>
       🚀 Climb as high as you can!
     </div>
     <div class="best-score" id="ready-best-score" style="display:none;">🏆 Best: 0</div>
@@ -435,6 +448,17 @@ function playSound(type, data) {
     playArcadeSound([0.7, 0.05, 1320, 0.01, 0.08, 0.18, 1, 2.2, 0.3]);
     return;
   }
+  if (type === 'starsave') {
+    playArcadeSound([0.9, 0.06, 880, 0.005, 0.1, 0.32, 1, 2.2, 0.45]);
+    if (!audioReady) return;
+    const _now = Tone.now();
+    const _f = (n) => Tone.Frequency(n, 'midi').toFrequency();
+    starSynth.triggerAttackRelease(_f(64), '16n', _now, 0.5);
+    starSynth.triggerAttackRelease(_f(69), '16n', _now + 0.06, 0.5);
+    starSynth.triggerAttackRelease(_f(76), '16n', _now + 0.13, 0.55);
+    starSynth.triggerAttackRelease(_f(81), '8n',  _now + 0.21, 0.65);
+    return;
+  }
   if (!audioReady) return;
   const now = Tone.now();
 
@@ -530,6 +554,8 @@ class RiseScene extends Phaser.Scene {
     this.milestonesHit = new Set();
     this.bigMessage = null;        // { text, life, color }
     this.highestHubReached = 0;
+    this.lifeStars = 0;
+    this.graceFrames = 0;
   }
 
   create() {
@@ -611,6 +637,8 @@ class RiseScene extends Phaser.Scene {
     this.bigMessage = null;
     this.highestHubReached = 0;
     this.hasCaughtFirst = false;
+    this.lifeStars = 0;
+    this.graceFrames = 0;
     this.player = null;
     this.generateClouds();
     this.generateHubs();
@@ -643,7 +671,10 @@ class RiseScene extends Phaser.Scene {
     this.bigMessage = null;
     this.highestHubReached = 0;
     this.hasCaughtFirst = false;  // no falling/penalty until first catch
+    this.lifeStars = 0;
+    this.graceFrames = 0;
     document.getElementById('hud-score').textContent = '🏆 0';
+    document.getElementById('hud-stars').style.display = 'none';
     document.getElementById('hud-combo').classList.remove('visible');
     this.generateClouds();
     this.generateHubs();
@@ -863,16 +894,18 @@ class RiseScene extends Phaser.Scene {
     if (star.collected) return;
     star.collected = true;
     this.score += 1;
+    this.lifeStars++;
     this.combo += 1;
     this.comboTimer = COMBO_TIMEOUT_FRAMES;
     document.getElementById('hud-score').textContent = '🏆 ' + this.score;
+    this.updateStarsHud();
     this.spawnStarBurst(star.x, star.y);
     playSound('star', this.combo);
     if (navigator.vibrate) try { navigator.vibrate(8); } catch {}
     this.popups.push({
       x: star.x,
       y: star.y,
-      text: '+1',
+      text: '+1 ⭐',
       color: '#ffe066',
       life: 1,
       vy: -1.2,
@@ -880,6 +913,44 @@ class RiseScene extends Phaser.Scene {
     });
     this.checkComboMilestone();
     this.checkScoreMilestone();
+  }
+
+  updateStarsHud() {
+    const el = document.getElementById('hud-stars');
+    if (this.lifeStars > 0) {
+      el.textContent = '⭐ ' + this.lifeStars;
+      el.style.display = 'block';
+      el.classList.remove('pop');
+      void el.offsetWidth;
+      el.classList.add('pop');
+      setTimeout(() => el.classList.remove('pop'), 200);
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
+  spendLifeStar() {
+    this.lifeStars--;
+    this.graceFrames = 6;
+    // Rescue: strong upward launch + snap camera down to show the player
+    this.player.vy = -24;
+    this.player.vx *= 0.3;
+    this.cameraY = this.player.y - this.gameHeight * 0.75;
+    this.cameraTargetY = this.cameraY;
+    this.flashAmount = 0.65;
+    this.shake = 10;
+    this.spawnStarBurst(this.player.x, this.player.y);
+    this.spawnStarBurst(this.player.x, this.player.y);
+    this.popups.push({
+      x: this.player.x,
+      y: this.player.y - 40,
+      text: '⭐ SAVED!',
+      color: '#ffe066',
+      life: 1.8, vy: -0.9, size: 30
+    });
+    playSound('starsave');
+    this.updateStarsHud();
+    if (navigator.vibrate) try { navigator.vibrate([15, 30, 15]); } catch {}
   }
 
   spawnStarBurst(x, y) {
@@ -1409,8 +1480,16 @@ class RiseScene extends Phaser.Scene {
 
     this.updateParticles();
 
+    if (this.graceFrames > 0) this.graceFrames = Math.max(0, this.graceFrames - dt);
+
     if (this.hasCaughtFirst && this.player.y - this.cameraY > this.gameHeight + this.fallThresh) {
-      this.showGameOver();
+      if (this.graceFrames > 0) {
+        // grace window still open — bounce already applied, just wait
+      } else if (this.lifeStars > 0) {
+        this.spendLifeStar();
+      } else {
+        this.showGameOver();
+      }
     }
   }
 
@@ -2082,7 +2161,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v19 &nbsp;-&nbsp; Updated 2026-05-10
+  Rise! &nbsp;v19 &nbsp;-&nbsp; Updated 2026-05-10 14:00 EDT
 </div>
 
 </body>

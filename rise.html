@@ -1606,6 +1606,20 @@ class RiseScene extends Phaser.Scene {
     }
   }
 
+  drawStarShape(cx, cy, outerR, innerR, rotation) {
+    this.g.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const angle = (i * Math.PI / 5) - Math.PI / 2 + rotation;
+      const r = i % 2 === 0 ? outerR : innerR;
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r;
+      if (i === 0) this.g.moveTo(x, y);
+      else this.g.lineTo(x, y);
+    }
+    this.g.closePath();
+    this.g.fillPath();
+  }
+
   drawCollectibles() {
     const S = this.S || 1;
     for (const star of this.collectibles) {
@@ -1614,20 +1628,22 @@ class RiseScene extends Phaser.Scene {
       const sy = bobY - this.cameraY;
       if (sy < -30 || sy > this.gameHeight + 30) continue;
       const pulse = 0.85 + 0.15 * Math.sin(this.time.now * 0.005 + star.phase);
-      const r = 8 * S * pulse;
+      const r = 9 * S * pulse;
+      const rot = this.time.now * 0.001 + star.phase;
       // Glow
-      this.g.fillStyle(0xffe066, 0.25);
+      this.g.fillStyle(0xffe066, 0.22);
       this.g.fillCircle(star.x, sy, r * 2.2);
-      this.g.fillStyle(0xffe066, 0.4);
-      this.g.fillCircle(star.x, sy, r * 1.5);
+      this.g.fillStyle(0xffe066, 0.38);
+      this.g.fillCircle(star.x, sy, r * 1.4);
       // Star body
       this.g.fillStyle(0xfff5b8, 1);
-      this.g.fillCircle(star.x, sy, r);
+      this.drawStarShape(star.x, sy, r, r * 0.42, rot);
+      // Inner gold star
       this.g.fillStyle(0xffd700, 1);
-      this.g.fillCircle(star.x, sy, r * 0.55);
-      // Sparkle highlight
-      this.g.fillStyle(0xffffff, 0.9);
-      this.g.fillCircle(star.x - r * 0.3, sy - r * 0.3, r * 0.25);
+      this.drawStarShape(star.x, sy, r * 0.58, r * 0.24, rot);
+      // Highlight
+      this.g.fillStyle(0xffffff, 0.85);
+      this.g.fillCircle(star.x - r * 0.22, sy - r * 0.28, r * 0.18);
     }
   }
 
@@ -2190,7 +2206,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v35 &nbsp;-&nbsp; Updated 2026-05-10 22:00 EDT
+  Rise! &nbsp;v36 &nbsp;-&nbsp; Updated 2026-05-10 22:30 EDT
 </div>
 
 </body>

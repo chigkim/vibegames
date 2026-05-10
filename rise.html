@@ -893,11 +893,9 @@ class RiseScene extends Phaser.Scene {
   collectStar(star) {
     if (star.collected) return;
     star.collected = true;
-    this.score += 1;
     this.lifeStars++;
     this.combo += 1;
     this.comboTimer = COMBO_TIMEOUT_FRAMES;
-    document.getElementById('hud-score').textContent = '🏆 ' + this.score;
     this.updateStarsHud();
     this.spawnStarBurst(star.x, star.y);
     playSound('star', this.combo);
@@ -905,14 +903,13 @@ class RiseScene extends Phaser.Scene {
     this.popups.push({
       x: star.x,
       y: star.y,
-      text: '+1 ⭐',
+      text: '⭐',
       color: '#ffe066',
       life: 1,
       vy: -1.2,
       size: 22
     });
     this.checkComboMilestone();
-    this.checkScoreMilestone();
   }
 
   updateStarsHud() {
@@ -1054,17 +1051,19 @@ class RiseScene extends Phaser.Scene {
 
     if (!silent) {
       this.spawnParticles(this.player.x, this.player.y, hub.color);
-      // Gold hub gets extra sparkle and bonus
+      // Gold hub gets extra sparkle and +3 life stars
       if (hub.variant === 'gold') {
         this.spawnStarBurst(this.player.x, this.player.y);
         this.spawnStarBurst(this.player.x, this.player.y);
         playSound('goldcatch');
         this.shake = Math.max(this.shake, 9);
         if (navigator.vibrate) try { navigator.vibrate([15, 20, 30]); } catch {}
+        this.lifeStars += 3;
+        this.updateStarsHud();
         this.popups.push({
           x: this.player.x,
           y: this.player.y - 28,
-          text: '+5 GOLD!',
+          text: '+1 ⭐⭐⭐ GOLD!',
           color: '#ffd700',
           life: 1.4, vy: -1.0, size: 24
         });
@@ -1077,7 +1076,7 @@ class RiseScene extends Phaser.Scene {
     // Score & progression: only credit if this is a NEW hub (not one we've reached before)
     if (hub.uid > 0 && hub.uid > this.highestHubReached) {
       this.highestHubReached = hub.uid;
-      const earned = hub.variant === 'gold' ? 5 : 1;
+      const earned = 1;
       this.score += earned;
       document.getElementById('hud-score').textContent = '🏆 ' + this.score;
 
@@ -2161,7 +2160,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v19 &nbsp;-&nbsp; Updated 2026-05-10 14:00 EDT
+  Rise! &nbsp;v20 &nbsp;-&nbsp; Updated 2026-05-10 14:30 EDT
 </div>
 
 </body>

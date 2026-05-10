@@ -1760,64 +1760,233 @@ class RiseScene extends Phaser.Scene {
   drawPlayer() {
     const S = this.S || 1;
     const px = this.player.x;
-    // Gentle hover bob while waiting for the first catch — purely cosmetic,
-    // does not affect physics or collision.
     const waitBob = (this.state === 'playing' && !this.hasCaughtFirst && !this.player.attached)
-      ? Math.sin(this.time.now * 0.004) * 4 * S
-      : 0;
+      ? Math.sin(this.time.now * 0.004) * 4 * S : 0;
     const py = this.player.y - this.cameraY + waitBob;
-    const eyeX = this.player.faceDir * 6 * S;
     const mood = this.player.mood || 'normal';
+    const attached = !!this.player.attached;
+    const fd = this.player.faceDir || 1;
+    const now = this.time.now;
+    const R = 18 * S;
+    const g = this.g;
 
-    this.g.fillStyle(0x000000, 0.2);
-    this.g.fillCircle(px, py + 2 * S, 20 * S);
-    this.g.fillStyle(0xffba49, 1);
-    this.g.fillCircle(px, py, 20 * S);
-    this.g.fillStyle(0xffe8b0, 0.55);
-    this.g.fillCircle(px - 5 * S, py - 6 * S, 9 * S);
-    this.g.lineStyle(2 * S, 0xff8c42, 1);
-    this.g.strokeCircle(px, py, 20 * S);
+    // Orange tabby palette
+    const FUR   = 0xf4903c;
+    const FURLT = 0xfff0e0;
+    const FURDK = 0xc96820;
+    const PINK  = 0xff9eaa;
+    const EYEG  = 0x5aad6a;
+    const PUP   = 0x111111;
+    const WHT   = 0xffffff;
+    const pawR  = 5.5 * S;
 
-    // Eyes — bigger when scared/launch, normal otherwise
-    const eyeR = ((mood === 'scared' || mood === 'launch') ? 5.5 : 4.5) * S;
-    this.g.fillStyle(0xffffff, 1);
-    if (mood === 'scared' || mood === 'launch') {
-      // White eye sclera for surprise look
-      this.g.fillCircle(px + eyeX - 4 * S, py - 4 * S, eyeR);
-      this.g.fillCircle(px + eyeX + 4 * S, py - 4 * S, eyeR);
-      // Smaller pupils
-      this.g.fillStyle(0x222222, 1);
-      this.g.fillCircle(px + eyeX - 4 * S, py - 4 * S, 2.8 * S);
-      this.g.fillCircle(px + eyeX + 4 * S, py - 4 * S, 2.8 * S);
+    // ── TAIL (behind body) ──────────────────────────────────────
+    const td = -fd;
+    g.lineStyle(4.5 * S, FUR, 1);
+    g.beginPath();
+    g.moveTo(px + td * 10 * S, py + R - 3 * S);
+    g.bezierCurveTo(
+      px + td * 32 * S, py + 12 * S,
+      px + td * 36 * S, py - 4 * S,
+      px + td * 26 * S, py - 8 * S
+    );
+    g.strokePath();
+    g.fillStyle(FURDK, 0.8);
+    g.fillCircle(px + td * 26 * S, py - 8 * S, 5 * S);
+    g.fillStyle(FUR, 0.65);
+    g.fillCircle(px + td * 26 * S, py - 8 * S, 3 * S);
+
+    // ── ARMS / PAWS ─────────────────────────────────────────────
+    if (attached) {
+      // Both paws grip at top of body where the rope endpoint sits
+      const gripY = py - R + 4 * S;
+      g.lineStyle(6 * S, FUR, 1);
+      g.beginPath();
+      g.moveTo(px - 11 * S, py - 6 * S);
+      g.lineTo(px - 6 * S, gripY);
+      g.moveTo(px + 11 * S, py - 6 * S);
+      g.lineTo(px + 6 * S, gripY);
+      g.strokePath();
+      // Paw pads
+      const pawLX = px - 6 * S, pawRX = px + 6 * S;
+      g.fillStyle(FURLT, 1);
+      g.fillCircle(pawLX, gripY, pawR);
+      g.fillCircle(pawRX, gripY, pawR);
+      g.lineStyle(1.5 * S, FURDK, 1);
+      g.strokeCircle(pawLX, gripY, pawR);
+      g.strokeCircle(pawRX, gripY, pawR);
+      // Claws — 3 per paw pointing upward
+      g.lineStyle(2 * S, FURDK, 0.95);
+      for (let p = 0; p < 2; p++) {
+        const bx = p === 0 ? pawLX : pawRX;
+        for (let c = -1; c <= 1; c++) {
+          g.beginPath();
+          g.moveTo(bx + c * 2.5 * S, gripY - pawR + 1 * S);
+          g.lineTo(bx + c * 3 * S,   gripY - pawR - 6 * S);
+          g.strokePath();
+        }
+      }
     } else {
-      this.g.fillStyle(0x222222, 1);
-      this.g.fillCircle(px + eyeX - 4 * S, py - 4 * S, eyeR);
-      this.g.fillCircle(px + eyeX + 4 * S, py - 4 * S, eyeR);
+      // Airborne — legs dangle with gentle kick animation
+      const kick = Math.sin(now * 0.012) * 5 * S;
+      g.lineStyle(5 * S, FUR, 1);
+      g.beginPath();
+      g.moveTo(px - 10 * S, py + 6 * S);
+      g.lineTo(px - 15 * S, py + 18 * S + kick);
+      g.moveTo(px + 10 * S, py + 6 * S);
+      g.lineTo(px + 15 * S, py + 18 * S - kick);
+      g.strokePath();
+      g.fillStyle(FURLT, 1);
+      g.fillCircle(px - 15 * S, py + 20 * S + kick, pawR);
+      g.fillCircle(px + 15 * S, py + 20 * S - kick, pawR);
+      g.lineStyle(1.5 * S, FURDK, 1);
+      g.strokeCircle(px - 15 * S, py + 20 * S + kick, pawR);
+      g.strokeCircle(px + 15 * S, py + 20 * S - kick, pawR);
+    }
+
+    // ── SHADOW ──────────────────────────────────────────────────
+    g.fillStyle(0x000000, 0.18);
+    g.fillCircle(px, py + 2 * S, R);
+
+    // ── BODY ────────────────────────────────────────────────────
+    g.fillStyle(FUR, 1);
+    g.fillCircle(px, py, R);
+    g.lineStyle(2 * S, FURDK, 1);
+    g.strokeCircle(px, py, R);
+
+    // Face / belly lighter patch
+    g.fillStyle(FURLT, 0.6);
+    g.fillEllipse(px + fd * 2 * S, py + 3 * S, 20 * S, 24 * S);
+
+    // ── EARS ────────────────────────────────────────────────────
+    // Left ear outer
+    g.fillStyle(FUR, 1);
+    g.beginPath();
+    g.moveTo(px - 14 * S, py - 12 * S);
+    g.lineTo(px - 5 * S,  py - 12 * S);
+    g.lineTo(px - 11 * S, py - 28 * S);
+    g.closePath();
+    g.fillPath();
+    g.lineStyle(1.5 * S, FURDK, 0.9);
+    g.beginPath();
+    g.moveTo(px - 14 * S, py - 12 * S);
+    g.lineTo(px - 5 * S,  py - 12 * S);
+    g.lineTo(px - 11 * S, py - 28 * S);
+    g.closePath();
+    g.strokePath();
+    // Left inner ear
+    g.fillStyle(PINK, 0.85);
+    g.beginPath();
+    g.moveTo(px - 12.5 * S, py - 13.5 * S);
+    g.lineTo(px - 6.5 * S,  py - 13.5 * S);
+    g.lineTo(px - 11 * S,   py - 24 * S);
+    g.closePath();
+    g.fillPath();
+
+    // Right ear outer
+    g.fillStyle(FUR, 1);
+    g.beginPath();
+    g.moveTo(px + 5 * S,  py - 12 * S);
+    g.lineTo(px + 14 * S, py - 12 * S);
+    g.lineTo(px + 11 * S, py - 28 * S);
+    g.closePath();
+    g.fillPath();
+    g.lineStyle(1.5 * S, FURDK, 0.9);
+    g.beginPath();
+    g.moveTo(px + 5 * S,  py - 12 * S);
+    g.lineTo(px + 14 * S, py - 12 * S);
+    g.lineTo(px + 11 * S, py - 28 * S);
+    g.closePath();
+    g.strokePath();
+    // Right inner ear
+    g.fillStyle(PINK, 0.85);
+    g.beginPath();
+    g.moveTo(px + 6.5 * S,  py - 13.5 * S);
+    g.lineTo(px + 12.5 * S, py - 13.5 * S);
+    g.lineTo(px + 11 * S,   py - 24 * S);
+    g.closePath();
+    g.fillPath();
+
+    // ── EYES ────────────────────────────────────────────────────
+    const ex  = fd * 2 * S;
+    const eLX = px + ex - 6 * S;
+    const eRX = px + ex + 6 * S;
+    const eY  = py - 5 * S;
+    const eR  = (mood === 'scared' || mood === 'launch') ? 6 * S : 5 * S;
+
+    g.fillStyle(WHT, 1);
+    g.fillCircle(eLX, eY, eR);
+    g.fillCircle(eRX, eY, eR);
+
+    if (mood === 'scared' || mood === 'launch') {
+      // Wide eyes — round pupils
+      g.fillStyle(EYEG, 1);
+      g.fillCircle(eLX, eY, eR - 1 * S);
+      g.fillCircle(eRX, eY, eR - 1 * S);
+      g.fillStyle(PUP, 1);
+      g.fillCircle(eLX, eY, 2.2 * S);
+      g.fillCircle(eRX, eY, 2.2 * S);
+    } else {
+      // Normal — green iris with vertical slit pupil
+      g.fillStyle(EYEG, 1);
+      g.fillCircle(eLX, eY, eR - 1 * S);
+      g.fillCircle(eRX, eY, eR - 1 * S);
+      g.fillStyle(PUP, 1);
+      g.fillEllipse(eLX, eY, 2.2 * S, (eR - 0.8 * S) * 1.7);
+      g.fillEllipse(eRX, eY, 2.2 * S, (eR - 0.8 * S) * 1.7);
     }
     // Eye shine
-    this.g.fillStyle(0xffffff, 1);
-    this.g.fillCircle(px + eyeX - 3 * S, py - 5.5 * S, 1.5 * S);
-    this.g.fillCircle(px + eyeX + 5 * S, py - 5.5 * S, 1.5 * S);
+    g.fillStyle(WHT, 0.9);
+    g.fillCircle(eLX + 1.5 * S, eY - 1.5 * S, 1.5 * S);
+    g.fillCircle(eRX + 1.5 * S, eY - 1.5 * S, 1.5 * S);
 
-    // Mouth — varies by mood
+    // ── NOSE ────────────────────────────────────────────────────
+    const nX = px + ex;
+    const nY = py + 3 * S;
+    g.fillStyle(PINK, 1);
+    g.beginPath();
+    g.moveTo(nX,          nY - 3 * S);
+    g.lineTo(nX - 3 * S,  nY + 2 * S);
+    g.lineTo(nX + 3 * S,  nY + 2 * S);
+    g.closePath();
+    g.fillPath();
+
+    // ── MOUTH ───────────────────────────────────────────────────
+    g.lineStyle(1.8 * S, FURDK, 0.9);
     if (mood === 'happy') {
-      // Big smile
-      this.g.lineStyle(2.5 * S, 0xff6b35, 1);
-      this.g.beginPath();
-      this.g.arc(px + eyeX, py + 4 * S, 8 * S, 0.1, Math.PI - 0.1, false);
-      this.g.strokePath();
+      g.beginPath();
+      g.arc(nX, nY + 5 * S, 6.5 * S, 0.1, Math.PI - 0.1, false);
+      g.strokePath();
     } else if (mood === 'scared' || mood === 'launch') {
-      // O-shaped mouth
-      this.g.fillStyle(0x6b2222, 1);
-      this.g.fillCircle(px + eyeX, py + 6 * S, (mood === 'scared' ? 4 : 3) * S);
-      this.g.lineStyle(1.5 * S, 0xff6b35, 1);
-      this.g.strokeCircle(px + eyeX, py + 6 * S, (mood === 'scared' ? 4 : 3) * S);
+      g.fillStyle(0x6b2222, 1);
+      g.fillCircle(nX, nY + 6.5 * S, 3.5 * S);
+      g.lineStyle(1.5 * S, FURDK, 0.8);
+      g.strokeCircle(nX, nY + 6.5 * S, 3.5 * S);
     } else {
-      // Default smile
-      this.g.lineStyle(2 * S, 0xff6b35, 1);
-      this.g.beginPath();
-      this.g.arc(px + eyeX, py + 5 * S, 7 * S, 0.2, Math.PI - 0.2, false);
-      this.g.strokePath();
+      // W-shaped cat mouth
+      g.beginPath();
+      g.moveTo(nX - 5 * S, nY + 3 * S);
+      g.lineTo(nX - 2 * S, nY + 6 * S);
+      g.lineTo(nX,         nY + 3.5 * S);
+      g.lineTo(nX + 2 * S, nY + 6 * S);
+      g.lineTo(nX + 5 * S, nY + 3 * S);
+      g.strokePath();
+    }
+
+    // ── WHISKERS ────────────────────────────────────────────────
+    g.lineStyle(1.2 * S, FURDK, 0.42);
+    const wAngles = [-0.15, 0, 0.15];
+    for (let w = 0; w < 3; w++) {
+      const ang = wAngles[w];
+      const wy  = nY + (w - 1) * 3.5 * S;
+      g.beginPath();
+      g.moveTo(nX - 3 * S, wy);
+      g.lineTo(nX - 19 * S, wy + Math.sin(ang) * 5 * S);
+      g.strokePath();
+      g.beginPath();
+      g.moveTo(nX + 3 * S, wy);
+      g.lineTo(nX + 19 * S, wy + Math.sin(ang) * 5 * S);
+      g.strokePath();
     }
   }
 }
@@ -1903,7 +2072,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v16 &nbsp;-&nbsp; Updated 2026-05-08 19:24 EDT
+  Rise! &nbsp;v17 &nbsp;-&nbsp; Updated 2026-05-10 12:00 EDT
 </div>
 
 </body>

@@ -555,6 +555,7 @@ class RiseScene extends Phaser.Scene {
     this.highestHubReached = 0;
     this.lifeStars = 0;
     this.catchWindowFrames = 0;
+    this.freeWindowEnd = 0;
   }
 
   create() {
@@ -638,6 +639,7 @@ class RiseScene extends Phaser.Scene {
     this.hasCaughtFirst = false;
     this.lifeStars = 0;
     this.catchWindowFrames = 0;
+    this.freeWindowEnd = 0;
     this.player = null;
     this.generateClouds();
     this.generateHubs();
@@ -672,6 +674,7 @@ class RiseScene extends Phaser.Scene {
     this.hasCaughtFirst = false;  // no falling/penalty until first catch
     this.lifeStars = 0;
     this.catchWindowFrames = 0;
+    this.freeWindowEnd = 0;
     document.getElementById('hud-score').textContent = '🏆 0';
     document.getElementById('hud-stars').style.display = 'none';
     document.getElementById('hud-combo').classList.remove('visible');
@@ -1088,6 +1091,8 @@ class RiseScene extends Phaser.Scene {
     this.player.vy = Math.sin(angle) * launchSpeed;
     // Gentle upward nudge if mostly going downward — scale by how downward it is
     if (this.player.vy > 3) this.player.vy -= Math.min(this.player.vy * 0.3, 5);
+    // Free catch window proportional to launch power (faster hub = longer free window)
+    this.freeWindowEnd = Math.round(launchSpeed * 3);
 
     this.player.attached = false;
     this.player.releaseTimer = 0;
@@ -1166,8 +1171,8 @@ class RiseScene extends Phaser.Scene {
     initAudio();
     this.inputHeld = true;
     if (!this.player.attached && this.hasCaughtFirst) {
-      const falling = this.player.vy >= 0;
-      if (falling && this.catchWindowFrames <= 0 && this.lifeStars > 0) {
+      const inFreePhase = this.player.releaseTimer <= this.freeWindowEnd;
+      if (!inFreePhase && this.catchWindowFrames <= 0 && this.lifeStars > 0) {
         // Re-tap while falling with no active window: spend a star
         this.lifeStars--;
         this.catchWindowFrames = STAR_CATCH_BONUS;
@@ -1319,8 +1324,9 @@ class RiseScene extends Phaser.Scene {
         this.player.y += this.player.vy * dt;
         if (Math.abs(this.player.vx) > 0.5) this.player.faceDir = this.player.vx > 0 ? 1 : -1;
 
-        // Paid window only ticks while falling (vy >= 0)
-        if (this.catchWindowFrames > 0 && this.player.vy >= 0) {
+        // Paid window only ticks once free phase has expired
+        const inFreePhase = this.player.releaseTimer <= this.freeWindowEnd;
+        if (this.catchWindowFrames > 0 && !inFreePhase) {
           this.catchWindowFrames -= dt;
           if (this.catchWindowFrames <= 0 && this.inputHeld && this.lifeStars > 0) {
             // Holding through expiry: auto-spend next star
@@ -1370,9 +1376,9 @@ class RiseScene extends Phaser.Scene {
         }
       }
 
-      // Going up: free catch while holding. Falling: need an active paid window.
-      const goingUp = this.player.vy < 0;
-      const canCatch = this.inputHeld && (!this.hasCaughtFirst || goingUp || this.catchWindowFrames > 0);
+      // Free while launch momentum lasts; paid window needed after that.
+      const inFreePhase = !this.hasCaughtFirst || this.player.releaseTimer <= this.freeWindowEnd;
+      const canCatch = this.inputHeld && (inFreePhase || this.catchWindowFrames > 0);
       if (canCatch && nearest && nearestDist < this.catchR && this.player.grabCooldown <= 0) {
         this.attachPlayer(nearest.hi, nearest.ri);
       } else if (this.hasCaughtFirst && canCatch && nearest && nearestDist < this.magnetR * 0.7) {
@@ -2142,7 +2148,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v25 &nbsp;-&nbsp; Updated 2026-05-10 17:00 EDT
+  Rise! &nbsp;v26 &nbsp;-&nbsp; Updated 2026-05-10 17:30 EDT
 </div>
 
 </body>

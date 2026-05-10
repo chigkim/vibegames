@@ -864,12 +864,12 @@ class RiseScene extends Phaser.Scene {
     // Generate floating stars between hubs as the world extends
     while (this.collectiblesGenerated < this.hubsGenerated - 1) {
       const i = this.collectiblesGenerated;
-      if (i >= 1 && Math.random() < 0.5) {
-        // Place 1-2 stars between hub i and hub i+1
+      if (i >= 1 && Math.random() < 0.3) {
+        // Place 1 star between hub i and hub i+1
         const a = this.hubs.find(h => h.uid === i);
         const b = this.hubs.find(h => h.uid === i + 1);
         if (a && b) {
-          const count = 1 + Math.floor(Math.random() * 2);
+          const count = 1;
           for (let k = 0; k < count; k++) {
             const t = (k + 1) / (count + 1);
             const jitterX = (Math.random() - 0.5) * 80;
@@ -2206,7 +2206,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v36 &nbsp;-&nbsp; Updated 2026-05-10 22:30 EDT
+  Rise! &nbsp;v37 &nbsp;-&nbsp; Updated 2026-05-10 23:00 EDT
 </div>
 
 </body>

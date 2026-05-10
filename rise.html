@@ -1317,6 +1317,19 @@ class RiseScene extends Phaser.Scene {
             this.popups.push({ x: this.player.x, y: this.player.y - 30, text: '⭐ FLOAT!', color: '#ffe066', life: 1.4, vy: -0.7, size: 26 });
             playSound('starsave');
             if (navigator.vibrate) try { navigator.vibrate([10, 20, 10]); } catch {}
+            // Nudge horizontally toward the nearest rope
+            let nudgeDist = Infinity, nudgeEp = null;
+            for (const hub of this.hubs) {
+              if (hub.y - this.cameraY > this.gameHeight + 200) continue;
+              for (const rope of hub.ropes) {
+                const ep = this.getRopeEndpoint(hub, rope);
+                const d = Math.hypot(ep.ex - this.player.x, ep.ey - this.player.y);
+                if (d < nudgeDist) { nudgeDist = d; nudgeEp = ep; }
+              }
+            }
+            if (nudgeEp && nudgeDist > 0) {
+              this.player.vx += (nudgeEp.ex - this.player.x) / nudgeDist * 5;
+            }
           }
         }
 
@@ -2155,7 +2168,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v29 &nbsp;-&nbsp; Updated 2026-05-10 19:00 EDT
+  Rise! &nbsp;v30 &nbsp;-&nbsp; Updated 2026-05-10 19:30 EDT
 </div>
 
 </body>

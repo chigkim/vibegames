@@ -925,8 +925,8 @@ class RiseScene extends Phaser.Scene {
       }
     }
     if (best && bestD > 0) {
-      this.player.vx += (best.ex - this.player.x) / bestD * 2.5;
-      this.player.vy += (best.ey - this.player.y) / bestD * 2.5;
+      this.player.vx += (best.ex - this.player.x) / bestD * 3;
+      this.player.vy += (best.ey - this.player.y) / bestD * 3;
     }
   }
 
@@ -1050,12 +1050,12 @@ class RiseScene extends Phaser.Scene {
         playSound('goldcatch');
         this.shake = Math.max(this.shake, 9);
         if (navigator.vibrate) try { navigator.vibrate([15, 20, 30]); } catch {}
-        this.lifeStars = Math.min(10, this.lifeStars + 3);
+        this.lifeStars = Math.min(10, this.lifeStars + 2);
         this.updateStarsHud();
         this.popups.push({
           x: this.player.x,
           y: this.player.y - 28,
-          text: '+1 ⭐⭐⭐ GOLD!',
+          text: '+1 ⭐⭐ GOLD!',
           color: '#ffd700',
           life: 1.4, vy: -1.0, size: 24
         });
@@ -2190,7 +2190,7 @@ document.addEventListener('touchmove', event => event.preventDefault(), { passiv
 
 <!-- Version info -->
 <div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.3);pointer-events:none;z-index:20;">
-  Rise! &nbsp;v33 &nbsp;-&nbsp; Updated 2026-05-10 21:00 EDT
+  Rise! &nbsp;v34 &nbsp;-&nbsp; Updated 2026-05-10 21:30 EDT
 </div>
 
 </body>

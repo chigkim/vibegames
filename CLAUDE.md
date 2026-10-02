@@ -1,0 +1,97 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+You are a senior browser-based mobile game developer helping users create games for young children.
+
+Before implementing any game or update, first ask the user targeted questions about the intended UI, UX, age range, game mechanics, and any visual or interaction preferences.
+
+Use HTML, CSS, JavaScript, and keep each game touch-friendly, responsive, and fully playable in modern mobile browsers, especially Safari on iOS.
+
+Make the games scalable to accommodate all different tablet and phone screen sizes.
+
+Include appropriate sound effects, animations, and visual feedback.
+
+You may use the vendored libraries inside the libs/ folder:
+
+1. Phaser for gameplay, rendering, scenes, physics, animation, and input.
+2. Tone.js for procedural music, melodic cues, layered audio, and richer sound effects.
+3. ZzFX for tiny arcade-style sound effects such as jumps, hits, pickups, pops, and game-over sounds.
+4. NippleJS for mobile virtual joystick controls when directional movement is needed.
+
+## Game creation and updates:
+
+* Always pull first to start from the latest.
+* When creating a new game, add it to the home page and label it as `v1`.
+* When updating an existing game, increment the version number by one.
+* Every game must display its title, version number, and updated date.
+* The home page must list games from newest to oldest based on the updated date.
+
+## Version control
+
+* Commit and push every change after completing the work.
+
+## Development
+
+No build step. Open any HTML file directly in a browser, or serve with any static file server:
+
+```
+npx serve .
+# or
+python -m http.server 8080
+```
+
+Testing uses Playwright:
+
+```
+npx playwright test
+npx playwright test --headed          # show browser
+npx playwright test tests/rise.spec  # single test file
+```
+
+## Architecture
+
+**Each game is a single self-contained HTML file** with inline CSS and inline JS. There is no module system, bundler, or build pipeline. The landing page is `index.html`.
+
+### Libraries (all vendored in `libs/`)
+
+| File | Purpose |
+|------|---------|
+| `phaser-3.90.0.min.js` | Canvas game engine (rendering, input, physics) |
+| `tone-15.1.22.js` | Audio synthesis (music beds, synth sound effects) |
+| `zzfx-1.3.2.micro.min.js` | Micro procedural sound effects |
+| `nipplejs-0.10.2.min.js` | Virtual joystick for touch input (`hero-rescue.html` only) |
+
+### Games
+
+| File | Engine | Description |
+|------|--------|-------------|
+| `rise.html` | Phaser + Tone + ZzFX | Rope-swinging arcade climber |
+| `flappy-birdie.html` | Phaser + Tone + ZzFX | Multi-level flappy bird |
+| `hero-rescue.html` | Phaser + Tone + ZzFX + nippleJS | Vehicle driving/rescue missions |
+| `ms-menna-math.html` | Vanilla JS only | Math quiz app (no Phaser) |
+
+### Phaser game pattern (rise, flappy-birdie, hero-rescue)
+
+Every Phaser game follows the same structure:
+
+1. **One scene class** per game (`RiseScene extends Phaser.Scene`, etc.), stored in a module-level global (`riseScene`, `flappyScene`, `heroScene`).
+2. **`Phaser.Scale.NONE`** — the game canvas is sized manually via a `gameSize()` function that reads `window.visualViewport` and caps to `GAME_MAX_WIDTH`/`GAME_MAX_HEIGHT` (typically 1280×1280). Phaser does no scaling; the CSS `min()` function constrains the canvas to the viewport.
+3. **`renderScene()`** — called every frame. Draws everything imperatively using Phaser's Graphics API (not Phaser GameObjects/Sprites). All game objects are plain JS objects; Phaser is used only as a canvas renderer and input dispatcher.
+4. **HTML overlay for UI** — start screens, game-over cards, and HUD elements live in HTML (`#ui-overlay`, `#hud`) positioned over the canvas via `position: fixed/absolute`. These are *not* Phaser objects.
+5. **Audio** — Tone.js synthesizers (no audio files). All synths are lazy-initialized on the first user interaction to satisfy browser autoplay policies. The global `muted` flag routes through a `Tone.Volume` bus. ZzFX handles short percussive effects.
+6. **Persistence** — `localStorage` stores best scores and per-game preferences (e.g., `rise_best`, `rise_guide`).
+
+### Responsive scaling approach
+
+- CSS uses `min(100dvw, GAME_MAX_PX)` / `min(100dvh, GAME_MAX_PX)` on the canvas wrapper
+- HUD sizes use `clamp(min, Xvmin, max)` so they scale with the smaller viewport dimension
+- `window.visualViewport` (with `window.innerWidth/Height` fallback) is used for accurate sizing on mobile
+
+### ms-menna-math.html
+
+Vanilla JS only (no Phaser). Game state is managed via `showScreen(id)` toggling CSS classes. Uses the Web Speech API (`speechSynthesis`) for text-to-speech feedback. No canvas.
+
+## Updating the home page
+
+When a game version changes, update the version badge in the `<h3>` of its `.game-card` in `index.html`. Format: `v{N} - Updated {YYYY-MM-DD} {HH:MM} EDT`.

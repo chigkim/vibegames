@@ -1146,11 +1146,11 @@
   /* Small phones: the top bar's Home, mute, bank and round count must all fit in one row. */
   @media (max-width: 360px) {
     .top-bar { gap: 6px; }
-    .quit-btn { padding: 4px 8px; font-size: 0.85rem; }
+    .quit-btn { padding: 4px 8px; font-size: 0.8rem; min-height: 44px; white-space: nowrap; }
     .top-bar .bank { padding: 2px 10px 2px 4px; font-size: 1.2rem; }
     .top-bar .bank .pig { width: 30px; height: 24px; }
-    .bar-mute { width: 34px; height: 34px; font-size: 1rem; }
-    .round-info { font-size: 0.95rem; }
+    .bar-mute { width: 44px; height: 44px; font-size: 1rem; flex-shrink: 0; }
+    .round-info { font-size: 0.9rem; white-space: nowrap; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1257,7 +1257,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v16 - Updated 2026-10-03 21:03 EDT</p>
+    <p class="version">v16 - Updated 2026-10-03 17:26 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2002,7 +2002,27 @@ function mergeNewer(stored) {
     if (n) state.treats[id] = n;
     else delete state.treats[id];
   }
-  state.mastery = state.mastery.map((m, i) => (stored.mastery[i] === STICKER_AT ? STICKER_AT : m)); // stickers stay
+  // Stickers stay. A fact this tab did not touch keeps the other tab's dots and weight.
+  state.mastery = state.mastery.map((m, i) => (stored.mastery[i] === STICKER_AT ? STICKER_AT : m === base.mastery[i] ? stored.mastery[i] : m));
+  for (const key of new Set([...Object.keys(stored.weights), ...Object.keys(state.weights)])) {
+    if ((state.weights[key] || 1) !== (base.weights[key] || 1)) continue;
+    if (stored.weights[key]) state.weights[key] = stored.weights[key];
+    else delete state.weights[key];
+  }
+  // Choices like the outfit, toys, furniture spots and the room go to this tab, the one saving now.
+  // A payout row is lost only if the newest copy is the cookie without the list; paidCents is still right.
+}
+
+// Before coins or gems change: take in a newer save from another tab that this tab missed (a frozen iPad tab).
+// Then a payout or purchase is checked against the real balance, and a stale tab cannot pay or spend twice.
+function syncNewer() {
+  const stored = newestSave();
+  if (!savedBase || (stored.savedAt || 0) <= savedBase.savedAt) return false;
+  mergeNewer(parseSave(stored));
+  savedBase = parseSave(stored);
+  state.savedAt = savedBase.savedAt;
+  renderSaved();
+  return true;
 }
 
 function saveState() {
@@ -2034,7 +2054,9 @@ let state = loadState();
 function resumeAudio() {
   try {
     // iOS says 'interrupted' after a phone call, Siri or an alarm.
-    if (typeof zzfxX !== 'undefined' && (zzfxX.state === 'suspended' || zzfxX.state === 'interrupted')) zzfxX.resume();
+    // Safari refuses a resume outside a tap, so the refusal is ignored and the next tap tries again.
+    const ctx = audioOut ? audioOut.ctx : typeof zzfxX !== 'undefined' ? zzfxX : null;
+    if (ctx && (ctx.state === 'suspended' || ctx.state === 'interrupted')) ctx.resume().catch(() => {});
   } catch { /* audio is optional */ }
 }
 
@@ -2413,18 +2435,22 @@ function renderBank() {
 
 // Returns the amount actually changed, since the bank never goes below $0.00.
 function changeBank(delta) {
+  syncNewer();
   const before = state.totalCents;
   state.totalCents = Math.max(0, before + delta);
+  const changed = state.totalCents - before;
   saveState();
   renderBank();
-  if (Math.floor(state.totalCents / 100) > Math.floor(before / 100)) {
-    setTimeout(() => {
+  const dollars = Math.floor((before + changed) / 100);
+  if (dollars > Math.floor(before / 100)) {
+    // Cleared with the round's other timers, so it never shows up after Quit.
+    (game ? later : setTimeout)(() => {
       sfx.milestone();
       confetti(70);
-      banner(`🐷 ${formatMoney(Math.floor(state.totalCents / 100) * 100)}! 🎉`);
+      banner(`🐷 ${formatMoney(dollars * 100)}! 🎉`);
     }, 350);
   }
-  return state.totalCents - before;
+  return changed;
 }
 
 // ===== START SCREEN =====
@@ -2982,6 +3008,7 @@ function renderTreatJar() {
 }
 
 function giveTreat(id) {
+  syncNewer();
   if (!(state.treats[id] > 0)) return;
   state.treats[id]--;
   if (!state.treats[id]) delete state.treats[id];
@@ -3122,6 +3149,7 @@ function onTreatTap(id) {
 }
 
 function buyTreat() {
+  syncNewer();
   const t = treatPick && TREAT[treatPick];
   if (!t || t.price > state.gems || (state.treats[t.id] || 0) >= MAX_TREATS) return;
   state.gems -= t.price;
@@ -3209,6 +3237,7 @@ function onColorTap(id) {
 }
 
 function buyItem() {
+  syncNewer();
   const item = tryingOn && ITEMS[tryingOn];
   if (!item || owns(item.id) || item.price > state.gems) return; // never pay twice for the same color
   state.gems -= item.price;
@@ -3231,7 +3260,8 @@ function buyItem() {
 // ===== POM'S HOUSE =====
 const ownsFurn = id => FURN[id].price === 0 || state.furniture.includes(id);
 const stickerCount = () => state.mastery.filter(m => m >= STICKER_AT).length;
-const roomOpen = room => stickerCount() >= room.need;
+// A room with furniture already bought stays open, so a v15 save keeps rooms opened at the old sticker counts.
+const roomOpen = room => stickerCount() >= room.need || state.furniture.some(id => FURN[id] && FURN[id].room === room.id);
 let housePick = null; // the piece whose colors are showing
 let houseTrying = null; // a color shown in its spot before buying it
 
@@ -3381,9 +3411,8 @@ function renderPeek() {
 }
 
 function renderRoomTabs() {
-  const got = stickerCount();
   $('roomTabs').innerHTML = ROOMS.map(r => {
-    const open = got >= r.need;
+    const open = roomOpen(r);
     return `<button class="closet-tab room-tab${r.id === state.room ? ' on' : ''}${open ? '' : ' locked'}" data-room="${r.id}">` +
       `<span class="ico">${open ? r.ico : '🔒'}</span>${r.name}${open ? '' : `<span class="need">⭐ ${r.need}</span>`}</button>`;
   }).join('');
@@ -3548,6 +3577,7 @@ function popSpot(base) {
 }
 
 function buyFurniture() {
+  syncNewer();
   const piece = houseTrying && FURN[houseTrying];
   if (!piece || ownsFurn(piece.id) || piece.price > state.gems) return; // never pay twice for the same color
   state.gems -= piece.price;
@@ -3612,6 +3642,7 @@ function onPayTap() {
 
 function onPayYes() {
   // The bank changed in another tab while asking, so ask again with the new amount.
+  syncNewer();
   if (!payAsked || payAsked !== state.totalCents) { resetPayButton(); return; }
   const amount = state.totalCents;
   state.payouts.unshift({ t: Date.now(), c: amount });
@@ -3628,6 +3659,20 @@ function onPayYes() {
 }
 
 // ===== WIRING =====
+// Show a save that came from another tab.
+function renderSaved() {
+  renderBank();
+  renderMedals();
+  renderGems();
+  dressAllPoms();
+  renderMute();
+  Speech.setMuted(state.muted);
+  if ($('closetScreen').classList.contains('active')) renderCloset();
+  if ($('houseScreen').classList.contains('active')) renderHouse();
+  else renderPeek();
+  if ($('cashoutScreen').classList.contains('active')) renderCashout();
+}
+
 function renderMute() {
   document.querySelectorAll('#muteBtn, #barMuteBtn').forEach(btn => {
     btn.textContent = state.muted ? '🔇' : '🔊';
@@ -3701,16 +3746,7 @@ function init() {
 
   function reloadState(extra) {
     state = loadState(extra);
-    renderBank();
-    renderMedals();
-    renderGems();
-    dressAllPoms();
-    renderMute();
-    Speech.setMuted(state.muted);
-    if ($('closetScreen').classList.contains('active')) renderCloset();
-    if ($('houseScreen').classList.contains('active')) renderHouse();
-    else renderPeek();
-    if ($('cashoutScreen').classList.contains('active')) renderCashout();
+    renderSaved();
   }
 
   $('startBtn').addEventListener('click', () => { if (selectedMax) { sfx.hint(); startRound(selectedMax); } });

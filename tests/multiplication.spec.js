@@ -201,6 +201,8 @@ test('every round asks at least one 0 fact', async ({ page }) => {
       let zero = false;
       for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
         if (game.a === 0 || game.b === 0) zero = true;
+        // Every other round, each missed fact comes back next question, so retries crowd out the 0 fact.
+        else if (r % 2) game.retries.push({ a: game.a, b: game.b, key: factKey(game.a, game.b), at: i + 1 });
         if (i < QUESTIONS_PER_ROUND - 1) { game.index++; nextQuestion(); }
       }
       if (!zero) rounds++;
@@ -211,16 +213,58 @@ test('every round asks at least one 0 fact', async ({ page }) => {
   expect(missing).toBe(0);
 });
 
-test('a tab that missed another tab\'s payout adds to it instead of undoing it', async ({ page, context }) => {
+// Like an iPad tab that Safari froze: another tab saves, and this tab never hears about it.
+// A save written from this same page fires no storage event, so the page really stays out of date.
+async function saveFromOtherTab(page, change) {
+  await page.evaluate(change => {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY));
+    Object.assign(saved, new Function('return ' + change)()(), { savedAt: saved.savedAt + 1000 });
+    localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+  }, String(change));
+}
+
+const snapshot = page => page.evaluate(() => ({ cents: state.totalCents, paid: state.paidCents, gems: state.gems, payouts: state.payouts.length }));
+
+test('a tab that missed another tab\'s payout cannot pay it again, and adds to it instead of undoing it', async ({ page }) => {
   await page.evaluate(() => { state.totalCents = 500; state.gems = 4; saveState(); });
-  const other = await context.newPage();
-  await other.goto('/multiplication-ms-menna.html');
-  // Like an iPad tab that Safari froze: this tab hears nothing from the other one.
-  await page.evaluate(() => { window.reloadState = () => {}; });
-  await other.evaluate(() => { payAsked = state.totalCents; onPayYes(); state.gems -= 2; saveState(); });
+  await page.evaluate(() => { onPayTap(); }); // the stale tab is asking "Did you pay $5.00?"
+  await saveFromOtherTab(page, () => ({ totalCents: 0, paidCents: 500, gems: 2, payouts: [{ t: Date.now(), c: 500 }] }));
+  expect(await snapshot(page)).toEqual({ cents: 500, paid: 0, gems: 4, payouts: 0 }); // still stale
+
+  await page.evaluate(() => onPayYes());
+  expect(await snapshot(page)).toEqual({ cents: 0, paid: 500, gems: 2, payouts: 1 }); // took the other save, paid nothing
   await page.evaluate(() => { changeBank(7); state.gems += 1; saveState(); });
-  expect(await page.evaluate(() => ({ cents: state.totalCents, paid: state.paidCents, gems: state.gems, payouts: state.payouts.length })))
-    .toEqual({ cents: 7, paid: 500, gems: 3, payouts: 1 });
+  expect(await snapshot(page)).toEqual({ cents: 7, paid: 500, gems: 3, payouts: 1 });
+});
+
+test('a stale tab cannot spend gems the other tab already spent', async ({ page }) => {
+  await page.evaluate(() => { state.gems = 10; saveState(); });
+  await page.locator('#houseBtn').click();
+  await page.evaluate(() => { for (let i = 0; i < 10; i++) state.mastery[i] = STICKER_AT; showHouse(); });
+  await page.locator('#furnItems .item[data-id="bed"]').click();
+  await page.locator('#furnColors .color-btn[data-id="bed"]').click();
+  // The other tab spent 8 of the 10 gems on a lamp.
+  await saveFromOtherTab(page, () => ({ gems: 2, furniture: encodeOwned(FURNITURE, ['lamp']) }));
+  await page.locator('#furnBuyBtn').click();
+  expect(await page.evaluate(() => ({ gems: state.gems, furniture: state.furniture }))).toEqual({ gems: 2, furniture: ['lamp'] });
+  await expect(page.locator('.house-head .gem-badge')).toHaveText('💎 2');
+});
+
+test('a stale tab keeps the other tab\'s treats, items, furniture and sticker dots', async ({ page }) => {
+  await page.evaluate(() => { state.gems = 20; state.treats = { cookie: 1 }; state.mastery[FACT_INDEX['3x4']] = 1; saveState(); });
+  await saveFromOtherTab(page, () => {
+    const mastery = state.mastery.slice();
+    mastery[FACT_INDEX['3x4']] = 2;
+    mastery[FACT_INDEX['5x6']] = 2;
+    return { treats: { cookie: 1, apple: 2 }, owned: encodeOwned(CLOSET, [CLOSET.find(i => i.price > 0).id]), furniture: encodeOwned(FURNITURE, ['rug']), mastery: mastery.join('') };
+  });
+  // This tab answers 7x8 and buys a cookie without hearing about the other save.
+  await page.evaluate(() => { state.mastery[FACT_INDEX['7x8']] = 1; treatPick = 'cookie'; buyTreat(); });
+  const merged = await page.evaluate(() => ({
+    treats: state.treats, owned: state.owned.length, furniture: state.furniture,
+    m34: state.mastery[FACT_INDEX['3x4']], m56: state.mastery[FACT_INDEX['5x6']], m78: state.mastery[FACT_INDEX['7x8']],
+  }));
+  expect(merged).toEqual({ treats: { cookie: 2, apple: 2 }, owned: 1, furniture: ['rug'], m34: 2, m56: 2, m78: 1 });
 });
 
 test('Ms. Menna does a trick for 3 right in a row', async ({ page }) => {
@@ -568,6 +612,29 @@ test('the Bedroom needs 10 stickers, but the Closet works before that', async ({
   await page.locator('#closetBtn').click();
   await expect(page.locator('#closetScreen')).toHaveClass(/active/);
   expect(await page.evaluate(() => ROOMS.map(r => r.need))).toEqual([10, 30, 60, 100, 150]);
+});
+
+test('a v15 save keeps rooms with furniture open under the new sticker counts', async ({ page }) => {
+  // v15 opened the Bedroom at 0 stickers and the Garden at 140.
+  await page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY)) || {};
+    const mastery = Array(FACT_KEYS.length).fill(0);
+    for (let i = 0; i < 145; i++) mastery[i] = STICKER_AT;
+    const garden = FURNITURE.find(f => f.room === 'garden' && f.price > 0).id;
+    Object.assign(saved, { mastery: mastery.join(''), furniture: encodeOwned(FURNITURE, ['bed', garden]), home: 'bed,' + garden, room: 'garden', savedAt: Date.now() });
+    localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+  });
+  await page.reload();
+  await page.locator('#houseBtn').click();
+  await expect(page.locator('.room-tab[data-room="garden"]')).not.toHaveClass(/locked/);
+  await expect(page.locator('.room-tab[data-room="yard"]')).not.toHaveClass(/locked/); // 145 stickers
+  expect(await page.evaluate(() => state.room)).toBe('garden');
+
+  // A new player with 5 stickers and a bed from v15 keeps the Bedroom; with no furniture it stays locked.
+  await page.evaluate(() => { state.mastery.fill(0); for (let i = 0; i < 5; i++) state.mastery[i] = STICKER_AT; showHouse(); });
+  expect(await page.evaluate(() => [roomOpen(ROOM.bedroom), roomOpen(ROOM.garden), roomOpen(ROOM.yard)])).toEqual([true, true, false]);
+  await page.evaluate(() => { state.furniture = []; });
+  expect(await page.evaluate(() => roomOpen(ROOM.bedroom))).toBe(false);
 });
 
 test("Pom's House opens rooms with stickers and buys furniture colors with gems", async ({ page }) => {

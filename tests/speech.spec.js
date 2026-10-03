@@ -80,6 +80,7 @@ test.describe('Multiplication with Ms. Menna', () => {
     expect(await sayAndHear('startBubble', 'Tap my things to play! 🐾')).toEqual([]);
     expect(await sayAndHear('gameBubble', 'Let\'s multiply! Type your answer.', '6 times 7?')).toEqual(['Let\'s multiply! 6 times 7?']);
     expect(await sayAndHear('startBubble', 'Yay! My new Bed! 🐾')).toEqual(['Yay! My new Bed!']);
+    expect(await sayAndHear('houseBubble', 'Let\'s pick an outfit! 🎀')).toEqual(['Let\'s pick an outfit!']);
     await expect(page.locator('#startBubble')).toHaveText('Yay! My new Bed! 🐾');
     expect(await sayAndHear('startBubble', 'That costs $0.50. Yay!')).toEqual(['That costs $0.50. Yay!']);
   });

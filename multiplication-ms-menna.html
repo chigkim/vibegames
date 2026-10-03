@@ -533,6 +533,7 @@
   .round-info .earned.neg { color: var(--red); }
 
   body.in-game #muteBtn { display: none; }
+  #startScreen .card { position: relative; }
   .top-left { display: flex; gap: 6px; align-items: center; }
   .bar-mute { width: 40px; height: 40px; font-size: 1.15rem; position: static; box-shadow: none; border-width: 2px; }
 
@@ -1050,10 +1051,11 @@
 <!-- ===== START SCREEN ===== -->
 <div class="screen active" id="startScreen">
   <div class="card">
+    <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart"></div>
     <div class="toy-shelf" id="toyShelf" hidden></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v8 - Updated 2026-10-03 00:13 EDT</p>
+    <p class="version">v9 - Updated 2026-10-03 00:21 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2440,6 +2442,7 @@ function init() {
   $('homeBtn').addEventListener('click', goHome);
   $('quitBtn').addEventListener('click', goHome);
   $('cashoutBtn').addEventListener('click', showCashout);
+  $('voiceBtn').addEventListener('click', Speech.openPicker);
   $('stickersBtn').addEventListener('click', showStickers);
   $('stickerBackBtn').addEventListener('click', goHome);
   $('cashBackBtn').addEventListener('click', goHome);

@@ -300,16 +300,27 @@ test("Pom's Closet buys, wears, and saves outfits with gems only", async ({ page
   await page.locator('#closetBtn').click();
   await expect(page.locator('#closetScreen')).toHaveClass(/active/);
 
-  // Too expensive: try it on, but can't buy
+  // Tapping an item shows its colors. Too expensive: try it on, but can't buy
   await page.locator('.item[data-id="crown"]').click();
+  await expect(page.locator('#colorRow .color-btn')).toHaveCount(11);
+  await page.locator('.color-btn[data-id="crown"]').click();
   await expect(page.locator('#buyBtn')).toBeDisabled();
   await expect(page.locator('#buyBtn')).toHaveText('Need 33 more 💎');
 
   await page.locator('.item[data-id="party"]').click();
+  await page.locator('.color-btn[data-id="party"]').click();
   await expect(page.locator('#pomCloset .acc-hat polygon')).toHaveCount(1);
   await page.locator('#buyBtn').click();
   await expect(page.locator('#pomCloset .gem-badge')).toHaveText('💎 7');
   await expect(page.locator('.item[data-id="party"]')).toHaveClass(/wearing/);
+  await expect(page.locator('.color-btn[data-id="party"] .price')).toHaveText('Wearing ✓');
+
+  // A color already bought can't be bought again
+  await page.locator('.color-btn[data-id="party"]').click(); // takes it off
+  await expect(page.locator('.color-btn[data-id="party"] .price')).toHaveText('✓ Yours');
+  await expect(page.locator('#buyBtn')).toBeHidden();
+  expect(await page.evaluate(() => { tryingOn = 'party'; buyItem(); return state.gems; })).toBe(7);
+  await page.locator('.color-btn[data-id="party"]').click(); // back on
 
   await page.locator('.closet-tab[data-slot="fur"]').click();
   await page.locator('.item[data-id="choc"]').click();
@@ -318,6 +329,7 @@ test("Pom's Closet buys, wears, and saves outfits with gems only", async ({ page
   // Taking off the hat stays off after reload; money is untouched
   await page.locator('.closet-tab[data-slot="hat"]').click();
   await page.locator('.item[data-id="party"]').click();
+  await page.locator('.color-btn[data-id="party"]').click();
   await expect(page.locator('#pomCloset .acc-hat > *')).toHaveCount(0);
   await page.reload();
   const saved = await page.evaluate(() => ({ gems: state.gems, owned: state.owned, worn: state.worn, cents: state.totalCents }));
@@ -325,6 +337,7 @@ test("Pom's Closet buys, wears, and saves outfits with gems only", async ({ page
 
   await page.locator('#closetBtn').click();
   await page.locator('.item[data-id="party"]').click();
+  await page.locator('.color-btn[data-id="party"]').click();
   await page.locator('#closetBackBtn').click();
   await expect(page.locator('#pomStart .acc-hat polygon')).toHaveCount(1);
 });
@@ -334,13 +347,56 @@ test('saved progress still fits in the cookie mirror', async ({ page }) => {
     FACT_KEYS.forEach(k => { state.weights[k] = 11.55; });
     state.mastery = state.mastery.map(() => 3);
     state.payouts = Array.from({ length: MAX_PAYOUTS_KEPT }, () => ({ t: Date.now(), c: 12345 }));
-    state.owned = CLOSET.filter(i => i.price > 0).map(i => i.id);
-    state.worn = { hat: 'crown', face: 'hearts', neck: 'medal', back: 'cape', fur: 'pink' };
+    state.owned = Object.values(ITEMS).filter(i => i.price > 0).map(i => i.id);
+    state.worn = { hat: 'crown.s', face: 'hearts', neck: 'medal', back: 'cape', fur: 'pink' };
     state.gems = 99999;
     saveState();
     return encodeURIComponent(localStorage.getItem(STORE_KEY)).length + COOKIE_NAME.length + 1;
   });
   expect(size).toBeLessThan(4096);
+});
+
+test('closet colors save compactly, and v12 saves keep their items', async ({ page }) => {
+  // A v12 save lists plain item ids
+  await page.evaluate(() => {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ gems: 30, owned: 'party,ball,choc', worn: { hat: 'party', fur: 'choc' }, savedAt: Date.now() }));
+  });
+  await page.reload();
+  expect(await page.evaluate(() => ({ owned: state.owned, worn: state.worn, gems: state.gems })))
+    .toEqual({ owned: ['party', 'ball', 'choc'], worn: { hat: 'party', fur: 'choc' }, gems: 30 });
+
+  // Buy a rainbow Party Hat and a blue ball
+  await page.locator('#closetBtn').click();
+  await page.locator('.item[data-id="party"]').click();
+  await page.locator('.color-btn[data-id="party.w"]').click();
+  await expect(page.locator('#buyBtn')).toHaveText('Buy Rainbow Party Hat for 15 💎');
+  await page.locator('#buyBtn').click();
+  await expect(page.locator('#pomCloset .acc-hat polygon')).toHaveAttribute('fill', 'url(#rainbow-pomCloset)');
+  await page.locator('.closet-tab[data-slot="toy"]').click();
+  await page.locator('.item[data-id="ball"]').click();
+  await page.locator('.color-btn[data-id="ball.b"]').click();
+  await page.locator('#buyBtn').click();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem(STORE_KEY)).owned);
+  expect(saved).toBe('party,party.w,choc,ball,ball.b');
+
+  await page.reload();
+  expect(await page.evaluate(() => ({ worn: state.worn, toys: state.toys, gems: state.gems })))
+    .toEqual({ worn: { hat: 'party.w', fur: 'choc' }, toys: { ball: 'ball.b' }, gems: 5 });
+  await expect(page.locator('#pomStart .acc-hat polygon')).toHaveAttribute('fill', 'url(#rainbow-pomStart)');
+  await expect(page.locator('#toyShelf .toy-btn')).toHaveCount(1);
+  await expect(page.locator('#toyShelf .toy-btn')).toHaveAttribute('data-id', 'ball.b');
+});
+
+test('the IndexedDB copy brings back progress if localStorage and the cookie are cleared', async ({ page }) => {
+  await page.evaluate(() => { state.gems = 42; state.totalCents = 777; saveState(); });
+  await page.waitForTimeout(300);
+  await page.evaluate(() => {
+    localStorage.clear();
+    document.cookie = 'mennaMult=; max-age=0; path=/';
+  });
+  await page.reload();
+  await expect(page.locator('#startBankAmount')).toHaveText('$7.77');
+  expect(await page.evaluate(() => state.gems)).toBe(42);
 });
 
 test('Pom buys toys, plays with them, and uses them in streak tricks', async ({ page }) => {
@@ -350,12 +406,14 @@ test('Pom buys toys, plays with them, and uses them in streak tricks', async ({ 
 
   await page.locator('#closetBtn').click();
   await page.locator('.closet-tab[data-slot="toy"]').click();
-  await page.locator('.item[data-id="ball"]').click(); // tries it out first
+  await page.locator('.item[data-id="ball"]').click();
+  await page.locator('.color-btn[data-id="ball"]').click(); // tries it out first
   await expect(page.locator('#pomCloset')).toHaveClass(/play-ball/);
   await expect(page.locator('#buyBtn')).toHaveText('Buy Bouncy Ball for 10 💎');
   await page.locator('#buyBtn').click();
   await expect(page.locator('#pomCloset .gem-badge')).toHaveText('💎 10');
-  await expect(page.locator('.item[data-id="ball"] .price')).toHaveText('Play! ▶');
+  await expect(page.locator('.item[data-id="ball"] .price')).toHaveText('🎨 1 of 11');
+  await expect(page.locator('.color-btn[data-id="ball"] .price')).toHaveText('Playing ✓');
   await page.locator('#closetBackBtn').click();
 
   // Toys sit on the shelf and are never worn

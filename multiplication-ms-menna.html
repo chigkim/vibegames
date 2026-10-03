@@ -938,6 +938,48 @@
   .item.owned .price { color: var(--dark-green); }
   .item.wearing { border-color: var(--green); background: #EFFFF1; box-shadow: 0 4px 0 var(--dark-green); }
   .item.trying { border-color: #A994F5; background: #F1ECFF; box-shadow: 0 0 0 3px #D9CCFF, 0 4px 0 #A994F5; }
+  .item.picked { border-color: #A994F5; box-shadow: 0 0 0 3px #D9CCFF, 0 4px 0 #A994F5; }
+  .color-row { border-radius: 18px; background: #F7F3FF; border: 3px solid #E4DBFF; padding: 8px; margin-bottom: 12px; }
+  .color-row[hidden] { display: none; }
+  .color-title { font-family: 'Baloo 2', cursive; font-weight: 800; color: var(--dark-brown); margin: 0 0 6px; }
+  .color-title span { font-family: inherit; font-weight: 700; font-size: 0.8rem; color: var(--brown); margin-left: 6px; }
+  .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(clamp(64px, 13vmin, 86px), 1fr)); gap: 6px; }
+  .color-btn {
+    border-radius: 14px;
+    border: 3px solid var(--peach);
+    background: white;
+    padding: 4px 2px;
+    font-family: 'Baloo 2', cursive;
+    font-weight: 800;
+    color: var(--dark-brown);
+    cursor: pointer;
+    line-height: 1.1;
+    touch-action: manipulation;
+    box-shadow: 0 3px 0 #EEC89A;
+  }
+  .color-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #EEC89A; }
+  .color-btn .dot { display: flex; align-items: center; justify-content: center; height: clamp(34px, 7vmin, 46px); }
+  .color-btn .dot svg { width: 100%; height: 100%; }
+  .color-btn .toy-dot { font-size: clamp(1.6rem, 5vmin, 2.2rem); }
+  .color-btn .name { display: block; font-size: 0.8rem; }
+  .color-btn .price { display: block; font-size: 0.75rem; color: #4B3A8C; }
+  .color-btn.too-much .price { color: var(--brown); opacity: 0.55; }
+  .color-btn.owned { border-color: #9FDDA8; }
+  .color-btn.owned .price { color: var(--dark-green); }
+  .color-btn.wearing { border-color: var(--green); background: #EFFFF1; box-shadow: 0 3px 0 var(--dark-green); }
+  .color-btn.trying { border-color: #A994F5; background: #F1ECFF; box-shadow: 0 0 0 3px #D9CCFF, 0 3px 0 #A994F5; }
+  /* Rainbow toys cycle through every color; glitter toys sparkle. */
+  .tint-w { display: inline-block; animation: toyRainbow 2s linear infinite; }
+  @keyframes toyRainbow {
+    from { filter: sepia(1) saturate(5) hue-rotate(0deg); }
+    to { filter: sepia(1) saturate(5) hue-rotate(360deg); }
+  }
+  .tint-s { display: inline-block; animation: toyGlitter 1.2s ease-in-out infinite; }
+  @keyframes toyGlitter {
+    0%, 100% { filter: sepia(0.6) saturate(2) hue-rotate(220deg) brightness(1.2) drop-shadow(0 0 2px #fff); }
+    50% { filter: sepia(0.6) saturate(2) hue-rotate(280deg) brightness(1.45) drop-shadow(0 0 6px #FFD166); }
+  }
+  .toy-btn .toy-ico, .toy-fx .toy-ico { display: inline-block; }
   .btn-buy[hidden] { display: none; }
   .btn-buy { background: linear-gradient(135deg, #A994F5, #7B5BE0); color: white; width: 100%; }
   .closet-help { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin-top: 10px; }
@@ -1059,7 +1101,7 @@
     <div class="pom-container" id="pomStart"></div>
     <div class="toy-shelf" id="toyShelf" hidden></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v12 - Updated 2026-10-03 15:19 EDT</p>
+    <p class="version">v13 - Updated 2026-10-03 15:42 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1176,6 +1218,7 @@
     <div class="pom-container closet-pom" id="pomCloset"></div>
     <div class="closet-tabs" id="closetTabs"></div>
     <div class="closet-items" id="closetItems"></div>
+    <div class="color-row" id="colorRow" hidden></div>
     <button class="btn btn-buy" id="buyBtn" hidden></button>
     <p class="closet-help">Pom earns 💎 when you get a question right on the first try.<br>New stickers and great rounds earn bonus gems!</p>
     <button class="btn btn-secondary" id="closetBackBtn">← Back</button>
@@ -1262,70 +1305,147 @@ const CLOSET_SLOTS = [
 ];
 
 // Accessories are SVG drawn on Pom's 130×130 picture. Fur items recolor her five fur shades.
+// svg is an accessory's classic look; paint(main, dark, accent) draws it in one of the COLORS.
 const CLOSET = [
   { id: 'cap', slot: 'hat', name: 'Teacher Cap', ico: '🎓', price: 0, svg:
     '<rect x="48" y="32" width="34" height="5" rx="2" fill="#3D2B1F"/><polygon points="65,22 48,32 82,32" fill="#3D2B1F"/>' +
-    '<line x1="82" y1="32" x2="88" y2="40" stroke="#FFD166" stroke-width="2.5"/><circle cx="88" cy="42" r="3" fill="#FFD166"/>' },
+    '<line x1="82" y1="32" x2="88" y2="40" stroke="#FFD166" stroke-width="2.5"/><circle cx="88" cy="42" r="3" fill="#FFD166"/>',
+    paint: (m, d, a) => `<rect x="48" y="32" width="34" height="5" rx="2" fill="${d}"/><polygon points="65,22 48,32 82,32" fill="${m}"/>` +
+      `<line x1="82" y1="32" x2="88" y2="40" stroke="${a}" stroke-width="2.5"/><circle cx="88" cy="42" r="3" fill="${a}"/>` },
   { id: 'party', slot: 'hat', name: 'Party Hat', ico: '🥳', price: 5, svg:
     '<polygon points="65,3 53,31 77,31" fill="#6FC3F2"/><path d="M57.5 21 L72.5 21 M60.5 13 L69.5 13" stroke="#FFD166" stroke-width="3.5"/>' +
-    '<circle cx="65" cy="4" r="4" fill="#FF6FA8"/>' },
+    '<circle cx="65" cy="4" r="4" fill="#FF6FA8"/>',
+    paint: (m, d, a) => `<polygon points="65,3 53,31 77,31" fill="${m}"/><path d="M57.5 21 L72.5 21 M60.5 13 L69.5 13" stroke="${a}" stroke-width="3.5"/>` +
+      `<circle cx="65" cy="4" r="4" fill="${d}"/>` },
   { id: 'bow', slot: 'hat', name: 'Hair Bow', ico: '🎀', price: 8, svg:
     '<path d="M80 24 L69 16 Q66 24 69 32 Z M80 24 L91 16 Q94 24 91 32 Z" fill="#FF6FA8" stroke="#E0457F" stroke-width="1.5" stroke-linejoin="round"/>' +
-    '<circle cx="80" cy="24" r="4" fill="#E0457F"/>' },
+    '<circle cx="80" cy="24" r="4" fill="#E0457F"/>',
+    paint: (m, d) => `<path d="M80 24 L69 16 Q66 24 69 32 Z M80 24 L91 16 Q94 24 91 32 Z" fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"/>` +
+      `<circle cx="80" cy="24" r="4" fill="${d}"/>` },
   { id: 'chef', slot: 'hat', name: 'Chef Hat', ico: '👨‍🍳', price: 15, svg:
     '<g fill="#fff" stroke="#E5DCD2" stroke-width="1.5"><circle cx="55" cy="17" r="8"/><circle cx="75" cy="17" r="8"/>' +
-    '<circle cx="65" cy="12" r="10"/><rect x="52" y="20" width="26" height="12" rx="3"/></g>' },
+    '<circle cx="65" cy="12" r="10"/><rect x="52" y="20" width="26" height="12" rx="3"/></g>',
+    paint: (m, d) => `<g fill="${m}" stroke="${d}" stroke-width="1.5"><circle cx="55" cy="17" r="8"/><circle cx="75" cy="17" r="8"/>` +
+      '<circle cx="65" cy="12" r="10"/><rect x="52" y="20" width="26" height="12" rx="3"/></g>' },
   { id: 'cowboy', slot: 'hat', name: 'Cowboy Hat', ico: '🤠', price: 20, svg:
     '<path d="M50 28 Q49 12 57 12 Q65 16 73 12 Q81 12 80 28 Z" fill="#B5784A"/><rect x="50" y="22" width="30" height="5" fill="#5C3D1E"/>' +
-    '<path d="M36 28 Q65 40 94 28 Q90 25 80 27 L50 27 Q40 25 36 28 Z" fill="#A0673A"/>' },
+    '<path d="M36 28 Q65 40 94 28 Q90 25 80 27 L50 27 Q40 25 36 28 Z" fill="#A0673A"/>',
+    paint: (m, d, a) => `<path d="M50 28 Q49 12 57 12 Q65 16 73 12 Q81 12 80 28 Z" fill="${m}"/><rect x="50" y="22" width="30" height="5" fill="${a}"/>` +
+      `<path d="M36 28 Q65 40 94 28 Q90 25 80 27 L50 27 Q40 25 36 28 Z" fill="${d}"/>` },
   { id: 'wizard', slot: 'hat', name: 'Wizard Hat', ico: '🧙', price: 30, svg:
     '<path d="M52 29 L69 3 Q71 0 72 4 L78 29 Z" fill="#7B5BE0"/><ellipse cx="65" cy="30" rx="24" ry="4.5" fill="#5B3FB0"/>' +
-    '<text x="59" y="25" font-size="9" fill="#FFD166">★</text><text x="67" y="15" font-size="6" fill="#FFD166">★</text>' },
+    '<text x="59" y="25" font-size="9" fill="#FFD166">★</text><text x="67" y="15" font-size="6" fill="#FFD166">★</text>',
+    paint: (m, d, a) => `<path d="M52 29 L69 3 Q71 0 72 4 L78 29 Z" fill="${m}"/><ellipse cx="65" cy="30" rx="24" ry="4.5" fill="${d}"/>` +
+      `<text x="59" y="25" font-size="9" fill="${a}">★</text><text x="67" y="15" font-size="6" fill="${a}">★</text>` },
   { id: 'crown', slot: 'hat', name: 'Crown', ico: '👑', price: 45, svg:
     '<path d="M48 30 L48 14 L56 22 L65 9 L74 22 L82 14 L82 30 Z" fill="#FFD166" stroke="#E0A800" stroke-width="2" stroke-linejoin="round"/>' +
-    '<circle cx="65" cy="24" r="3" fill="#FF6B6B"/><circle cx="55" cy="26" r="2" fill="#6FC3F2"/><circle cx="75" cy="26" r="2" fill="#6FC3F2"/>' },
-  { id: 'specs', slot: 'face', name: 'Smart Glasses', ico: '👓', price: 10, svg:
+    '<circle cx="65" cy="24" r="3" fill="#FF6B6B"/><circle cx="55" cy="26" r="2" fill="#6FC3F2"/><circle cx="75" cy="26" r="2" fill="#6FC3F2"/>',
+    paint: (m, d, a) => `<path d="M48 30 L48 14 L56 22 L65 9 L74 22 L82 14 L82 30 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` +
+      `<circle cx="65" cy="24" r="3" fill="${a}"/><circle cx="55" cy="26" r="2" fill="#fff"/><circle cx="75" cy="26" r="2" fill="#fff"/>` },
+  { id: 'specs', slot: 'face', name: 'Smart Glasses', short: 'Glasses', ico: '👓', price: 10, svg:
     '<g stroke="#3D2B1F" stroke-width="2"><circle cx="57" cy="50" r="7" fill="rgba(255,255,255,0.25)"/>' +
-    '<circle cx="73" cy="50" r="7" fill="rgba(255,255,255,0.25)"/><path d="M64 49 Q65 47 66 49" fill="none"/></g>' },
+    '<circle cx="73" cy="50" r="7" fill="rgba(255,255,255,0.25)"/><path d="M64 49 Q65 47 66 49" fill="none"/></g>',
+    paint: (m, d) => `<g stroke-width="2.5"><circle cx="57" cy="50" r="7" fill="rgba(255,255,255,0.25)" stroke="${m}"/>` +
+      `<circle cx="73" cy="50" r="7" fill="rgba(255,255,255,0.25)" stroke="${m}"/><path d="M64 49 Q65 47 66 49" fill="none" stroke="${d}"/></g>` },
   { id: 'shades', slot: 'face', name: 'Sunglasses', ico: '🕶️', price: 15, svg:
     '<rect x="49" y="44" width="15" height="11" rx="4" fill="#222"/><rect x="66" y="44" width="15" height="11" rx="4" fill="#222"/>' +
-    '<rect x="63" y="47" width="4" height="2" fill="#222"/><path d="M52 47 L56 47 M69 47 L73 47" stroke="#fff" stroke-width="1.5" opacity="0.6"/>' },
+    '<rect x="63" y="47" width="4" height="2" fill="#222"/><path d="M52 47 L56 47 M69 47 L73 47" stroke="#fff" stroke-width="1.5" opacity="0.6"/>',
+    paint: (m, d) => `<rect x="49" y="44" width="15" height="11" rx="4" fill="${m}"/><rect x="66" y="44" width="15" height="11" rx="4" fill="${m}"/>` +
+      `<rect x="63" y="47" width="4" height="2" fill="${d}"/><path d="M52 47 L56 47 M69 47 L73 47" stroke="#fff" stroke-width="1.5" opacity="0.6"/>` },
   { id: 'hearts', slot: 'face', name: 'Heart Glasses', ico: '😍', price: 20, svg:
     '<path d="M57 57 C46 50 49 41 57 46 C65 41 68 50 57 57 Z M73 57 C62 50 65 41 73 46 C81 41 84 50 73 57 Z" fill="#FF4F8B" opacity="0.92"/>' +
-    '<path d="M63 48 L67 48" stroke="#E0457F" stroke-width="2"/>' },
+    '<path d="M63 48 L67 48" stroke="#E0457F" stroke-width="2"/>',
+    paint: (m, d) => `<path d="M57 57 C46 50 49 41 57 46 C65 41 68 50 57 57 Z M73 57 C62 50 65 41 73 46 C81 41 84 50 73 57 Z" fill="${m}" opacity="0.92"/>` +
+      `<path d="M63 48 L67 48" stroke="${d}" stroke-width="2"/>` },
   { id: 'bandana', slot: 'neck', name: 'Bandana', ico: '🟥', price: 6, svg:
     '<path d="M44 67 Q65 77 86 67 L65 88 Z" fill="#E94B4B"/>' +
-    '<g fill="#fff"><circle cx="58" cy="75" r="1.5"/><circle cx="72" cy="75" r="1.5"/><circle cx="65" cy="81" r="1.5"/></g>' },
+    '<g fill="#fff"><circle cx="58" cy="75" r="1.5"/><circle cx="72" cy="75" r="1.5"/><circle cx="65" cy="81" r="1.5"/></g>',
+    paint: m => `<path d="M44 67 Q65 77 86 67 L65 88 Z" fill="${m}"/>` +
+      '<g fill="#fff"><circle cx="58" cy="75" r="1.5"/><circle cx="72" cy="75" r="1.5"/><circle cx="65" cy="81" r="1.5"/></g>' },
   { id: 'bowtie', slot: 'neck', name: 'Bow Tie', ico: '🎀', price: 10, svg:
     '<path d="M65 72 L54 66 L54 78 Z M65 72 L76 66 L76 78 Z" fill="#3E8FC9" stroke="#2A6FA0" stroke-width="1.5" stroke-linejoin="round"/>' +
-    '<circle cx="65" cy="72" r="3" fill="#2A6FA0"/>' },
-  { id: 'scarf', slot: 'neck', name: 'Cozy Scarf', ico: '🧣', price: 12, svg:
+    '<circle cx="65" cy="72" r="3" fill="#2A6FA0"/>',
+    paint: (m, d) => `<path d="M65 72 L54 66 L54 78 Z M65 72 L76 66 L76 78 Z" fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"/>` +
+      `<circle cx="65" cy="72" r="3" fill="${d}"/>` },
+  { id: 'scarf', slot: 'neck', name: 'Cozy Scarf', short: 'Scarf', ico: '🧣', price: 12, svg:
     '<rect x="72" y="72" width="8" height="22" rx="3" fill="#52B060"/><path d="M44 66 Q65 78 86 66 L86 73 Q65 85 44 73 Z" fill="#6BCB77"/>' +
-    '<path d="M72 88 L80 88" stroke="#FFD166" stroke-width="2"/>' },
-  { id: 'medal', slot: 'neck', name: 'Gold Medal', ico: '🏅', price: 35, svg:
+    '<path d="M72 88 L80 88" stroke="#FFD166" stroke-width="2"/>',
+    paint: (m, d, a) => `<rect x="72" y="72" width="8" height="22" rx="3" fill="${d}"/><path d="M44 66 Q65 78 86 66 L86 73 Q65 85 44 73 Z" fill="${m}"/>` +
+      `<path d="M72 88 L80 88" stroke="${a}" stroke-width="2"/>` },
+  { id: 'medal', slot: 'neck', name: 'Gold Medal', short: 'Medal', ico: '🏅', price: 35, svg:
     '<path d="M54 66 L65 82 L76 66" stroke="#3E8FC9" stroke-width="4" fill="none"/>' +
     '<circle cx="65" cy="86" r="7" fill="#FFD166" stroke="#E0A800" stroke-width="2"/>' +
-    '<text x="65" y="89.5" font-size="9" text-anchor="middle" fill="#E0A800">★</text>' },
-  { id: 'wings', slot: 'back', name: 'Fairy Wings', ico: '🧚', price: 40, svg:
+    '<text x="65" y="89.5" font-size="9" text-anchor="middle" fill="#E0A800">★</text>',
+    paint: (m, d, a) => `<path d="M54 66 L65 82 L76 66" stroke="${d}" stroke-width="4" fill="none"/>` +
+      `<circle cx="65" cy="86" r="7" fill="${m}" stroke="${d}" stroke-width="2"/>` +
+      `<text x="65" y="89.5" font-size="9" text-anchor="middle" fill="${a}">★</text>` },
+  { id: 'wings', slot: 'back', name: 'Fairy Wings', short: 'Wings', ico: '🧚', price: 40, svg:
     '<g fill="#C9B8FF" stroke="#A994F5" stroke-width="1.5" opacity="0.9">' +
     '<ellipse cx="30" cy="64" rx="18" ry="11" transform="rotate(-30 30 64)"/><ellipse cx="32" cy="84" rx="12" ry="7" transform="rotate(20 32 84)"/>' +
-    '<ellipse cx="100" cy="64" rx="18" ry="11" transform="rotate(30 100 64)"/><ellipse cx="98" cy="84" rx="12" ry="7" transform="rotate(-20 98 84)"/></g>' },
-  { id: 'cape', slot: 'back', name: 'Super Cape', ico: '🦸', price: 50, svg:
-    '<path d="M45 66 Q26 100 30 120 L100 120 Q104 100 85 66 Z" fill="#E94B4B" stroke="#C43A3A" stroke-width="2"/>' },
+    '<ellipse cx="100" cy="64" rx="18" ry="11" transform="rotate(30 100 64)"/><ellipse cx="98" cy="84" rx="12" ry="7" transform="rotate(-20 98 84)"/></g>',
+    paint: (m, d) => `<g fill="${m}" stroke="${d}" stroke-width="1.5" opacity="0.9">` +
+      '<ellipse cx="30" cy="64" rx="18" ry="11" transform="rotate(-30 30 64)"/><ellipse cx="32" cy="84" rx="12" ry="7" transform="rotate(20 32 84)"/>' +
+      '<ellipse cx="100" cy="64" rx="18" ry="11" transform="rotate(30 100 64)"/><ellipse cx="98" cy="84" rx="12" ry="7" transform="rotate(-20 98 84)"/></g>' },
+  { id: 'cape', slot: 'back', name: 'Super Cape', short: 'Cape', ico: '🦸', price: 50, svg:
+    '<path d="M45 66 Q26 100 30 120 L100 120 Q104 100 85 66 Z" fill="#E94B4B" stroke="#C43A3A" stroke-width="2"/>',
+    paint: (m, d) => `<path d="M45 66 Q26 100 30 120 L100 120 Q104 100 85 66 Z" fill="${m}" stroke="${d}" stroke-width="2"/>` },
   { id: 'classic', slot: 'fur', name: 'Classic', price: 0, fur: ['#E8A85A', '#F0B870', '#F5C27A', '#D4924A', '#C0824A'] },
   { id: 'cream', slot: 'fur', name: 'Cream', price: 25, fur: ['#EADBC0', '#F3E8D4', '#FAF3E6', '#D9C5A3', '#C9B38E'] },
   { id: 'choc', slot: 'fur', name: 'Chocolate', price: 25, fur: ['#8B5A35', '#9C6A42', '#B07D52', '#6E4527', '#5E3A20'] },
   { id: 'pink', slot: 'fur', name: 'Cotton Candy', price: 40, fur: ['#F4A3C4', '#F7B7D2', '#FBCDE1', '#E888B0', '#D9739E'] },
   { id: 'blue', slot: 'fur', name: 'Blueberry', price: 40, fur: ['#8FBCEB', '#A5CBF0', '#BEDAF5', '#729FD6', '#5F8BC2'] },
+  { id: 'mint', slot: 'fur', name: 'Mint', price: 40, fur: ['#8FD8B8', '#A6E2C8', '#C2EDDA', '#6FC29E', '#5AAE8A'] },
+  { id: 'lavender', slot: 'fur', name: 'Lavender', price: 40, fur: ['#BBA6EE', '#CAB9F2', '#DDD1F7', '#9F88DC', '#8B74C8'] },
+  { id: 'lemon', slot: 'fur', name: 'Lemon', price: 40, fur: ['#F2D35E', '#F6DE7E', '#FAEAAA', '#DDBB45', '#C9A633'] },
+  { id: 'snow', slot: 'fur', name: 'Snow White', price: 50, fur: ['#E6EAF0', '#F0F3F7', '#FFFFFF', '#CFD6E0', '#BCC4D2'] },
+  { id: 'midnight', slot: 'fur', name: 'Midnight Black', price: 50, fur: ['#4A4A5C', '#5A5A6E', '#8C8CA4', '#3A3A4A', '#2C2C3A'] },
   // Toys are kept, not worn. Pom plays with them when tapped and during streak tricks.
-  { id: 'ball', slot: 'toy', name: 'Bouncy Ball', ico: '⚽', price: 10, say: 'Fetch! I got it! 🐾' },
-  { id: 'duck', slot: 'toy', name: 'Squeaky Duck', ico: '🐤', price: 12, say: 'Squeak squeak! Hee hee!' },
-  { id: 'rope', slot: 'toy', name: 'Tug Yarn', ico: '🧶', price: 15, say: 'Grrr! Tug of war! 💪' },
-  { id: 'frisbee', slot: 'toy', name: 'Flying Disc', ico: '🥏', price: 25, say: 'Wheee! Nice catch, me! ✨' },
+  { id: 'ball', slot: 'toy', name: 'Bouncy Ball', short: 'Ball', ico: '⚽', price: 10, say: 'Fetch! I got it! 🐾' },
+  { id: 'duck', slot: 'toy', name: 'Squeaky Duck', short: 'Duck', ico: '🐤', price: 12, say: 'Squeak squeak! Hee hee!' },
+  { id: 'rope', slot: 'toy', name: 'Tug Yarn', short: 'Yarn', ico: '🧶', price: 15, say: 'Grrr! Tug of war! 💪' },
+  { id: 'frisbee', slot: 'toy', name: 'Flying Disc', short: 'Disc', ico: '🥏', price: 25, say: 'Wheee! Nice catch, me! ✨' },
   { id: 'bubbles', slot: 'toy', name: 'Bubbles', ico: '🧼', price: 30, say: 'Pop! Pop! I love bubbles!' },
-  { id: 'box', slot: 'toy', name: 'Hidey Box', ico: '📦', price: 40, say: 'Peekaboo! Did you miss me?' },
+  { id: 'box', slot: 'toy', name: 'Hidey Box', short: 'Box', ico: '📦', price: 40, say: 'Peekaboo! Did you miss me?' },
 ];
-const ITEMS = Object.fromEntries(CLOSET.map(item => [item.id, item]));
+
+// Every accessory and toy also comes in these colors, and each color is its own item to buy.
+// A color's id is the item id plus the color code, like 'party.r'. Toys are tinted with a CSS filter.
+const COLORS = [
+  { code: 'r', name: 'Red', m: '#E94B4B', d: '#B83232', a: '#FFD166', tint: 'sepia(1) saturate(6) hue-rotate(-45deg)' },
+  { code: 'o', name: 'Orange', m: '#FF9F43', d: '#D9771C', a: '#FFFFFF', tint: 'sepia(1) saturate(5) hue-rotate(-12deg) brightness(1.1)' },
+  { code: 'y', name: 'Yellow', m: '#FFD93D', d: '#D4A90C', a: '#FF6FA8', tint: 'sepia(1) saturate(6) hue-rotate(10deg) brightness(1.25)' },
+  { code: 'g', name: 'Green', m: '#5CC46A', d: '#3A9447', a: '#FFD166', tint: 'sepia(1) saturate(4) hue-rotate(70deg)' },
+  { code: 'b', name: 'Blue', m: '#4FA3E8', d: '#2A6FA0', a: '#FFD166', tint: 'sepia(1) saturate(4) hue-rotate(170deg)' },
+  { code: 'p', name: 'Purple', m: '#9B7BF0', d: '#6A4BC4', a: '#FFD166', tint: 'sepia(1) saturate(4) hue-rotate(225deg)' },
+  { code: 'k', name: 'Pink', m: '#FF7EB6', d: '#E0457F', a: '#FFFFFF', tint: 'sepia(1) saturate(4) hue-rotate(290deg) brightness(1.15)' },
+  { code: 'n', name: 'Black', m: '#34343E', d: '#16161C', a: '#FFD166', tint: 'grayscale(1) brightness(0.45) contrast(1.3)' },
+  { code: 'w', name: 'Rainbow', m: 'url(#rainbow)', d: '#7B5BE0', a: '#FFFFFF', fancy: true },
+  { code: 's', name: 'Glitter', m: 'url(#glitter)', d: '#A98BE0', a: '#FFFFFF', fancy: true },
+];
+// Rainbow and glitter fills. Each Pom gets her own copy with her own ids (see init).
+const PAINT_DEFS = '<linearGradient id="rainbow" x2="1" y2="0.5"><stop offset="0" stop-color="#E94B4B"/>' +
+  '<stop offset="0.2" stop-color="#FF9F43"/><stop offset="0.4" stop-color="#FFD93D"/><stop offset="0.6" stop-color="#5CC46A"/>' +
+  '<stop offset="0.8" stop-color="#4FA3E8"/><stop offset="1" stop-color="#9B7BF0"/></linearGradient>' +
+  '<pattern id="glitter" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#D8C8FF"/>' +
+  '<circle cx="2" cy="2" r="1" fill="#fff"/><circle cx="6" cy="4.5" r="0.8" fill="#FFD166"/><circle cx="3.5" cy="6.5" r="0.7" fill="#FF7EB6"/>' +
+  '<circle cx="7" cy="7.5" r="0.5" fill="#fff"/><circle cx="6.5" cy="0.8" r="0.5" fill="#6FC3F2"/></pattern>';
+
+const ITEMS = {};
+for (const item of CLOSET) {
+  item.base = item.id;
+  item.colors = [item]; // the classic look comes first
+  ITEMS[item.id] = item;
+  if (item.slot === 'fur') continue;
+  const price = Math.max(item.price, 5);
+  for (const c of COLORS) {
+    const colored = {
+      ...item, id: item.id + '.' + c.code, color: c, name: `${c.name} ${item.short || item.name}`,
+      price: c.fancy ? price + 10 : price, svg: item.paint && item.paint(c.m, c.d, c.a),
+    };
+    item.colors.push(colored);
+    ITEMS[colored.id] = colored;
+  }
+}
 const DEFAULT_WORN = { hat: 'cap', fur: 'classic' };
 
 // ===== PERSISTENCE =====
@@ -1333,8 +1453,28 @@ const DEFAULT_WORN = { hat: 'cap', fur: 'classic' };
 function defaultState() {
   return {
     totalCents: 0, paidCents: 0, payouts: [], weights: {}, mastery: FACT_KEYS.map(() => 0), lastMax: 0, muted: false,
-    gems: 0, owned: [], worn: { ...DEFAULT_WORN }, savedAt: 0,
+    gems: 0, owned: [], worn: { ...DEFAULT_WORN }, toys: {}, savedAt: 0,
   };
+}
+
+// Owned items are saved as 'party,party.rgw,choc': the classic Party Hat, then its red, green and rainbow colors.
+// Saves from v12 and earlier only have plain ids, which read the same way.
+function encodeOwned() {
+  const parts = [];
+  for (const item of CLOSET) {
+    if (state.owned.includes(item.id)) parts.push(item.id);
+    const codes = item.colors.filter(c => c.color && state.owned.includes(c.id)).map(c => c.color.code).join('');
+    if (codes) parts.push(item.id + '.' + codes);
+  }
+  return parts.join(',');
+}
+
+function decodeOwned(text) {
+  const ids = text.split(',').flatMap(part => {
+    const [base, codes] = part.split('.');
+    return codes ? [...codes].map(code => base + '.' + code) : [base];
+  });
+  return [...new Set(ids)].filter(id => ITEMS[id] && ITEMS[id].price > 0);
 }
 
 function readCookie() {
@@ -1347,8 +1487,52 @@ function readLocal() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch { return null; }
 }
 
-function loadState() {
-  const candidates = [readLocal(), readCookie()].filter(s => s && typeof s === 'object');
+// A third copy lives in IndexedDB. It loads after the page starts, so init() switches to it if it is newer.
+const SaveDB = {
+  open() {
+    if (!this.db) {
+      this.db = new Promise((resolve, reject) => {
+        const req = indexedDB.open(STORE_KEY, 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('save');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    return this.db;
+  },
+  async read() {
+    try {
+      const db = await this.open();
+      const json = await new Promise((resolve, reject) => {
+        const req = db.transaction('save').objectStore('save').get('state');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      return json ? JSON.parse(json) : null;
+    } catch { return null; }
+  },
+  async write(json) {
+    try {
+      const db = await this.open();
+      db.transaction('save', 'readwrite').objectStore('save').put(json, 'state');
+    } catch { /* IndexedDB may be unavailable in private mode */ }
+  },
+};
+
+// Safari clears a website's saves after 7 days without a visit, but not when the game is opened from the Home Screen.
+// On iPhone and iPad (which says it is a Mac with touch), Pom suggests that once.
+function showHomeScreenTip() {
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  if (!ios || navigator.standalone) return;
+  try {
+    if (localStorage.getItem(STORE_KEY + '_homeTip')) return;
+    localStorage.setItem(STORE_KEY + '_homeTip', '1');
+  } catch { return; }
+  say('startBubble', 'Woof! Tap Share ⬆️ then "Add to Home Screen" so I never forget your coins and stickers! 🏠');
+}
+
+function loadState(extra) {
+  const candidates = [readLocal(), readCookie(), extra].filter(s => s && typeof s === 'object');
   candidates.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
   const saved = candidates[0] || {};
   const state = defaultState();
@@ -1376,7 +1560,12 @@ function loadState() {
   state.muted = !!saved.muted;
   if (Number.isFinite(saved.gems)) state.gems = Math.max(0, Math.round(saved.gems));
   if (typeof saved.owned === 'string') {
-    state.owned = [...new Set(saved.owned.split(','))].filter(id => ITEMS[id] && ITEMS[id].price > 0);
+    state.owned = decodeOwned(saved.owned);
+  }
+  if (saved.toys && typeof saved.toys === 'object') {
+    for (const [base, id] of Object.entries(saved.toys)) {
+      if (ITEMS[id] && ITEMS[id].slot === 'toy' && ITEMS[id].base === base && state.owned.includes(id)) state.toys[base] = id;
+    }
   }
   if (saved.worn && typeof saved.worn === 'object') {
     state.worn = { fur: 'classic' };
@@ -1404,9 +1593,10 @@ function saveState() {
   }
   state.weights = weights;
   const json = JSON.stringify({
-    ...state, mastery: state.mastery.join(''), owned: state.owned.join(','), weights: encodeWeights(),
+    ...state, mastery: state.mastery.join(''), owned: encodeOwned(), weights: encodeWeights(),
   });
   try { localStorage.setItem(STORE_KEY, json); } catch { /* storage may be unavailable in private mode */ }
+  if (window.indexedDB) SaveDB.write(json);
   const secure = location.protocol === 'https:' ? '; Secure' : '';
   document.cookie = `${COOKIE_NAME}=${encodeURIComponent(json)}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax${secure}`;
 }
@@ -1566,28 +1756,30 @@ const TRICKS = [
 
 const TOY_CLASSES = ['ball', 'duck', 'rope', 'frisbee', 'bubbles', 'box'].map(id => 'play-' + id);
 
-// Pom plays with a toy: her picture moves and the toy flies around her.
+// Pom plays with a toy in one of its colors: her picture moves and the toy flies around her.
 function playToy(el, id) {
   const toy = ITEMS[id];
+  const kind = toy.base;
   clearTimeout(el.toyTimer);
   el.querySelectorAll('.toy-fx').forEach(t => t.remove());
   el.classList.remove('bounce', 'shake', 'surprised', ...TRICKS.map(t => t.cls), ...TOY_CLASSES);
   void el.offsetWidth;
-  el.classList.add('play-' + id);
-  const count = id === 'bubbles' ? 5 : 1;
+  el.classList.add('play-' + kind);
+  const count = kind === 'bubbles' ? 5 : 1;
   for (let i = 0; i < count; i++) {
     const fx = document.createElement('span');
-    fx.className = 'toy-fx ' + id;
-    if (id !== 'bubbles') fx.textContent = toy.ico; // bubbles are drawn with CSS
+    fx.className = 'toy-fx ' + kind + (toy.color && toy.color.fancy ? ' tint-' + toy.color.code : '');
+    if (kind !== 'bubbles') fx.innerHTML = toyFace(toy, 'toy-ico'); // bubbles are drawn with CSS
+    else if (toy.color) fx.style.filter = toy.color.tint || '';
     if (count > 1) {
       fx.style.left = (15 + i * 17) + '%';
       fx.style.animationDelay = (i * 0.1) + 's';
     }
     el.appendChild(fx);
   }
-  sfx.toy[id]();
+  sfx.toy[kind]();
   el.toyTimer = setTimeout(() => {
-    el.classList.remove('play-' + id);
+    el.classList.remove('play-' + kind);
     el.querySelectorAll('.toy-fx').forEach(t => t.remove());
   }, 1500);
 }
@@ -1595,12 +1787,12 @@ function playToy(el, id) {
 // Ms. Menna does a trick for 3 or more first-try answers in a row: spin, backflip, dance,
 // then plays with each toy she owns, then repeats.
 function doTrick(streak) {
-  const toys = CLOSET.filter(item => item.slot === 'toy' && owns(item.id));
+  const toys = ownedToys();
   const turn = (streak - 3) % (TRICKS.length + toys.length);
   if (turn >= TRICKS.length) {
     const toy = toys[turn - TRICKS.length];
     playToy($('pomGame'), toy.id);
-    return { cls: 'play-' + toy.id, say: n => `${n} in a row! ${toy.say}` };
+    return { cls: 'play-' + toy.base, say: n => `${n} in a row! ${toy.say}` };
   }
   const trick = TRICKS[turn];
   const el = $('pomGame');
@@ -2238,7 +2430,7 @@ function renderGems() {
   document.querySelectorAll('.gem-badge').forEach(el => { el.textContent = '💎 ' + state.gems; });
   renderToyShelf();
   // Glows when Pom can afford something new.
-  $('closetBtn').classList.toggle('glow', CLOSET.some(item => !owns(item.id) && item.price <= state.gems));
+  $('closetBtn').classList.toggle('glow', Object.values(ITEMS).some(item => !owns(item.id) && item.price <= state.gems));
 }
 
 // Gems fly from the answer into Pom's pouch.
@@ -2271,18 +2463,39 @@ function addGems(count, fromEl, pomEl) {
 // ===== POM'S CLOSET =====
 const owns = id => ITEMS[id].price === 0 || state.owned.includes(id);
 let closetTab = 'hat';
-let tryingOn = null; // an item Pom is trying on before buying it
+let closetPick = null; // the item whose colors are showing
+let tryingOn = null; // a color Pom is trying on before buying it
+
+// The color of each toy Pom plays with: the one picked in the closet, or the first one she owns.
+function toyInUse(toy) {
+  const picked = state.toys[toy.id];
+  return picked && owns(picked) ? picked : (toy.colors.find(c => owns(c.id)) || {}).id;
+}
+
+function ownedToys() {
+  return CLOSET.filter(item => item.slot === 'toy').map(toyInUse).filter(Boolean).map(id => ITEMS[id]);
+}
+
+// A toy emoji in its color. Rainbow and glitter toys animate with CSS; the others use a filter.
+function toyFace(toy, cls) {
+  const fancy = toy.color && toy.color.fancy ? ' tint-' + toy.color.code : '';
+  const style = toy.color && toy.color.tint ? ` style="filter:${toy.color.tint}"` : '';
+  return `<span class="${cls}${fancy}"${style}>${toy.ico}</span>`;
+}
 
 function renderToyShelf() {
-  const toys = CLOSET.filter(item => item.slot === 'toy' && owns(item.id));
+  const toys = ownedToys();
   $('toyShelf').hidden = !toys.length;
   $('toyShelf').innerHTML = toys.map(toy =>
-    `<button class="toy-btn" data-id="${toy.id}" aria-label="Play with the ${toy.name}">${toy.ico}</button>`).join('');
+    `<button class="toy-btn" data-id="${toy.id}" aria-label="Play with the ${toy.name}">${toyFace(toy, 'toy-ico')}</button>`).join('');
 }
+
+// Rainbow and glitter point at the fills inside this Pom's own picture.
+const ownPaint = (svg, suffix) => svg.replace(/url\(#(rainbow|glitter)\)/g, `url(#$1-${suffix})`);
 
 function dressPom(el, worn) {
   for (const slot of ['hat', 'face', 'neck', 'back']) {
-    el.querySelector('.acc-' + slot).innerHTML = worn[slot] ? ITEMS[worn[slot]].svg : '';
+    el.querySelector('.acc-' + slot).innerHTML = worn[slot] ? ownPaint(ITEMS[worn[slot]].svg, el.id) : '';
   }
   ITEMS[worn.fur || 'classic'].fur.forEach((color, i) => el.style.setProperty('--fur' + (i + 1), color));
 }
@@ -2300,20 +2513,56 @@ function itemPicture(item) {
     : `<span class="ico">${item.ico}</span>`;
 }
 
+// The part of Pom's 130×130 picture each slot is drawn in, so a color button shows just the item.
+const SLOT_VIEW = { hat: '30 0 70 45', face: '44 38 42 22', neck: '40 62 50 34', back: '8 50 114 74' };
+
+function colorPicture(item) {
+  if (item.slot === 'toy') return toyFace(item, 'dot toy-dot');
+  return `<span class="dot"><svg viewBox="${SLOT_VIEW[item.slot]}" aria-hidden="true">${ownPaint(item.svg, 'swatch')}</svg></span>`;
+}
+
+const isUsing = item => item.slot === 'toy' ? toyInUse(ITEMS[item.base]) === item.id : state.worn[item.slot] === item.id;
+
+function renderColors() {
+  const row = $('colorRow');
+  const base = closetPick && ITEMS[closetPick];
+  row.hidden = !base;
+  if (!base) return;
+  const mine = base.colors.filter(c => owns(c.id)).length;
+  row.innerHTML = `<p class="color-title">Pick a color <span>${mine} of ${base.colors.length} are yours</span></p>` +
+    '<div class="color-grid">' + base.colors.map(c => {
+      const owned = owns(c.id);
+      const using = owned && isUsing(c);
+      const cls = using ? ' owned wearing' : owned ? ' owned' : c.id === tryingOn ? ' trying' : c.price > state.gems ? ' too-much' : '';
+      const label = using ? (c.slot === 'toy' ? 'Playing ✓' : 'Wearing ✓') : owned ? '✓ Yours' : `💎 ${c.price}`;
+      return `<button class="color-btn${cls}" data-id="${c.id}" aria-label="${c.name}, ${owned ? 'yours' : c.price + ' gems'}">` +
+        `${colorPicture(c)}<span class="name">${c.color ? c.color.name : 'Classic'}</span><span class="price">${label}</span></button>`;
+    }).join('') + '</div>';
+}
+
 function renderCloset() {
   $('closetTabs').innerHTML = CLOSET_SLOTS.map(s =>
     `<button class="closet-tab${s.id === closetTab ? ' on' : ''}" data-slot="${s.id}"><span class="ico">${s.ico}</span>${s.name}</button>`).join('');
   $('closetItems').innerHTML = CLOSET.filter(item => item.slot === closetTab).map(item => {
-    const mine = owns(item.id);
-    const wearing = state.worn[item.slot] === item.id;
-    const cls = wearing ? ' owned wearing' : mine ? ' owned' : item.id === tryingOn ? ' trying' : item.price > state.gems ? ' too-much' : '';
-    const price = wearing ? 'Wearing ✓' : mine ? (item.slot === 'toy' ? 'Play! ▶' : 'Yours!') : `💎 ${item.price}`;
+    let cls, price;
+    if (item.fur) {
+      const wearing = state.worn.fur === item.id;
+      cls = wearing ? ' owned wearing' : owns(item.id) ? ' owned' : item.id === tryingOn ? ' trying' : item.price > state.gems ? ' too-much' : '';
+      price = wearing ? 'Wearing ✓' : owns(item.id) ? 'Yours!' : `💎 ${item.price}`;
+    } else {
+      const mine = item.colors.filter(c => owns(c.id)).length;
+      const wearing = item.slot !== 'toy' && item.colors.some(c => owns(c.id) && isUsing(c));
+      cls = (item.id === closetPick ? ' picked' : '') + (wearing ? ' owned wearing' : mine ? ' owned' : '');
+      price = mine ? `🎨 ${mine} of ${item.colors.length}` : `🎨 from 💎 ${Math.min(...item.colors.map(c => c.price))}`;
+    }
     return `<button class="item${cls}" data-id="${item.id}">${itemPicture(item)}<span class="name">${item.name}</span><span class="price">${price}</span></button>`;
   }).join('');
+  renderColors();
 
+  // Only something Pom doesn't own yet can be bought.
   const buy = $('buyBtn');
-  buy.hidden = !tryingOn;
-  if (tryingOn) {
+  buy.hidden = !tryingOn || owns(tryingOn);
+  if (!buy.hidden) {
     const item = ITEMS[tryingOn];
     buy.disabled = item.price > state.gems;
     buy.textContent = buy.disabled ? `Need ${item.price - state.gems} more 💎` : `Buy ${item.name} for ${item.price} 💎`;
@@ -2324,6 +2573,7 @@ function renderCloset() {
 
 function showCloset() {
   tryingOn = null;
+  closetPick = null;
   say('closetBubble', state.gems
     ? pick([`Woof! I have ${state.gems} 💎. Tap something for me to try on!`, 'Ooh, what should I wear today? Tap to try it on!'])
     : 'Get questions right on the first try to earn me some 💎!');
@@ -2331,12 +2581,34 @@ function showCloset() {
   showScreen('closetScreen');
 }
 
-// Tapping something Pom owns puts it on or takes it off. Anything else she tries on first.
+// Tapping an accessory or toy shows its colors. Fur is picked straight from the grid.
 function onItemTap(id) {
   const item = ITEMS[id];
+  if (item.fur) {
+    closetPick = null;
+    onColorTap(id);
+    return;
+  }
+  tryingOn = null;
+  closetPick = closetPick === id ? null : id;
+  sfx.tap(CLOSET.indexOf(item));
+  if (closetPick) say('closetBubble', pick([`Which color ${item.name}? 🎨`, `Ooh! Pick a color for my ${item.name}!`]));
+  renderCloset();
+  if (closetPick) $('colorRow').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// Tapping a color Pom owns puts it on (or takes it off). Any other color she tries on first.
+function onColorTap(id) {
+  const item = ITEMS[id];
+  const short = item.price - state.gems;
   if (item.slot === 'toy') {
-    const short = item.price - state.gems;
-    tryingOn = owns(id) || tryingOn === id ? null : id;
+    if (owns(id)) {
+      tryingOn = null;
+      state.toys[item.base] = id;
+      saveState();
+    } else {
+      tryingOn = tryingOn === id ? null : id;
+    }
     if (owns(id) || tryingOn) playToy($('pomCloset'), id);
     else sfx.hint();
     say('closetBubble', owns(id) ? item.say
@@ -2354,14 +2626,13 @@ function onItemTap(id) {
       say('closetBubble', `Off goes the ${item.name}!`);
     } else {
       state.worn[item.slot] = id;
-      sfx.select(CLOSET.indexOf(item));
+      sfx.select(CLOSET.indexOf(ITEMS[item.base]) + (item.color ? COLORS.indexOf(item.color) + 1 : 0));
       say('closetBubble', pick([`I love my ${item.name}! 🐾`, `How do I look? ✨`, `${item.name} time!`]));
     }
     saveState();
   } else {
     tryingOn = tryingOn === id ? null : id;
     sfx.hint();
-    const short = item.price - state.gems;
     say('closetBubble', !tryingOn
       ? 'Okay! Let\'s pick something else.'
       : short > 0
@@ -2374,10 +2645,11 @@ function onItemTap(id) {
 
 function buyItem() {
   const item = tryingOn && ITEMS[tryingOn];
-  if (!item || item.price > state.gems) return;
+  if (!item || owns(item.id) || item.price > state.gems) return; // never pay twice for the same color
   state.gems -= item.price;
   state.owned.push(item.id);
-  if (item.slot !== 'toy') state.worn[item.slot] = item.id;
+  if (item.slot === 'toy') state.toys[item.base] = item.id;
+  else state.worn[item.slot] = item.id;
   tryingOn = null;
   saveState();
   renderCloset();
@@ -2455,10 +2727,14 @@ function renderMute() {
 function init() {
   document.querySelectorAll('#pomStart, #pomGame, #pomCloset').forEach(el => {
     el.appendChild($('pomTemplate').content.cloneNode(true));
+    el.querySelector('svg').insertAdjacentHTML('afterbegin', '<defs>' + ownPaint(PAINT_DEFS.replace(/id="(rainbow|glitter)"/g, 'id="$1-' + el.id + '"'), el.id) + '</defs>');
     const badge = document.createElement('span');
     badge.className = 'gem-badge';
     el.appendChild(badge);
   });
+  // Rainbow and glitter fills for the color buttons.
+  document.body.insertAdjacentHTML('beforeend', '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>' +
+    PAINT_DEFS.replace(/id="(rainbow|glitter)"/g, 'id="$1-swatch"') + '</defs></svg>');
   // Each pig needs its own clipPath id, or a pig on a hidden screen breaks the others.
   document.querySelectorAll('.bank .pig').forEach((el, i) => {
     el.appendChild($('pigTemplate').content.cloneNode(true));
@@ -2486,8 +2762,22 @@ function init() {
   // Another tab saved: take its state, so this tab's next save does not undo that tab's coins or purchases.
   // The round in progress keeps its own count in game.roundCents.
   window.addEventListener('storage', e => {
-    if (e.key !== STORE_KEY || e.newValue === null) return;
-    state = loadState();
+    if (e.key === STORE_KEY && e.newValue !== null) reloadState();
+  });
+  if (window.indexedDB) {
+    SaveDB.read().then(saved => {
+      if (saved && (saved.savedAt || 0) > state.savedAt) reloadState(saved);
+      else if (state.savedAt) saveState(); // older saves get their IndexedDB copy now
+    });
+  }
+  // Ask the browser never to clear Pom's save on its own.
+  document.addEventListener('pointerdown', () => {
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  }, { once: true });
+  showHomeScreenTip();
+
+  function reloadState(extra) {
+    state = loadState(extra);
     renderBank();
     renderMedals();
     renderGems();
@@ -2496,7 +2786,7 @@ function init() {
     Speech.setMuted(state.muted);
     if ($('closetScreen').classList.contains('active')) renderCloset();
     if ($('cashoutScreen').classList.contains('active')) renderCashout();
-  });
+  }
 
   $('startBtn').addEventListener('click', () => { if (selectedMax) { sfx.hint(); startRound(selectedMax); } });
   $('againBtn').addEventListener('click', () => startRound(game.max));
@@ -2526,6 +2816,10 @@ function init() {
   $('closetItems').addEventListener('click', e => {
     const item = e.target.closest('.item');
     if (item) onItemTap(item.dataset.id);
+  });
+  $('colorRow').addEventListener('click', e => {
+    const btn = e.target.closest('.color-btn');
+    if (btn) onColorTap(btn.dataset.id);
   });
   $('payBtn').addEventListener('click', onPayTap);
   $('hintBtn').addEventListener('click', () => {

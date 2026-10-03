@@ -16,10 +16,10 @@ Each game is one self-contained HTML file with its CSS and JavaScript inline. Th
 
 | File | Purpose |
 |------|---------|
-| `phaser-3.90.0.min.js` | Canvas game engine (rendering, input, physics) |
+| `phaser-4.2.1.min.js` | Canvas game engine (rendering, input, physics) |
 | `tone-15.1.22.js` | Synthesized music and sound effects |
-| `zzfx-1.3.2.micro.min.js` | Tiny arcade-style sound effects |
-| `nipplejs-0.10.2.min.js` | On-screen joystick for touch controls |
+| `zzfx-1.4.0.micro.min.js` | Tiny arcade-style sound effects |
+| `nipplejs-1.0.4.min.js` | On-screen joystick for touch controls |
 
 ## Running locally
 
@@ -33,7 +33,10 @@ python -m http.server 8080
 
 ## Testing Environment Setup
 
-The games are tested with [Playwright](https://playwright.dev) in headless Chromium. Test files live in `tests/` and the config is `playwright.config.js`.
+The games are tested with [Playwright](https://playwright.dev) in headless Chromium. Test files live in `tests/` and the config is `playwright.config.js`:
+
+- `tests/games.spec.js` runs the same smoke tests on every game: it loads without errors, starts and plays for a moment, draws on its canvas (Phaser games), and shows the same version number as its card on `index.html`. Add an entry to its `GAMES` list when you add a game.
+- `tests/rise.spec.js` has extra checks for Rise (screens, HUD, mute button, saved guide setting).
 
 ### Requirements
 
@@ -80,17 +83,17 @@ You don't need to start a server first. The config starts `npx serve . -l 8788` 
 A good run looks like this:
 
 ```
-Running 10 tests using 1 worker
-  ✓   1 [chromium] › tests/rise.spec.js:21:1 › page loads without JS errors
+Running 27 tests using 1 worker
+  ✓   1 [chromium] › tests/games.spec.js:74:5 › rise.html › loads without JS errors
   ...
-  10 passed
+  27 passed
 ```
 
 ### Troubleshooting: browser install freezes
 
 **Symptom:** `npx playwright install` downloads to 100% and then stops responding. The browser folder stays at about 448 KB and the `oopDownloadBrowserMain.js` process uses 0% CPU.
 
-**Cause:** Playwright's built-in unzip step can hang on very new Node versions. This happened with Playwright 1.59.1 on Node 26.10. The download itself is fine.
+**Cause:** Playwright's built-in unzip step can hang on very new Node versions. This happened with Playwright 1.59.1 on Node 26.10 and was fixed by upgrading to Playwright 1.63.0, whose installer works on Node 26. If you hit it on another version, try upgrading Playwright first (`npm install -D @playwright/test@latest playwright@latest`). The download itself is fine.
 
 **Fix:** download and unzip the browsers yourself.
 
@@ -108,12 +111,12 @@ Running 10 tests using 1 worker
    npx playwright install --dry-run chromium
    ```
 
-   For each browser, note the **Install location** and **Download url**. For Playwright 1.59.1 on Apple Silicon they are:
+   For each browser, note the **Install location** and **Download url**. For Playwright 1.63.0 on Apple Silicon they are:
 
    | Install location | Download url |
    |------------------|--------------|
-   | `chromium-1217` | `https://cdn.playwright.dev/builds/cft/147.0.7727.15/mac-arm64/chrome-mac-arm64.zip` |
-   | `chromium_headless_shell-1217` | `https://cdn.playwright.dev/builds/cft/147.0.7727.15/mac-arm64/chrome-headless-shell-mac-arm64.zip` |
+   | `chromium-1243` | `https://cdn.playwright.dev/builds/cft/153.0.8010.12/mac-arm64/chrome-mac-arm64.zip` |
+   | `chromium_headless_shell-1243` | `https://cdn.playwright.dev/builds/cft/153.0.8010.12/mac-arm64/chrome-headless-shell-mac-arm64.zip` |
 
 3. Download, check and unzip each one. Then create the two marker files Playwright looks for to know the install is finished:
 
@@ -127,10 +130,10 @@ Running 10 tests using 1 worker
    }
 
    C=~/Library/Caches/ms-playwright
-   install_browser $C/chromium-1217 \
-     https://cdn.playwright.dev/builds/cft/147.0.7727.15/mac-arm64/chrome-mac-arm64.zip
-   install_browser $C/chromium_headless_shell-1217 \
-     https://cdn.playwright.dev/builds/cft/147.0.7727.15/mac-arm64/chrome-headless-shell-mac-arm64.zip
+   install_browser $C/chromium-1243 \
+     https://cdn.playwright.dev/builds/cft/153.0.8010.12/mac-arm64/chrome-mac-arm64.zip
+   install_browser $C/chromium_headless_shell-1243 \
+     https://cdn.playwright.dev/builds/cft/153.0.8010.12/mac-arm64/chrome-headless-shell-mac-arm64.zip
    ```
 
    Use the paths and URLs from step 2 if they differ from these.
@@ -138,11 +141,11 @@ Running 10 tests using 1 worker
 4. Check the result:
 
    ```sh
-   du -sh ~/Library/Caches/ms-playwright/*   # roughly 340 MB and 190 MB
+   du -sh ~/Library/Caches/ms-playwright/*   # roughly 360 MB and 195 MB
    npx playwright test
    ```
 
-If you upgrade Playwright, the revision number (for example `1217`) changes. Repeat these steps with the new values from `--dry-run`.
+If you upgrade Playwright, the revision number (for example `1243`) changes. Repeat these steps with the new values from `--dry-run`.
 
 ### Other common errors
 

@@ -75,7 +75,3 @@ test('guide checkbox persists preference', async ({ page }) => {
   // Restore original value
   await page.locator('#ready-guide-toggle').click();
 });
-
-test('version badge shows v27', async ({ page }) => {
-  await expect(page.locator('text=v27')).toBeVisible();
-});

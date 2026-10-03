@@ -140,4 +140,14 @@ test.describe('Math with Ms. Menna', () => {
     const texts = await spoken(page);
     expect(texts.join(' ')).not.toMatch(/[⭐🐾🌟🎯💪]/u);
   });
+
+  test('Enter in the name box starts the game without checking an empty answer', async ({ page }) => {
+    await page.goto('/ms-menna-math.html');
+    await page.locator('#nameInput').fill('Ava');
+    await page.locator('#nameInput').press('Enter');
+    await expect(page.locator('#gameScreen')).toHaveClass(/active/);
+    await expect.poll(() => spoken(page)).toContainEqual(expect.stringMatching(/^Hi Ava!/));
+    expect(await spoken(page)).not.toContain('Pick a number first!');
+    await expect(page.locator('#gameBubble')).not.toContainText('Pick a number first');
+  });
 });

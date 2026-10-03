@@ -1055,7 +1055,7 @@
     <div class="pom-container" id="pomStart"></div>
     <div class="toy-shelf" id="toyShelf" hidden></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v9 - Updated 2026-10-03 00:21 EDT</p>
+    <p class="version">v10 - Updated 2026-10-03 05:50 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2017,6 +2017,7 @@ function onWrong(answer) {
       'Oops! Give it one more try!',
       'So close! Think about it and try again!',
     ]));
+    $('hintBtn').classList.add('show');
   } else {
     $('hintBtn').classList.remove('show');
     say('gameBubble', `Let's count together! ${game.a} ${game.a === 1 ? 'row' : 'rows'} of ${game.b}…`);
@@ -2436,6 +2437,21 @@ function init() {
     Speech.setMuted(state.muted);
     if (!state.muted) sfx.coin();
   }));
+
+  // Another tab saved: take its state, so this tab's next save does not undo that tab's coins or purchases.
+  // The round in progress keeps its own count in game.roundCents.
+  window.addEventListener('storage', e => {
+    if (e.key !== STORE_KEY || e.newValue === null) return;
+    state = loadState();
+    renderBank();
+    renderMedals();
+    renderGems();
+    dressAllPoms();
+    renderMute();
+    Speech.setMuted(state.muted);
+    if ($('closetScreen').classList.contains('active')) renderCloset();
+    if ($('cashoutScreen').classList.contains('active')) renderCashout();
+  });
 
   $('startBtn').addEventListener('click', () => { if (selectedMax) { sfx.hint(); startRound(selectedMax); } });
   $('againBtn').addEventListener('click', () => startRound(game.max));

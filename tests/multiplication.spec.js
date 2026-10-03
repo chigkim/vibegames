@@ -97,6 +97,31 @@ async function answer(page, right) {
   return { a, b };
 }
 
+test('a first wrong answer offers the picture hint', async ({ page }) => {
+  await page.locator('#picker .pick-btn').nth(4).click(); // up to 5
+  await page.locator('#startBtn').click();
+  await expect(page.locator('#hintBtn')).toBeHidden();
+
+  await answer(page, false);
+  await expect(page.locator('#hintBtn')).toBeVisible();
+  await page.locator('#hintBtn').click({ force: true }); // its glow never stops moving
+  await expect(page.locator('#gridArea')).toBeVisible();
+  await expect(page.locator('#hintBtn')).toBeHidden();
+});
+
+test('a save in another tab is not undone by this tab', async ({ page, context }) => {
+  const other = await context.newPage();
+  await other.goto('/multiplication-ms-menna.html');
+  await other.evaluate(() => { state.totalCents = 500; state.gems = 3; saveState(); });
+
+  await expect(page.locator('#startBankAmount')).toHaveText('$5.00');
+  await expect(page.locator('#pomStart .gem-badge')).toHaveText('💎 3');
+  await page.evaluate(() => changeBank(7));
+  await other.reload();
+  await expect(other.locator('#startBankAmount')).toHaveText('$5.07');
+  expect(await other.evaluate(() => state.gems)).toBe(3);
+});
+
 test('Ms. Menna does a trick for 3 right in a row', async ({ page }) => {
   await page.locator('#picker .pick-btn').nth(11).click();
   await page.locator('#startBtn').click();

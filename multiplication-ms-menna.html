@@ -564,6 +564,7 @@
     cursor: pointer;
     transition: transform 0.15s, box-shadow 0.15s;
     box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+    touch-action: manipulation;
   }
 
   .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
@@ -857,7 +858,8 @@
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     pointer-events: none;
     animation: bannerIn 2.4s ease forwards;
-    white-space: nowrap;
+    width: max-content;
+    max-width: 90vw; /* long sticker or furniture names wrap on small phones */
   }
 
   @keyframes bannerIn {
@@ -1124,7 +1126,12 @@
   .pay-rates { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin: 0 0 14px; }
   .pay-rates span { white-space: nowrap; }
   .btn-pay { background: linear-gradient(135deg, var(--green), var(--dark-green)); color: white; width: 100%; }
-  .btn-pay.confirming { background: linear-gradient(135deg, var(--orange), #E8692A); }
+  .btn-pay[hidden], .pay-confirm[hidden] { display: none; }
+  .pay-confirm { background: #FFF4D2; border: 3px solid var(--orange); border-radius: 24px; padding: 12px; }
+  .pay-confirm p { font-weight: 800; color: var(--dark-brown); margin: 0 0 10px; font-size: 1.1rem; }
+  .pay-confirm .row { display: flex; gap: 10px; }
+  .pay-confirm .btn { flex: 1; margin: 0; padding-left: 8px; padding-right: 8px; }
+  .btn-no { background: linear-gradient(135deg, #EEE, #D8D8D8); color: var(--dark-brown); }
   .payout-list { margin: 16px 0 4px; text-align: left; font-weight: 700; color: var(--dark-brown); }
   .payout-list h2 { font-family: 'Baloo 2', cursive; font-size: 1.1rem; color: var(--brown); margin-bottom: 6px; text-align: center; }
   .payout-row { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 2px dashed var(--peach); }
@@ -1134,6 +1141,16 @@
   @media (max-width: 420px) {
     .teacher-row { gap: 16px; }
     .speech-bubble { font-size: 0.95rem; }
+  }
+
+  /* Small phones: the top bar's Home, mute, bank and round count must all fit in one row. */
+  @media (max-width: 360px) {
+    .top-bar { gap: 6px; }
+    .quit-btn { padding: 4px 8px; font-size: 0.85rem; }
+    .top-bar .bank { padding: 2px 10px 2px 4px; font-size: 1.2rem; }
+    .top-bar .bank .pig { width: 30px; height: 24px; }
+    .bar-mute { width: 34px; height: 34px; font-size: 1rem; }
+    .round-info { font-size: 0.95rem; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1240,7 +1257,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v15 - Updated 2026-10-03 20:25 EDT</p>
+    <p class="version">v16 - Updated 2026-10-03 21:03 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1393,6 +1410,13 @@
     <p class="bank-label">in the piggy bank right now</p>
     <p class="pay-rates">Pay per right answer:<br><span>×0 or ×1 → 1¢</span> · <span>×2 or ×10 → 2¢</span> · <span>harder facts → up to 10¢</span><br><span>Right after a picture hint → 1¢</span> · <span>Wrong answer → −2¢</span></p>
     <button class="btn btn-pay" id="payBtn">Pay out $0.00</button>
+    <div class="pay-confirm" id="payConfirm" hidden>
+      <p id="payAsk">Did you pay $0.00?</p>
+      <div class="row">
+        <button class="btn btn-no" id="payNoBtn">Not yet</button>
+        <button class="btn btn-pay" id="payYesBtn">Yes, paid ✓</button>
+      </div>
+    </div>
     <div class="stat-row">
       <div class="stat"><b id="statPaid">$0.00</b>paid so far</div>
       <div class="stat"><b id="statAllTime">$0.00</b>earned all-time</div>
@@ -1416,6 +1440,7 @@ const MIN_PICK = 3; // smallest "up to" choice on the start screen
 const MAX_NUMBER = 19;
 const OLD_MAX_NUMBER = 13; // v11 and earlier stopped at 13; their facts keep the first places in FACT_KEYS
 const MAX_PAYOUTS_KEPT = 30; // keeps the cookie mirror under its 4 KB limit
+const PAY_CONFIRM_DELAY = 1000; // ms before "Yes, paid" can be tapped
 const STORE_KEY = 'mennaMultiplication';
 const COOKIE_NAME = 'mennaMult';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 400; // Browsers cap cookie lifetime at 400 days.
@@ -1626,11 +1651,11 @@ const DEFAULT_WORN = { hat: 'cap', fur: 'classic' };
 // ===== POM'S HOUSE =====
 // Stickers open rooms (they are never spent). Gems buy furniture, and each piece has its own spot in its room.
 const ROOMS = [
-  { id: 'bedroom', name: 'Bedroom', ico: '🛏️', need: 0, wall: '#FFE6EE', floor: '#E8C49A', hello: 'My cozy bedroom! 🛏️' },
+  { id: 'bedroom', name: 'Bedroom', ico: '🛏️', need: 10, wall: '#FFE6EE', floor: '#E8C49A', hello: 'My cozy bedroom! 🛏️' },
   { id: 'kitchen', name: 'Kitchen', ico: '🍳', need: 30, wall: '#FFF4D2', floor: '#EFD9BE', hello: 'My kitchen! Yum!' },
-  { id: 'playroom', name: 'Playroom', ico: '🧸', need: 70, wall: '#E2F1FF', floor: '#BFE3C0', hello: 'The playroom! Let\'s play! 🧸' },
-  { id: 'yard', name: 'Yard', ico: '🦴', need: 105, outdoor: true, floor: '#9CDB7A', hello: 'My yard! 🦴' },
-  { id: 'garden', name: 'Garden', ico: '🌻', need: 140, outdoor: true, floor: '#86CC6A', hello: 'My pretty garden! 🌻' },
+  { id: 'playroom', name: 'Playroom', ico: '🧸', need: 60, wall: '#E2F1FF', floor: '#BFE3C0', hello: 'The playroom! Let\'s play! 🧸' },
+  { id: 'yard', name: 'Yard', ico: '🦴', need: 100, outdoor: true, floor: '#9CDB7A', hello: 'My yard! 🦴' },
+  { id: 'garden', name: 'Garden', ico: '🌻', need: 150, outdoor: true, floor: '#86CC6A', hello: 'My pretty garden! 🌻' },
 ];
 const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
 
@@ -1875,10 +1900,26 @@ function showHomeScreenTip() {
   say('startBubble', 'Tap Share ⬆️, then "Add to Home Screen" to keep your coins! 🏠');
 }
 
-function loadState(extra) {
+// True when the save came from a cookie copy without the payout list, so init() takes a full IndexedDB copy of the same age.
+let loadedPartial = false;
+// The state as this tab last loaded or saved it. saveState() adds this tab's changes since then to a newer save from another tab.
+let savedBase = null;
+
+function newestSave(extra) {
   const candidates = [readLocal(), readCookie(), extra].filter(s => s && typeof s === 'object');
-  candidates.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
-  const saved = candidates[0] || {};
+  candidates.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0) || !!a.partial - !!b.partial);
+  return candidates[0] || {};
+}
+
+function loadState(extra) {
+  const saved = newestSave(extra);
+  loadedPartial = !!saved.partial;
+  const state = parseSave(saved);
+  savedBase = JSON.parse(JSON.stringify(state));
+  return state;
+}
+
+function parseSave(saved) {
   const state = defaultState();
   if (Number.isFinite(saved.totalCents)) state.totalCents = Math.max(0, Math.round(saved.totalCents));
   if (typeof saved.weights === 'string') {
@@ -1941,8 +1982,33 @@ function encodeWeights() {
   return steps.map(s => WEIGHT_CHARS[s]).join('').replace(/0+$/, '');
 }
 
+// Another tab saved since this tab last loaded or saved: an iPad tab that was frozen, or both saving at once.
+// Keep that tab's changes and add this tab's on top, so a payout or purchase made there is never undone here.
+function mergeNewer(stored) {
+  const base = savedBase;
+  const add = (theirs, ours, was) => Math.max(0, theirs + ours - was);
+  state.totalCents = add(stored.totalCents, state.totalCents, base.totalCents);
+  state.paidCents = add(stored.paidCents, state.paidCents, base.paidCents);
+  state.gems = add(stored.gems, state.gems, base.gems);
+  const seen = new Set();
+  state.payouts = [...stored.payouts, ...state.payouts]
+    .filter(po => !seen.has(po.t + ':' + po.c) && seen.add(po.t + ':' + po.c))
+    .sort((x, y) => y.t - x.t)
+    .slice(0, MAX_PAYOUTS_KEPT);
+  state.owned = [...new Set([...stored.owned, ...state.owned])];
+  state.furniture = [...new Set([...stored.furniture, ...state.furniture])];
+  for (const id of new Set([...Object.keys(stored.treats), ...Object.keys(state.treats)])) {
+    const n = Math.min(MAX_TREATS, add(stored.treats[id] || 0, state.treats[id] || 0, base.treats[id] || 0));
+    if (n) state.treats[id] = n;
+    else delete state.treats[id];
+  }
+  state.mastery = state.mastery.map((m, i) => (stored.mastery[i] === STICKER_AT ? STICKER_AT : m)); // stickers stay
+}
+
 function saveState() {
-  state.savedAt = Date.now();
+  const stored = newestSave();
+  if (savedBase && (stored.savedAt || 0) > savedBase.savedAt) mergeNewer(parseSave(stored));
+  state.savedAt = Math.max(Date.now(), (stored.savedAt || 0) + 1);
   const weights = {};
   for (const [key, w] of Object.entries(state.weights)) {
     if (w > 1.01) weights[key] = Math.round(w * 100) / 100;
@@ -1957,8 +2023,9 @@ function saveState() {
   const secure = location.protocol === 'https:' ? '; Secure' : '';
   // A browser drops a cookie over 4 KB. If lots of furniture makes it too big, the cookie copy leaves out the payout list.
   let cookie = encodeURIComponent(json);
-  if (cookie.length > 3900) cookie = encodeURIComponent(JSON.stringify({ ...JSON.parse(json), payouts: [] }));
+  if (cookie.length > 3900) cookie = encodeURIComponent(JSON.stringify({ ...JSON.parse(json), payouts: [], partial: true }));
   document.cookie = `${COOKIE_NAME}=${cookie}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax${secure}`;
+  savedBase = JSON.parse(JSON.stringify(state));
 }
 
 let state = loadState();
@@ -1966,7 +2033,8 @@ let state = loadState();
 // ===== SOUND =====
 function resumeAudio() {
   try {
-    if (typeof zzfxX !== 'undefined' && zzfxX.state === 'suspended') zzfxX.resume();
+    // iOS says 'interrupted' after a phone call, Siri or an alarm.
+    if (typeof zzfxX !== 'undefined' && (zzfxX.state === 'suspended' || zzfxX.state === 'interrupted')) zzfxX.resume();
   } catch { /* audio is optional */ }
 }
 
@@ -2092,14 +2160,17 @@ const sfx = {
 Speech.setup({ words: [[/💎/g, ' gems'], [/✓/g, ' check']] });
 
 // Children read the gameplay instructions themselves, so sentences like "Tap a color!" are shown but not spoken.
-const INSTRUCTION = /\b(tap|press|type|pick|choose|click|earn|add to home screen|get questions)\b/i;
-const spokenPart = text => text.split(/(?<=[.!?…])\s+/).filter(s => !INSTRUCTION.test(s)).join(' ');
+// Only sentences that start by telling the child what to do, so "Let's pick an outfit!" is still read.
+const INSTRUCTION = /^\W*(tap|press|type|pick|choose|get answers|get questions|add to home screen)\b/i;
+// No lookbehind in the regex: Safari before 16.4 cannot parse it, and the whole game would fail to start.
+const spokenPart = text => text.replace(/([.!?…])\s+/g, '$1\n').split('\n').filter(s => !INSTRUCTION.test(s)).join(' ');
 
 // Shows text in a speech bubble and reads it, minus instructions. `extra` (like the question) is always spoken, but not shown.
 function say(bubbleId, text, extra = '') {
   $(bubbleId).textContent = text;
   const words = [spokenPart(text), extra].filter(Boolean).join(' ');
   if (words.replace(/[^\p{L}\p{N}]/gu, '')) Speech.speak(words);
+  else Speech.stop(); // a silent bubble still ends the last one's speech
 }
 
 // ===== HELPERS =====
@@ -2401,7 +2472,7 @@ function selectMax(n, withSound) {
   selectedMax = n;
   document.querySelectorAll('.pick-btn').forEach(b => b.classList.toggle('selected', +b.dataset.n === n));
   $('startBtn').disabled = false;
-  $('pickSub').textContent = n === 1 ? 'Questions will use the number 1' : `Questions will use numbers 1 to ${n}`;
+  $('pickSub').textContent = `Questions will use numbers 0 to ${n}`;
   if (withSound) {
     sfx.select(n);
     say('startBubble', pick([
@@ -2437,6 +2508,9 @@ function startRound(max) {
     input: '',
     locked: false,
     timers: [],
+    countTimers: [], // the picture's row-by-row count, cleared when it restarts or the answer is right
+    hadZero: false,
+    zeroAt: Math.floor(Math.random() * QUESTIONS_PER_ROUND), // every round asks a 0 fact by this question
   };
   showScreen('gameScreen');
   renderBank();
@@ -2447,6 +2521,12 @@ function clearTimers() {
   if (!game) return;
   game.timers.forEach(clearTimeout);
   game.timers = [];
+  clearCountOut();
+}
+
+function clearCountOut() {
+  game.countTimers.forEach(clearTimeout);
+  game.countTimers = [];
 }
 
 function later(fn, ms) {
@@ -2454,14 +2534,14 @@ function later(fn, ms) {
 }
 
 // Facts missed more often have higher weights, so they come up more often.
-function pickQuestion() {
+function pickQuestion(zeroOnly) {
   const N = game.max;
   const options = [];
   let total = 0;
   for (let a = 0; a <= N; a++) {
     for (let b = 0; b <= N; b++) {
       const key = factKey(a, b);
-      if (key === game.prevKey) continue;
+      if (key === game.prevKey || (zeroOnly && a && b)) continue;
       let w = weightOf(a, b);
       if (a === 0 || b === 0) w *= 0.5; // keeps the easy 0 facts from filling a round of small numbers
       if (game.asked.has(key)) w *= 0.25;
@@ -2483,10 +2563,13 @@ function nextQuestion() {
     showSummary();
     return;
   }
-  const due = game.retries.findIndex(r => r.at <= game.index && r.key !== game.prevKey);
+  const needZero = !game.hadZero && game.index >= game.zeroAt;
+  const lastOne = game.index === QUESTIONS_PER_ROUND - 1;
+  const due = needZero && lastOne ? -1 : game.retries.findIndex(r => r.at <= game.index && r.key !== game.prevKey);
   const retry = due >= 0 ? game.retries.splice(due, 1)[0] : null;
-  const q = retry || pickQuestion();
-  Object.assign(game, { a: q.a, b: q.b, attempts: 0, hinted: false, input: '', locked: false });
+  const q = retry || pickQuestion(needZero);
+  if (q.a === 0 || q.b === 0) game.hadZero = true;
+  Object.assign(game, { a: q.a, b: q.b, attempts: 0, hinted: false, solved: false, input: '', locked: false });
   game.prevKey = factKey(q.a, q.b);
   game.asked.add(game.prevKey);
 
@@ -2556,6 +2639,9 @@ function submitAnswer() {
 
 function onCorrect(answer) {
   game.locked = true;
+  game.solved = true;
+  clearCountOut();
+  $('hintBtn').classList.remove('show');
   const key = factKey(game.a, game.b);
   let newSticker = false;
   if (game.attempts === 0) {
@@ -2661,6 +2747,7 @@ function showGrid(countOut) {
   const grid = $('arrayGrid');
   area.classList.add('show');
   $('hintBtn').classList.remove('show');
+  clearCountOut();
   if (!game.hinted) {
     game.hinted = true;
     $('worth').textContent = `With the picture, this one pays ${HINT_CENTS}¢`;
@@ -2673,7 +2760,7 @@ function showGrid(countOut) {
   if (a === 0 || b === 0) {
     grid.style.gridTemplateColumns = '';
     grid.innerHTML = '<span class="zero-note">No dots at all! That makes <b>0</b>.</span>';
-    if (countOut) later(() => say('gameBubble', `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make 0!`), 900);
+    if (countOut) game.countTimers.push(setTimeout(() => say('gameBubble', `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make 0!`), 900));
     $('numpad').scrollIntoView({ block: 'end', behavior: 'smooth' });
     return;
   }
@@ -2723,14 +2810,14 @@ function showGrid(countOut) {
 
   if (countOut) {
     const step = a > 8 ? 380 : 520;
-    rows.forEach((row, i) => later(() => {
+    rows.forEach((row, i) => game.countTimers.push(setTimeout(() => {
       row.cells.forEach(c => c.classList.add('lit'));
       row.sum.classList.add('show');
       sfx.count(i);
       if (i === rows.length - 1) {
         say('gameBubble', `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make ${a * b}!`);
       }
-    }, 900 + i * step));
+    }, 900 + i * step)));
   }
   $('numpad').scrollIntoView({ block: 'end', behavior: 'smooth' });
 }
@@ -2927,8 +3014,9 @@ function dressAllPoms() {
   dressPom($('pomStart'), state.worn);
   dressPom($('pomGame'), state.worn);
   dressPom($('pomCloset'), outfit);
-  dressPom($('pomHouse'), state.worn);
-  dressPom($('pomPeek'), state.worn);
+  // The walkers leave the page while their room is locked, so use their own elements.
+  dressPom(houseWalker.pom, state.worn);
+  dressPom(peekWalker.pom, state.worn);
 }
 
 function itemPicture(item) {
@@ -3169,8 +3257,11 @@ function drawRoom(el, room, walker) {
     const shown = trying || placed(f.id);
     const piece = FURN[shown || f.id];
     const cls = (shown ? '' : ' empty') + (trying ? ' trying' : '') + (housePick === f.id && el.id === 'houseRoom' ? ' picked' : '');
-    return `<button class="spot${cls}" data-id="${f.id}" aria-label="${f.name}" ` +
-      `style="left:${f.x}%;bottom:${f.y}%;width:${f.w}%;z-index:${100 - f.y}">${furnSvg(piece)}</button>`;
+    const style = `style="left:${f.x}%;bottom:${f.y}%;width:${f.w}%;z-index:${100 - f.y}"`;
+    // The start-screen preview sits inside the house button, so its pieces are pictures, not buttons.
+    return el.id === 'housePeek'
+      ? `<span class="spot${cls}" ${style}>${furnSvg(piece)}</span>`
+      : `<button class="spot${cls}" data-id="${f.id}" aria-label="${f.name}" ${style}>${furnSvg(piece)}</button>`;
   }).join('');
   const lock = roomOpen(room) ? '' : `<div class="lock-note"><span class="big">🔒</span>` +
     `<span>${room.need - stickerCount()} more ⭐ stickers</span><span>to open the ${room.name}!</span></div>`;
@@ -3278,7 +3369,7 @@ function startWandering() {
     if ($('houseScreen').classList.contains('active')) {
       if (roomOpen(room) && Date.now() - houseWalker.lastTap > 6000) wander(houseWalker, room);
     } else if ($('startScreen').classList.contains('active')) {
-      wander(peekWalker, room);
+      if (roomOpen(room)) wander(peekWalker, room);
     }
   }, 3200);
 }
@@ -3350,6 +3441,9 @@ function showHouse(text) {
   renderHouse();
   dressAllPoms();
   showScreen('houseScreen');
+  const room = ROOM[state.room];
+  // Even the Bedroom needs a few stickers. Until then the Closet button below the room still works.
+  if (!roomOpen(room)) text = text || `${room.need - stickerCount()} more ⭐ to open my ${room.name}!`;
   say('houseBubble', text || pick([
     'Welcome home! 🏠',
     'Tap and I\'ll walk there!',
@@ -3390,7 +3484,9 @@ function onSpotTap(id) {
   renderHouse();
   sfx.select(FURNITURE.indexOf(f));
   say('houseBubble', f.say);
-  visitPiece(houseWalker, f, f.opens ? () => { if ($('houseScreen').classList.contains('active')) showCloset(); } : null);
+  // Opens the closet only if the child is still on the wardrobe, not looking at colors or buying something else.
+  const stillHere = () => $('houseScreen').classList.contains('active') && housePick === id && !houseTrying;
+  visitPiece(houseWalker, f, f.opens ? () => { if (stillHere()) showCloset(); } : null);
 }
 
 // Tapping the floor walks Pom there.
@@ -3471,11 +3567,14 @@ function buyFurniture() {
 
 // ===== CASH OUT =====
 let payConfirmTimer = null;
+let payAsked = 0; // the amount the grown-up was asked to confirm
 
 function resetPayButton() {
   clearTimeout(payConfirmTimer);
+  payAsked = 0;
+  $('payConfirm').hidden = true;
   const btn = $('payBtn');
-  btn.classList.remove('confirming');
+  btn.hidden = false;
   btn.disabled = state.totalCents <= 0;
   btn.textContent = state.totalCents > 0 ? `Pay out ${formatMoney(state.totalCents)}` : 'Nothing to pay out yet';
 }
@@ -3497,17 +3596,23 @@ function showCashout() {
   showScreen('cashoutScreen');
 }
 
-// First tap asks for confirmation; the second records the payout and empties the bank.
+// Pay out asks "Did you pay?". Yes stays off for a moment, so a fast double tap cannot pay by accident.
 function onPayTap() {
-  const btn = $('payBtn');
   if (state.totalCents <= 0) return;
-  if (!btn.classList.contains('confirming')) {
-    btn.classList.add('confirming');
-    btn.textContent = `Tap again once ${formatMoney(state.totalCents)} is paid ✓`;
-    sfx.hint();
-    payConfirmTimer = setTimeout(resetPayButton, 5000);
-    return;
-  }
+  payAsked = state.totalCents;
+  $('payBtn').hidden = true;
+  $('payAsk').textContent = `Did you pay ${formatMoney(payAsked)}?`;
+  $('payConfirm').hidden = false;
+  const yes = $('payYesBtn');
+  yes.disabled = true;
+  sfx.hint();
+  clearTimeout(payConfirmTimer);
+  payConfirmTimer = setTimeout(() => { yes.disabled = false; }, PAY_CONFIRM_DELAY);
+}
+
+function onPayYes() {
+  // The bank changed in another tab while asking, so ask again with the new amount.
+  if (!payAsked || payAsked !== state.totalCents) { resetPayButton(); return; }
   const amount = state.totalCents;
   state.payouts.unshift({ t: Date.now(), c: amount });
   state.payouts.length = Math.min(state.payouts.length, MAX_PAYOUTS_KEPT);
@@ -3533,7 +3638,8 @@ function renderMute() {
 function init() {
   houseWalker = makeWalker('pomHouse');
   peekWalker = makeWalker('pomPeek');
-  document.body.append(houseWalker.el, peekWalker.el); // so the loop below finds their Poms; drawRoom moves them
+  $('houseRoom').append(houseWalker.el); // inside their rooms from the start, so no stray Pom shows on the start screen
+  $('housePeek').append(peekWalker.el);
   document.querySelectorAll('#pomStart, #pomGame, #pomCloset, #pomHouse, #pomPeek').forEach(el => {
     el.appendChild($('pomTemplate').content.cloneNode(true));
     el.querySelector('svg').insertAdjacentHTML('afterbegin', '<defs>' + ownPaint(PAINT_DEFS.replace(/id="(rainbow|glitter)"/g, 'id="$1-' + el.id + '"'), el.id) + '</defs>');
@@ -3560,7 +3666,9 @@ function init() {
   Speech.setMuted(state.muted);
   startWandering();
 
-  document.addEventListener('pointerdown', resumeAudio, { passive: true });
+  // Safari only unlocks sound on touchend or click, not on a touch's pointerdown.
+  ['pointerdown', 'touchend', 'click'].forEach(type => document.addEventListener(type, resumeAudio, { capture: true, passive: true }));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) resumeAudio(); });
 
   document.querySelectorAll('#muteBtn, #barMuteBtn').forEach(btn => btn.addEventListener('click', () => {
     state.muted = !state.muted;
@@ -3575,9 +3683,13 @@ function init() {
   window.addEventListener('storage', e => {
     if (e.key === STORE_KEY && e.newValue !== null) reloadState();
   });
+  // A tab that iPad Safari froze, or one brought back with the Back button, may have missed that event.
+  const catchUp = () => { if (!document.hidden && (newestSave().savedAt || 0) > state.savedAt) reloadState(); };
+  document.addEventListener('visibilitychange', catchUp);
+  window.addEventListener('pageshow', catchUp);
   if (window.indexedDB) {
     SaveDB.read().then(saved => {
-      if (saved && (saved.savedAt || 0) > state.savedAt) reloadState(saved);
+      if (saved && ((saved.savedAt || 0) > state.savedAt || (loadedPartial && !saved.partial && saved.savedAt === state.savedAt))) reloadState(saved);
       else if (state.savedAt) saveState(); // older saves get their IndexedDB copy now
     });
   }
@@ -3660,7 +3772,10 @@ function init() {
     if (btn) onColorTap(btn.dataset.id);
   });
   $('payBtn').addEventListener('click', onPayTap);
+  $('payYesBtn').addEventListener('click', onPayYes);
+  $('payNoBtn').addEventListener('click', () => { sfx.tap(0); resetPayButton(); });
   $('hintBtn').addEventListener('click', () => {
+    if (!game || game.solved) return;
     sfx.hint();
     say('gameBubble', `${game.a} ${game.a === 1 ? 'row' : 'rows'} of ${game.b}. How many?`);
     showGrid(false);

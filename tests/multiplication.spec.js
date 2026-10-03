@@ -56,15 +56,17 @@ test('cash out pays the full balance, keeps history, and survives reload', async
 
   const payBtn = page.locator('#payBtn');
   await expect(payBtn).toHaveText('Pay out $3.40');
-  await payBtn.click(); // first tap only asks to confirm
+  await payBtn.click(); // only asks to confirm
+  await expect(page.locator('#payAsk')).toHaveText('Did you pay $3.40?');
   await expect(page.locator('#cashBankAmount')).toHaveText('$3.40');
-  await payBtn.click();
+  await page.locator('#payYesBtn').click();
 
   await expect(page.locator('#cashBankAmount')).toHaveText('$0.00');
   await expect(page.locator('#statPaid')).toHaveText('$3.40');
   await expect(page.locator('#statAllTime')).toHaveText('$3.40');
   await expect(page.locator('.payout-row')).toHaveCount(1);
   await expect(page.locator('.payout-row')).toContainText('$3.40');
+  await expect(payBtn).toBeVisible();
   await expect(payBtn).toBeDisabled();
 
   await page.reload();
@@ -74,6 +76,26 @@ test('cash out pays the full balance, keeps history, and survives reload', async
   await page.locator('#cashBackBtn').click();
   await expect(page.locator('#startScreen')).toHaveClass(/active/);
   await expect(page.locator('#startBankAmount')).toHaveText('$0.00');
+});
+
+test('a quick double tap on Pay out does not pay; Not yet cancels', async ({ page }) => {
+  await page.evaluate(() => { state.totalCents = 250; saveState(); });
+  await page.reload();
+  await page.locator('#cashoutBtn').click();
+  await page.locator('#payBtn').click();
+  // "Yes, paid" sits under where Pay out was, and stays off for a second.
+  await expect(page.locator('#payYesBtn')).toBeDisabled();
+  await page.locator('#payYesBtn').click({ force: true });
+  await expect(page.locator('#cashBankAmount')).toHaveText('$2.50');
+  await page.locator('#payNoBtn').click();
+  await expect(page.locator('#payConfirm')).toBeHidden();
+  await expect(page.locator('#payBtn')).toHaveText('Pay out $2.50');
+  expect(await page.evaluate(() => state.paidCents)).toBe(0);
+
+  await page.locator('#payBtn').click();
+  await expect(page.locator('#payYesBtn')).toBeEnabled({ timeout: 2000 });
+  await page.locator('#payYesBtn').click();
+  await expect(page.locator('#cashBankAmount')).toHaveText('$0.00');
 });
 
 test('piggy bank shows everywhere and fills up as the balance grows', async ({ page }) => {
@@ -169,6 +191,36 @@ test('a save in another tab is not undone by this tab', async ({ page, context }
   await other.reload();
   await expect(other.locator('#startBankAmount')).toHaveText('$5.07');
   expect(await other.evaluate(() => state.gems)).toBe(3);
+});
+
+test('every round asks at least one 0 fact', async ({ page }) => {
+  const missing = await page.evaluate(() => {
+    let rounds = 0;
+    for (let r = 0; r < 60; r++) {
+      startRound([3, 9, 19][r % 3]);
+      let zero = false;
+      for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
+        if (game.a === 0 || game.b === 0) zero = true;
+        if (i < QUESTIONS_PER_ROUND - 1) { game.index++; nextQuestion(); }
+      }
+      if (!zero) rounds++;
+    }
+    goHome();
+    return rounds;
+  });
+  expect(missing).toBe(0);
+});
+
+test('a tab that missed another tab\'s payout adds to it instead of undoing it', async ({ page, context }) => {
+  await page.evaluate(() => { state.totalCents = 500; state.gems = 4; saveState(); });
+  const other = await context.newPage();
+  await other.goto('/multiplication-ms-menna.html');
+  // Like an iPad tab that Safari froze: this tab hears nothing from the other one.
+  await page.evaluate(() => { window.reloadState = () => {}; });
+  await other.evaluate(() => { payAsked = state.totalCents; onPayYes(); state.gems -= 2; saveState(); });
+  await page.evaluate(() => { changeBank(7); state.gems += 1; saveState(); });
+  expect(await page.evaluate(() => ({ cents: state.totalCents, paid: state.paidCents, gems: state.gems, payouts: state.payouts.length })))
+    .toEqual({ cents: 7, paid: 500, gems: 3, payouts: 1 });
 });
 
 test('Ms. Menna does a trick for 3 right in a row', async ({ page }) => {
@@ -403,6 +455,37 @@ test('the IndexedDB copy brings back progress if localStorage and the cookie are
   expect(await page.evaluate(() => state.gems)).toBe(42);
 });
 
+test('a cookie copy without payouts does not erase the payout list in IndexedDB', async ({ page }) => {
+  await page.evaluate(() => {
+    state.furniture = FURNITURE.flatMap(f => Object.values(FURN).filter(p => p.base === f.id && p.price > 0).map(p => p.id));
+    state.owned = Object.values(ITEMS).filter(i => i.price > 0).map(i => i.id);
+    // More payouts than are kept, so the save is too big for the cookie and the cookie copy drops them
+    state.payouts = Array.from({ length: 300 }, (_, i) => ({ t: Date.now() - i, c: 12345 + i }));
+    FACT_KEYS.forEach(k => { state.weights[k] = 11.55; });
+    state.mastery = state.mastery.map(() => 3);
+    state.totalCents = 321;
+    saveState();
+  });
+  await page.waitForTimeout(300);
+  const cookie = await page.evaluate(() => JSON.parse(decodeURIComponent(document.cookie.match(/mennaMult=([^;]*)/)[1])));
+  expect(cookie).toMatchObject({ partial: true, payouts: [] });
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => state.payouts.length)).toBe(30);
+  expect(await page.evaluate(() => state.payouts[0].c)).toBe(12345);
+  expect(await page.evaluate(() => state.totalCents)).toBe(321);
+});
+
+test('the house Pom stays inside the house before it is opened', async ({ page }) => {
+  // Even with the Bedroom locked on a new save, she must never land on the body.
+  expect(await page.evaluate(() => houseWalker.el.parentElement.id)).toBe('houseRoom');
+  await expect(page.locator('#pomHouse')).toBeHidden();
+  await page.evaluate(() => { for (let i = 0; i < 10; i++) state.mastery[i] = STICKER_AT; saveState(); });
+  await page.reload();
+  expect(await page.evaluate(() => houseWalker.el.parentElement.id)).toBe('houseRoom');
+  await expect(page.locator('#pomHouse')).toBeHidden();
+});
+
 test('treats are bought with gems, kept in the jar, and used up when Pom eats them', async ({ page }) => {
   await page.evaluate(() => { state.gems = 10; saveState(); renderGems(); });
   await expect(page.locator('#treatJar')).toBeHidden();
@@ -477,6 +560,16 @@ test('Pom buys toys, plays with them, and uses them in streak tricks', async ({ 
   expect(await page.evaluate(() => doTrick(7).cls)).toBe('trick-spin');
 });
 
+test('the Bedroom needs 10 stickers, but the Closet works before that', async ({ page }) => {
+  await page.locator('#houseBtn').click();
+  await expect(page.locator('#houseRoom')).toHaveClass(/locked/);
+  await expect(page.locator('#houseBubble')).toHaveText('10 more ⭐ to open my Bedroom!');
+  await expect(page.locator('#furnItems')).toBeHidden();
+  await page.locator('#closetBtn').click();
+  await expect(page.locator('#closetScreen')).toHaveClass(/active/);
+  expect(await page.evaluate(() => ROOMS.map(r => r.need))).toEqual([10, 30, 60, 100, 150]);
+});
+
 test("Pom's House opens rooms with stickers and buys furniture colors with gems", async ({ page }) => {
   await page.evaluate(() => { state.gems = 30; state.totalCents = 120; for (let i = 0; i < 30; i++) state.mastery[i] = STICKER_AT; saveState(); });
   await page.reload();
@@ -487,7 +580,7 @@ test("Pom's House opens rooms with stickers and buys furniture colors with gems"
   await expect(page.locator('.room-tab[data-room="kitchen"]')).not.toHaveClass(/locked/);
   await expect(page.locator('.room-tab[data-room="playroom"]')).toHaveClass(/locked/);
   await page.locator('.room-tab[data-room="playroom"]').click();
-  await expect(page.locator('#houseBubble')).toHaveText('40 more ⭐ to open it!');
+  await expect(page.locator('#houseBubble')).toHaveText('30 more ⭐ to open it!');
 
   // The closet is free; an empty spot shows its colors, and a color is shown in place before buying
   await expect(page.locator('#houseRoom .spot[data-id="wardrobe"]')).not.toHaveClass(/empty/);

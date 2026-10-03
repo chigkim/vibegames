@@ -81,6 +81,19 @@ test.describe('Multiplication with Ms. Menna', () => {
     expect(await sayAndHear('gameBubble', 'Let\'s multiply! Type your answer.', '6 times 7?')).toEqual(['Let\'s multiply! 6 times 7?']);
     expect(await sayAndHear('startBubble', 'Yay! My new Bed! 🐾')).toEqual(['Yay! My new Bed!']);
     await expect(page.locator('#startBubble')).toHaveText('Yay! My new Bed! 🐾');
+    expect(await sayAndHear('startBubble', 'That costs $0.50. Yay!')).toEqual(['That costs $0.50. Yay!']);
+  });
+
+  test('a bubble with only instructions stops the last line', async ({ page }) => {
+    await page.evaluate(() => say('startBubble', 'Woof!'));
+    const before = await page.evaluate(() => window.__speech.cancels);
+    await page.evaluate(() => say('startBubble', 'Tap my things to play!'));
+    expect(await page.evaluate(() => window.__speech.cancels)).toBeGreaterThan(before);
+  });
+
+  test('the game script uses no regex lookbehind, which Safari before 16.4 cannot parse', async ({ page }) => {
+    const scripts = await page.evaluate(() => [...document.scripts].map(s => s.textContent).join('\n'));
+    expect(scripts).not.toMatch(/\(\?<[=!]/);
   });
 
   test('stops talking when the child starts typing', async ({ page }) => {

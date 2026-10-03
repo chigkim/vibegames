@@ -15,13 +15,17 @@ test.beforeEach(async ({ page }) => {
 test('easy facts pay less than hard ones', async ({ page }) => {
   const pay = await page.evaluate(() => [
     [1, 9], [9, 1], [2, 3], [13, 2], [10, 7], [3, 10], [3, 3], [4, 12], [5, 5],
-    [6, 6], [7, 8], [6, 12], [12, 13], [11, 11],
+    [6, 6], [7, 8], [6, 12], [12, 13], [11, 11], [1, 19], [2, 17], [10, 19], [4, 17], [7, 15], [13, 19],
+    [16, 18], [19, 19], [0, 0], [0, 19], [13, 0],
   ].map(([a, b]) => centsFor(a, b)));
-  expect(pay).toEqual([1, 1, 2, 2, 2, 2, 4, 4, 4, 7, 7, 7, 7, 7]);
+  expect(pay).toEqual([1, 1, 2, 2, 2, 2, 3, 5, 3, 6, 6, 7, 7, 7, 1, 2, 2, 8, 9, 9, 10, 10, 1, 1, 1]);
+  // Every pay from 1¢ to 10¢ is used
+  const all = await page.evaluate(() => [...new Set(FACT_KEYS.map(k => centsFor(...k.split('x').map(Number))))]);
+  expect(all.sort((x, y) => x - y)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 });
 
 test('right answer adds the shown pay, wrong answer takes 2¢', async ({ page }) => {
-  await page.locator('#picker .pick-btn').nth(11).click(); // up to 12
+  await page.locator('#picker .pick-btn[data-n="12"]').click(); // up to 12
   await page.locator('#startBtn').click();
 
   const a = Number(await page.locator('#factorA').innerText());
@@ -98,7 +102,7 @@ async function answer(page, right) {
 }
 
 test('a first wrong answer offers the picture hint', async ({ page }) => {
-  await page.locator('#picker .pick-btn').nth(4).click(); // up to 5
+  await page.locator('#picker .pick-btn[data-n="5"]').click(); // up to 5
   await page.locator('#startBtn').click();
   await expect(page.locator('#hintBtn')).toBeHidden();
 
@@ -112,7 +116,7 @@ test('a first wrong answer offers the picture hint', async ({ page }) => {
 test('a right answer after the picture pays 1¢ whatever the factors', async ({ page }) => {
   await page.evaluate(() => { state.totalCents = 50; saveState(); });
   await page.reload();
-  await page.locator('#picker .pick-btn').nth(11).click(); // up to 12
+  await page.locator('#picker .pick-btn[data-n="12"]').click(); // up to 12
   await page.locator('#startBtn').click();
 
   // Hint button after one miss
@@ -133,6 +137,27 @@ test('a right answer after the picture pays 1¢ whatever the factors', async ({ 
   await expect(page.locator('#gameBankAmount')).toHaveText('$0.46'); // 49 − 2 − 2 + 1
 });
 
+test('0 facts come up in rounds, pay 1¢, and the picture shows no dots', async ({ page }) => {
+  const zeros = await page.evaluate(() => {
+    game = { max: 3, asked: new Set(), prevKey: null };
+    let n = 0;
+    for (let i = 0; i < 400; i++) { const q = pickQuestion(); if (q.a === 0 || q.b === 0) n++; }
+    return n;
+  });
+  expect(zeros).toBeGreaterThan(40);
+  expect(zeros).toBeLessThan(260);
+
+  await page.locator('#picker .pick-btn[data-n="5"]').click();
+  await page.locator('#startBtn').click();
+  await page.evaluate(() => { game.a = 0; game.b = 7; $('factorA').textContent = 0; $('factorB').textContent = 7; });
+  await answer(page, false);
+  await page.locator('#hintBtn').click({ force: true });
+  await expect(page.locator('#arrayGrid .zero-note')).toContainText('0');
+  await answer(page, true);
+  await expect(page.locator('#feedback')).toHaveText('0 × 7 = 0 ✓');
+  await expect(page.locator('#gameBankAmount')).toHaveText('$0.01'); // 0 − 2 is floored at 0, then + 1
+});
+
 test('a save in another tab is not undone by this tab', async ({ page, context }) => {
   const other = await context.newPage();
   await other.goto('/multiplication-ms-menna.html');
@@ -147,7 +172,7 @@ test('a save in another tab is not undone by this tab', async ({ page, context }
 });
 
 test('Ms. Menna does a trick for 3 right in a row', async ({ page }) => {
-  await page.locator('#picker .pick-btn').nth(11).click();
+  await page.locator('#picker .pick-btn[data-n="12"]').click();
   await page.locator('#startBtn').click();
   for (let i = 0; i < 2; i++) {
     await answer(page, true);
@@ -162,43 +187,84 @@ test('Ms. Menna does a trick for 3 right in a row', async ({ page }) => {
 test('stickers fill in after 3 first-try answers and give medals', async ({ page }) => {
   await page.evaluate(() => {
     state.mastery[FACT_INDEX['3x7']] = 3;
+    state.mastery[FACT_INDEX['4x17']] = 3;
     state.mastery[FACT_INDEX['2x5']] = 1;
-    // all facts up to 2 learned -> gold; 3 of the 6 facts up to 3 -> bronze
-    for (const k of ['1x1', '1x2', '2x2']) state.mastery[FACT_INDEX[k]] = 3;
+    // all 10 facts from 0 to 3 learned -> gold; 10 of the 15 facts up to 4 -> silver
+    for (const k of ['0x0', '0x1', '0x2', '0x3', '1x1', '1x2', '1x3', '2x2', '2x3', '3x3']) state.mastery[FACT_INDEX[k]] = 3;
     saveState();
   });
   await page.reload();
-  await expect(page.locator('#picker .pick-btn').nth(0).locator('.medal')).toHaveText('🥇');
-  await expect(page.locator('#picker .pick-btn').nth(1).locator('.medal')).toHaveText('🥇');
-  await expect(page.locator('#picker .pick-btn').nth(2).locator('.medal')).toHaveText('🥉');
-  await expect(page.locator('#picker .pick-btn').nth(12).locator('.medal')).toHaveCount(0);
+  await expect(page.locator('#picker .pick-btn')).toHaveCount(17); // 3 to 19
+  await expect(page.locator('#picker .pick-btn').first()).toHaveText(/^3/);
+  await expect(page.locator('#picker .pick-btn[data-n="3"] .medal')).toHaveText('🥇');
+  await expect(page.locator('#picker .pick-btn[data-n="4"] .medal')).toHaveText('🥈');
+  await expect(page.locator('#picker .pick-btn[data-n="19"] .medal')).toHaveCount(0);
 
   await page.locator('#stickersBtn').click();
-  await expect(page.locator('#stickerCount')).toHaveText('4 of 91 stickers');
-  // 14×14 grid; 3×7 and 7×3 both show the sticker
-  await expect(page.locator('#stickerGrid > div')).toHaveCount(196);
-  await expect(page.locator('#stickerGrid > .got')).toHaveCount(6); // 1×1, 2×2, and both halves of 1×2 and 3×7
+  await expect(page.locator('#stickerCount')).toHaveText('12 of 210 stickers');
+  // 0 to 19 plus headings is a 21×21 grid; 3×7 and 7×3 both show the sticker
+  await expect(page.locator('#stickerGrid > div')).toHaveCount(441);
+  await expect(page.locator('#stickerGrid > .got')).toHaveCount(20); // 0×0, 1×1, 2×2, 3×3, and both halves of the other 8
+  await expect(page.locator('#stickerGrid > div').nth(1)).toHaveText('0');
   await expect(page.locator('#stickerGrid .dots')).toHaveCount(2);
   await page.locator('#stickerBackBtn').click();
   await expect(page.locator('#startScreen')).toHaveClass(/active/);
 });
 
 test('a right answer earns the third dot and a sticker; a wrong one costs a dot', async ({ page }) => {
-  await page.locator('#picker .pick-btn').nth(0).click(); // only 1 × 1
+  await page.locator('#picker .pick-btn[data-n="3"]').click();
   await page.evaluate(() => { state.mastery[FACT_INDEX['1x1']] = 2; });
   await page.locator('#startBtn').click();
+  await askOneTimesOne(page);
   await answer(page, true);
   expect(await page.evaluate(() => state.mastery[FACT_INDEX['1x1']])).toBe(3);
   await expect(page.locator('.banner')).toContainText('New sticker: 1 × 1');
 
   await page.evaluate(() => { state.mastery[FACT_INDEX['1x1']] = 2; });
   await page.waitForTimeout(1900);
+  await askOneTimesOne(page);
   await answer(page, false);
   expect(await page.evaluate(() => state.mastery[FACT_INDEX['1x1']])).toBe(1);
 });
 
+async function askOneTimesOne(page) {
+  await page.evaluate(() => { game.a = 1; game.b = 1; $('factorA').textContent = 1; $('factorB').textContent = 1; });
+}
+
+test('a save from v11 (numbers up to 13) keeps every sticker, coin, gem and closet item', async ({ page }) => {
+  const old = await page.evaluate(() => {
+    const oldKeys = [];
+    for (let a = 1; a <= 13; a++) for (let b = a; b <= 13; b++) oldKeys.push(`${a}x${b}`);
+    const mastery = oldKeys.map(k => (k === '7x8' || k === '13x13' ? 3 : k === '6x9' ? 2 : 0)).join('');
+    const save = {
+      totalCents: 437, paidCents: 120, payouts: [{ t: 1, c: 120 }], weights: { '7x8': 5.5, '12x13': 3 },
+      mastery, lastMax: 13, muted: false, gems: 9, owned: 'party,choc', worn: { hat: 'party', fur: 'choc' }, savedAt: Date.now(),
+    };
+    localStorage.setItem(STORE_KEY, JSON.stringify(save));
+    return mastery;
+  });
+  await page.reload();
+  const loaded = await page.evaluate(() => ({
+    cents: state.totalCents, paid: state.paidCents, gems: state.gems, owned: state.owned, worn: state.worn, lastMax: state.lastMax,
+    m78: state.mastery[FACT_INDEX['7x8']], m1313: state.mastery[FACT_INDEX['13x13']], m69: state.mastery[FACT_INDEX['6x9']],
+    learned: state.mastery.filter(m => m === 3).length, w78: state.weights['7x8'], w1213: state.weights['12x13'],
+  }));
+  expect(loaded).toEqual({
+    cents: 437, paid: 120, gems: 9, owned: ['party', 'choc'], worn: { hat: 'party', fur: 'choc' }, lastMax: 13,
+    m78: 3, m1313: 3, m69: 2, learned: 2, w78: 5.5, w1213: 3,
+  });
+  await expect(page.locator('#picker .pick-btn[data-n="13"]')).toHaveClass(/selected/);
+
+  // The new save starts with the v11 sticker string, so an old tab still open reads it right
+  const saved = await page.evaluate(() => { saveState(); return JSON.parse(localStorage.getItem(STORE_KEY)); });
+  expect(saved.mastery.slice(0, 91)).toBe(old);
+  expect(saved.mastery).toHaveLength(210);
+  await page.reload();
+  expect(await page.evaluate(() => [state.weights['7x8'], state.weights['12x13'], state.weights['1x1']])).toEqual([5.5, 3, undefined]);
+});
+
 test('a missed fact comes back later in the same round', async ({ page }) => {
-  await page.locator('#picker .pick-btn').nth(12).click(); // up to 13
+  await page.locator('#picker .pick-btn[data-n="13"]').click(); // up to 13
   await page.locator('#startBtn').click();
   const missed = await answer(page, false);
   await page.waitForTimeout(800);
@@ -213,7 +279,7 @@ test('a missed fact comes back later in the same round', async ({ page }) => {
 });
 
 test('first-try answers earn Pom gems without changing the money', async ({ page }) => {
-  await page.locator('#picker .pick-btn').nth(11).click();
+  await page.locator('#picker .pick-btn[data-n="12"]').click();
   await page.locator('#startBtn').click();
   const { a, b } = await answer(page, true);
   const cents = await page.evaluate(([x, y]) => centsFor(x, y), [a, b]);

@@ -48,7 +48,7 @@ const GAMES = [
     file: 'multiplication-ms-menna.html',
     canvas: false,
     start: async page => {
-      await page.locator('#picker .pick-btn').nth(4).click();
+      await page.locator('#picker .pick-btn[data-n="5"]').click();
       await page.locator('#startBtn').click();
     },
     started: async page => { await expect(page.locator('#gameScreen')).toHaveClass(/active/); },

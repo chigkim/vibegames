@@ -59,7 +59,7 @@ test.describe('Multiplication with Ms. Menna', () => {
   });
 
   test('reads the question in the best voice on the device', async ({ page }) => {
-    await page.locator('#picker .pick-btn').nth(11).click();
+    await page.locator('#picker .pick-btn[data-n="12"]').click();
     await page.locator('#startBtn').click();
     const a = await page.locator('#factorA').innerText();
     const b = await page.locator('#factorB').innerText();
@@ -70,7 +70,7 @@ test.describe('Multiplication with Ms. Menna', () => {
   });
 
   test('stops talking when the child starts typing', async ({ page }) => {
-    await page.locator('#picker .pick-btn').nth(11).click();
+    await page.locator('#picker .pick-btn[data-n="12"]').click();
     await page.locator('#startBtn').click();
     await expect.poll(async () => (await spoken(page)).length).toBeGreaterThan(0);
     const before = await page.evaluate(() => window.__speech.cancels);
@@ -80,7 +80,7 @@ test.describe('Multiplication with Ms. Menna', () => {
 
   test('says nothing when muted', async ({ page }) => {
     await page.locator('#muteBtn').click();
-    await page.locator('#picker .pick-btn').nth(11).click();
+    await page.locator('#picker .pick-btn[data-n="12"]').click();
     await page.locator('#startBtn').click();
     await page.waitForTimeout(300);
     expect(await spoken(page)).toEqual([]);

@@ -450,8 +450,8 @@
   }
 
   .pick-btn {
-    flex: 0 0 calc((100% - 4 * var(--pick-gap)) / 5);
-    max-width: 96px;
+    flex: 0 0 calc((100% - 5 * var(--pick-gap)) / 6);
+    max-width: 84px;
     aspect-ratio: 1;
     border-radius: 20px;
     border: 3px solid rgba(0,0,0,0.06);
@@ -662,6 +662,8 @@
 
   .grid-caption .r { color: #E0689A; }
   .grid-caption .c { color: #3E8FC9; }
+  .array-grid .zero-note { font-weight: 800; color: var(--dark-brown); font-size: clamp(1rem, 3.4vmin, 1.4rem); padding: 10px 0; }
+  .array-grid .zero-note b { color: var(--orange); font-size: 1.4em; }
 
   .array-grid {
     display: inline-grid;
@@ -852,8 +854,10 @@
   }
   .worth.tier-1 { background: #F1EDE8; border-color: #D8CFC4; color: var(--brown); }
   .worth.tier-2 { background: #E6F4FF; border-color: var(--sky); }
-  .worth.tier-4 { background: #E9F8EC; border-color: var(--green); }
-  .worth.tier-7 { background: linear-gradient(135deg, #FFF3C4, #FFE08A); border-color: #E8B84A; }
+  .worth.tier-3, .worth.tier-4, .worth.tier-5 { background: #E9F8EC; border-color: var(--green); }
+  .worth.tier-6, .worth.tier-7 { background: linear-gradient(135deg, #FFF3C4, #FFE08A); border-color: #E8B84A; }
+  .worth.tier-8, .worth.tier-9 { background: linear-gradient(135deg, #FFE0CC, #FFB98A); border-color: #E8884A; }
+  .worth.tier-10 { background: linear-gradient(135deg, #FFD6F0, #E0D0FF, #C4E4FF); border-color: #B79CF2; }
 
   /* ===== STICKER CHART ===== */
   .btn-row { display: flex; gap: 10px; }
@@ -861,10 +865,10 @@
   .sticker-count { font-weight: 800; color: var(--dark-brown); margin: 2px 0 10px; }
   .sticker-grid {
     display: grid;
-    grid-template-columns: repeat(14, 1fr);
+    grid-template-columns: repeat(21, 1fr);
     gap: 2px;
     margin: 0 auto 10px;
-    max-width: 560px;
+    max-width: 680px;
   }
   .sticker-grid > div {
     aspect-ratio: 1;
@@ -872,13 +876,13 @@
     align-items: center;
     justify-content: center;
     border-radius: 5px;
-    font-size: clamp(0.7rem, 3.2vmin, 1.5rem);
+    font-size: clamp(0.5rem, 2.3vmin, 1.2rem);
     line-height: 1;
     background: white;
     border: 1px solid var(--peach);
     overflow: hidden;
   }
-  .sticker-grid > .head { font-family: 'Baloo 2', cursive; font-weight: 800; color: var(--dark-brown); border: none; font-size: clamp(0.6rem, 2.4vmin, 1.1rem); }
+  .sticker-grid > .head { font-family: 'Baloo 2', cursive; font-weight: 800; color: var(--dark-brown); border: none; font-size: clamp(0.5rem, 2vmin, 0.95rem); }
   .sticker-grid > .corner { background: none; border: none; color: var(--orange); font-weight: 800; }
   .sticker-grid > .got { background: #FFF6D6; border-color: var(--gold); }
   .sticker-grid > .new { animation: starPop 0.6s cubic-bezier(0.34,1.56,0.64,1) both; }
@@ -1055,7 +1059,7 @@
     <div class="pom-container" id="pomStart"></div>
     <div class="toy-shelf" id="toyShelf" hidden></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v11 - Updated 2026-10-03 15:04 EDT</p>
+    <p class="version">v12 - Updated 2026-10-03 15:19 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1065,7 +1069,7 @@
     </div>
 
     <p class="pick-title">Pick your biggest number</p>
-    <p class="pick-sub" id="pickSub">Choose a number from 1 to 13</p>
+    <p class="pick-sub" id="pickSub">Choose a number from 3 to 19</p>
     <div class="picker" id="picker"></div>
     <p class="medal-key">🥉 ⅓ of stickers · 🥈 ⅔ · 🥇 all of them</p>
 
@@ -1205,28 +1209,38 @@
 const QUESTIONS_PER_ROUND = 10;
 const WRONG_CENTS = 2;
 const HINT_CENTS = 1; // Pay for a right answer after the picture was shown, whatever the factors.
-const MAX_NUMBER = 13;
+const MIN_PICK = 3; // smallest "up to" choice on the start screen
+const MAX_NUMBER = 19;
+const OLD_MAX_NUMBER = 13; // v11 and earlier stopped at 13; their facts keep the first places in FACT_KEYS
 const MAX_PAYOUTS_KEPT = 30; // keeps the cookie mirror under its 4 KB limit
 const STORE_KEY = 'mennaMultiplication';
 const COOKIE_NAME = 'mennaMult';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 400; // Browsers cap cookie lifetime at 400 days.
 const PICK_COLORS = ['#FFB3C6', '#FFD6B0', '#FFE08A', '#C8F0B0', '#A8DAFF', '#C9B8FF', '#FFC4A8',
-  '#B8F0E0', '#FFD1F0', '#D6E8FF', '#FFE9A8', '#D9C8FF', '#FFB8A8'];
+  '#B8F0E0', '#FFD1F0', '#D6E8FF', '#FFE9A8', '#D9C8FF', '#FFB8A8', '#B8E8C8', '#FFCFE0',
+  '#C4E4FF', '#FFE2B8', '#E0D0FF', '#C8F5E8'];
 const ROW_COLORS = ['#FF9FBF', '#FFB870', '#FFD84D', '#8FDB7A', '#6FC3F2', '#A994F5', '#FF9E80',
   '#5FD6B8', '#F59BE0', '#8FB8F5', '#F2C94C', '#B79CF2', '#FF8A8A'];
 
-// Pay per right answer. Easy facts pay less so picking 2 or 3 isn't the best way to earn.
+// Pay per right answer, 1¢ to 10¢. Easy facts pay less so picking small numbers isn't the best way to earn.
 function centsFor(a, b) {
   const small = Math.min(a, b);
-  if (small === 1) return 1;
+  const big = Math.max(a, b);
+  if (small <= 1) return 1;
   if (small === 2 || a === 10 || b === 10) return 2;
-  if (small <= 5) return 4;
-  return 7;
+  if (small >= 14) return 10;
+  if (big >= 14) return small <= 5 ? 8 : 9;
+  if (small <= 5) return big <= 5 ? 3 : big <= 9 ? 4 : 5;
+  return big <= 9 ? 6 : 7;
 }
 
 // Every fact once (3×7 and 7×3 are the same), in a fixed order so progress saves as one short string.
+// Facts up to 13 come first in the v11 order, so old saves line up and an old open tab still reads them right.
 const FACT_KEYS = [];
-for (let a = 1; a <= MAX_NUMBER; a++) for (let b = a; b <= MAX_NUMBER; b++) FACT_KEYS.push(`${a}x${b}`);
+for (let a = 1; a <= OLD_MAX_NUMBER; a++) for (let b = a; b <= OLD_MAX_NUMBER; b++) FACT_KEYS.push(`${a}x${b}`);
+for (let b = OLD_MAX_NUMBER + 1; b <= MAX_NUMBER; b++) for (let a = 1; a <= b; a++) FACT_KEYS.push(`${a}x${b}`);
+for (let b = 0; b <= MAX_NUMBER; b++) FACT_KEYS.push(`0x${b}`); // added in v12, so they go last
+const ZERO_COLOR = '#EDE6DE'; // sticker chart heading for 0
 const FACT_INDEX = Object.fromEntries(FACT_KEYS.map((k, i) => [k, i]));
 const STICKER_AT = 3; // first-try right answers needed for a sticker
 const STICKERS = ['⭐', '🐾', '🌈', '🦋', '🍓', '🌸', '🐶', '🍩', '🎈', '🦄', '🍭', '🌟', '💎'];
@@ -1339,9 +1353,14 @@ function loadState() {
   const saved = candidates[0] || {};
   const state = defaultState();
   if (Number.isFinite(saved.totalCents)) state.totalCents = Math.max(0, Math.round(saved.totalCents));
-  if (saved.weights && typeof saved.weights === 'object') {
+  if (typeof saved.weights === 'string') {
+    for (let i = 0; i < FACT_KEYS.length; i++) {
+      const step = WEIGHT_CHARS.indexOf(saved.weights[i]);
+      if (step > 0) state.weights[FACT_KEYS[i]] = Math.min(12, 1 + step / WEIGHT_STEPS);
+    }
+  } else if (saved.weights && typeof saved.weights === 'object') { // v11 and earlier
     for (const [key, w] of Object.entries(saved.weights)) {
-      if (/^\d+x\d+$/.test(key) && Number.isFinite(w) && w > 1) state.weights[key] = Math.min(w, 12);
+      if (key in FACT_INDEX && Number.isFinite(w) && w > 1) state.weights[key] = Math.min(w, 12);
     }
   }
   if (typeof saved.mastery === 'string') {
@@ -1353,7 +1372,7 @@ function loadState() {
       .filter(po => po && Number.isFinite(po.t) && Number.isFinite(po.c) && po.c > 0)
       .slice(0, MAX_PAYOUTS_KEPT);
   }
-  if (Number.isInteger(saved.lastMax) && saved.lastMax >= 1 && saved.lastMax <= MAX_NUMBER) state.lastMax = saved.lastMax;
+  if (Number.isInteger(saved.lastMax) && saved.lastMax >= MIN_PICK && saved.lastMax <= MAX_NUMBER) state.lastMax = saved.lastMax;
   state.muted = !!saved.muted;
   if (Number.isFinite(saved.gems)) state.gems = Math.max(0, Math.round(saved.gems));
   if (typeof saved.owned === 'string') {
@@ -1369,6 +1388,14 @@ function loadState() {
   return state;
 }
 
+// One character per fact in FACT_KEYS order, in steps of 1/WEIGHT_STEPS above 1. Keeps 190 facts inside the cookie.
+const WEIGHT_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const WEIGHT_STEPS = 4;
+function encodeWeights() {
+  const steps = FACT_KEYS.map(k => Math.min(WEIGHT_CHARS.length - 1, Math.round(((state.weights[k] || 1) - 1) * WEIGHT_STEPS)));
+  return steps.map(s => WEIGHT_CHARS[s]).join('').replace(/0+$/, '');
+}
+
 function saveState() {
   state.savedAt = Date.now();
   const weights = {};
@@ -1376,7 +1403,9 @@ function saveState() {
     if (w > 1.01) weights[key] = Math.round(w * 100) / 100;
   }
   state.weights = weights;
-  const json = JSON.stringify({ ...state, mastery: state.mastery.join(''), owned: state.owned.join(',') });
+  const json = JSON.stringify({
+    ...state, mastery: state.mastery.join(''), owned: state.owned.join(','), weights: encodeWeights(),
+  });
   try { localStorage.setItem(STORE_KEY, json); } catch { /* storage may be unavailable in private mode */ }
   const secure = location.protocol === 'https:' ? '; Secure' : '';
   document.cookie = `${COOKIE_NAME}=${encodeURIComponent(json)}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax${secure}`;
@@ -1741,7 +1770,7 @@ let selectedMax = state.lastMax || 0;
 
 function buildPicker() {
   const picker = $('picker');
-  for (let n = 1; n <= MAX_NUMBER; n++) {
+  for (let n = MIN_PICK; n <= MAX_NUMBER; n++) {
     const btn = document.createElement('button');
     btn.className = 'pick-btn';
     btn.textContent = n;
@@ -1757,8 +1786,8 @@ function buildPicker() {
 // A number's medal shows how many stickers she has for the facts in a round up to that number.
 function medalFor(n) {
   let got = 0;
-  for (let a = 1; a <= n; a++) for (let b = a; b <= n; b++) if (hasSticker(a, b)) got++;
-  const share = got / (n * (n + 1) / 2);
+  for (let a = 0; a <= n; a++) for (let b = a; b <= n; b++) if (hasSticker(a, b)) got++;
+  const share = got / ((n + 1) * (n + 2) / 2);
   return share >= 1 ? '🥇' : share >= 2 / 3 ? '🥈' : share >= 1 / 3 ? '🥉' : '';
 }
 
@@ -1838,11 +1867,12 @@ function pickQuestion() {
   const N = game.max;
   const options = [];
   let total = 0;
-  for (let a = 1; a <= N; a++) {
-    for (let b = 1; b <= N; b++) {
+  for (let a = 0; a <= N; a++) {
+    for (let b = 0; b <= N; b++) {
       const key = factKey(a, b);
-      if (N > 1 && key === game.prevKey) continue;
+      if (key === game.prevKey) continue;
       let w = weightOf(a, b);
+      if (a === 0 || b === 0) w *= 0.5; // keeps the easy 0 facts from filling a round of small numbers
       if (game.asked.has(key)) w *= 0.25;
       options.push({ a, b, w });
       total += w;
@@ -2048,6 +2078,15 @@ function showGrid(countOut) {
   $('gridCaption').innerHTML =
     `<span class="r">${a} ${a === 1 ? 'row' : 'rows'}</span> of <span class="c">${b} ${b === 1 ? 'dot' : 'dots'}</span>`;
 
+  // With a 0 there is nothing to draw, which is the point.
+  if (a === 0 || b === 0) {
+    grid.style.gridTemplateColumns = '';
+    grid.innerHTML = '<span class="zero-note">No dots at all! That makes <b>0</b>.</span>';
+    if (countOut) later(() => say('gameBubble', `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make 0! Now type it in!`), 900);
+    $('numpad').scrollIntoView({ block: 'end', behavior: 'smooth' });
+    return;
+  }
+
   // Fit the grid inside the card on small phones.
   const avail = Math.max(200, area.clientWidth - 30);
   const cols = b + 2.6;
@@ -2173,10 +2212,10 @@ let stickersSeen = null; // stickers shown last time, so new ones can pop in
 function showStickers() {
   const grid = $('stickerGrid');
   const cells = ['<div class="corner">×</div>'];
-  for (let b = 1; b <= MAX_NUMBER; b++) cells.push(`<div class="head" style="background:${PICK_COLORS[b - 1]}">${b}</div>`);
-  for (let a = 1; a <= MAX_NUMBER; a++) {
-    cells.push(`<div class="head" style="background:${PICK_COLORS[a - 1]}">${a}</div>`);
-    for (let b = 1; b <= MAX_NUMBER; b++) {
+  for (let b = 0; b <= MAX_NUMBER; b++) cells.push(`<div class="head" style="background:${PICK_COLORS[b - 1] || ZERO_COLOR}">${b}</div>`);
+  for (let a = 0; a <= MAX_NUMBER; a++) {
+    cells.push(`<div class="head" style="background:${PICK_COLORS[a - 1] || ZERO_COLOR}">${a}</div>`);
+    for (let b = 0; b <= MAX_NUMBER; b++) {
       const key = factKey(a, b);
       const m = masteryOf(a, b);
       if (m >= STICKER_AT) {

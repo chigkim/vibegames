@@ -147,6 +147,43 @@
     80% { transform: rotate(6deg); }
   }
 
+  /* Tricks for answers right in a row */
+  .pom-container.trick-spin { animation: pomSpin 1s cubic-bezier(0.45,0,0.3,1); }
+  @keyframes pomSpin {
+    0% { transform: translateY(0) rotate(0); }
+    30% { transform: translateY(-22px) rotate(0); }
+    70% { transform: translateY(-22px) rotate(360deg); }
+    100% { transform: translateY(0) rotate(360deg); }
+  }
+  .pom-container.trick-flip { animation: pomFlip 1s cubic-bezier(0.45,0,0.3,1); }
+  @keyframes pomFlip {
+    0% { transform: translateY(0) rotate(0) scale(1, 1); }
+    15% { transform: translateY(4px) scale(1.1, 0.85); }
+    55% { transform: translateY(-36px) rotate(-360deg) scale(1); }
+    85% { transform: translateY(0) rotate(-360deg) scale(1.1, 0.9); }
+    100% { transform: translateY(0) rotate(-360deg) scale(1); }
+  }
+  .pom-container.trick-dance { animation: pomDance 1.1s ease-in-out; }
+  @keyframes pomDance {
+    0%,100% { transform: translate(0, 0) rotate(0); }
+    15% { transform: translate(-10px, -14px) rotate(-12deg); }
+    30% { transform: translate(0, 0) rotate(0); }
+    45% { transform: translate(10px, -14px) rotate(12deg); }
+    60% { transform: translate(0, 0) rotate(0); }
+    80% { transform: translate(0, -26px) scale(1.15); }
+  }
+  .trick-star {
+    position: fixed;
+    pointer-events: none;
+    z-index: 60;
+    font-size: 1.4rem;
+    animation: trickStar 0.9s ease-out forwards;
+  }
+  @keyframes trickStar {
+    0% { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+    100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1); opacity: 0; }
+  }
+
   .pom-mouth-happy, .pom-mouth-o { transition: opacity 0.2s; }
   .pom-container.surprised .pom-mouth-happy { opacity: 0; }
   .pom-container:not(.surprised) .pom-mouth-o { opacity: 0; }
@@ -220,18 +257,36 @@
     box-shadow: 0 4px 0 #E8B84A;
   }
 
-  .bank .coin {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #FFF1A8, #F4C430 60%, #C99A1A);
-    border: 2px solid #B8860B;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    color: #8B6508;
+  /* Pink piggy bank with a see-through belly that fills with coins as the balance grows. */
+  .bank .pig { width: 46px; height: 36px; flex: none; display: block; overflow: visible; }
+  .bank .pig svg { width: 100%; height: 100%; overflow: visible; display: block; }
+  .pig-fill {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    transform: scaleY(0);
+    transition: transform 0.8s cubic-bezier(0.34,1.3,0.64,1);
   }
+  .bank[data-level="1"] .pig-fill { transform: scaleY(0.3); }
+  .bank[data-level="2"] .pig-fill { transform: scaleY(0.55); }
+  .bank[data-level="3"] .pig-fill { transform: scaleY(0.8); }
+  .bank[data-level="4"] .pig-fill { transform: scaleY(1); }
+  .pig-body-wrap { transform-box: fill-box; transform-origin: 50% 100%; transition: transform 0.6s ease; }
+  .bank[data-level="3"] .pig-body-wrap { transform: scale(1.04); }
+  .bank[data-level="4"] .pig-body-wrap { transform: scale(1.08); }
+  .pig-overflow { opacity: 0; transition: opacity 0.4s; }
+  .bank[data-level="4"] .pig-overflow { opacity: 1; }
+  .pig-sad { display: none; }
+  .bank.drop .pig-happy { display: none; }
+  .bank.drop .pig-sad { display: inline; }
+  .bank.pulse .pig svg { animation: pigWiggle 0.6s ease; }
+  .bank.drop .pig svg { animation: pigSag 0.45s ease; }
+  @keyframes pigWiggle {
+    0%,100% { transform: rotate(0) translateY(0); }
+    20% { transform: rotate(-10deg) translateY(-4px); }
+    45% { transform: rotate(9deg) translateY(-2px); }
+    70% { transform: rotate(-5deg); }
+  }
+  @keyframes pigSag { 0%,100% { transform: rotate(0); } 40% { transform: rotate(12deg) translateY(2px); } }
 
   .bank .amount { font-size: clamp(1.4rem, 3vmin, 2rem); line-height: 1; }
   .bank.pulse { animation: bankPulse 0.5s cubic-bezier(0.34,1.56,0.64,1); }
@@ -277,6 +332,18 @@
     transition: transform 0.15s, box-shadow 0.15s;
   }
 
+  .pick-btn { position: relative; }
+  .pick-btn .medal {
+    position: absolute;
+    top: -9px;
+    right: -9px;
+    font-size: clamp(1.1rem, 2.8vmin, 1.6rem);
+    line-height: 1;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+    pointer-events: none;
+  }
+  .medal-key { font-size: 0.85rem; font-weight: 700; color: var(--brown); margin: -8px 0 14px; }
+
   .pick-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.12); }
   .pick-btn.selected {
     border-color: var(--dark-brown);
@@ -316,7 +383,7 @@
   }
 
   .top-bar .bank { padding: 4px 14px 4px 6px; }
-  .top-bar .bank .coin { width: 28px; height: 28px; font-size: 0.85rem; }
+  .top-bar .bank .pig { width: 38px; height: 30px; }
 
   .round-info {
     font-family: 'Baloo 2', cursive;
@@ -652,6 +719,37 @@
   .worth.tier-4 { background: #E9F8EC; border-color: var(--green); }
   .worth.tier-7 { background: linear-gradient(135deg, #FFF3C4, #FFE08A); border-color: #E8B84A; }
 
+  /* ===== STICKER CHART ===== */
+  .btn-row { display: flex; gap: 10px; }
+  .btn-row .btn { flex: 1; padding-left: 10px; padding-right: 10px; }
+  .sticker-count { font-weight: 800; color: var(--dark-brown); margin: 2px 0 10px; }
+  .sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(14, 1fr);
+    gap: 2px;
+    margin: 0 auto 10px;
+    max-width: 560px;
+  }
+  .sticker-grid > div {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    font-size: clamp(0.7rem, 3.2vmin, 1.5rem);
+    line-height: 1;
+    background: white;
+    border: 1px solid var(--peach);
+    overflow: hidden;
+  }
+  .sticker-grid > .head { font-family: 'Baloo 2', cursive; font-weight: 800; color: var(--dark-brown); border: none; font-size: clamp(0.6rem, 2.4vmin, 1.1rem); }
+  .sticker-grid > .corner { background: none; border: none; color: var(--orange); font-weight: 800; }
+  .sticker-grid > .got { background: #FFF6D6; border-color: var(--gold); }
+  .sticker-grid > .new { animation: starPop 0.6s cubic-bezier(0.34,1.56,0.64,1) both; }
+  .sticker-grid .dots { font-size: 0.5em; color: var(--orange); letter-spacing: -1px; }
+  .sticker-help { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin-bottom: 4px; }
+  .new-stickers { font-weight: 800; color: var(--dark-brown); margin: -6px 0 14px; }
+
   /* ===== CASH OUT ===== */
   .pay-rates { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin: 0 0 14px; }
   .pay-rates span { white-space: nowrap; }
@@ -679,6 +777,46 @@
 <div class="fx-layer" id="fxLayer"></div>
 
 <button class="mute-btn" id="muteBtn" aria-label="Mute sounds">🔊</button>
+
+<template id="pigTemplate">
+  <svg viewBox="0 0 64 50" xmlns="http://www.w3.org/2000/svg">
+    <defs><clipPath id="pigBelly"><ellipse cx="29" cy="29" rx="12.5" ry="10"/></clipPath></defs>
+    <g class="pig-overflow">
+      <ellipse cx="27" cy="6" rx="5" ry="2.4" fill="#F4C430" stroke="#B8860B" stroke-width="1"/>
+      <ellipse cx="33" cy="3.5" rx="5" ry="2.4" fill="#FFD84D" stroke="#B8860B" stroke-width="1"/>
+    </g>
+    <g class="pig-body-wrap">
+      <rect x="15" y="37" width="8" height="10" rx="3.5" fill="#F48FB1"/>
+      <rect x="38" y="37" width="8" height="10" rx="3.5" fill="#F48FB1"/>
+      <path d="M 9 25 q -6 -2 -4 -7 q 2 -3 4 0 q 1 3 -3 4" stroke="#E07A9E" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <ellipse cx="32" cy="27" rx="24" ry="18" fill="#FFB3C6" stroke="#E07A9E" stroke-width="2"/>
+      <polygon points="40,12 45,2 50,14" fill="#F48FB1" stroke="#E07A9E" stroke-width="1.5" stroke-linejoin="round"/>
+      <rect x="23" y="10.5" width="13" height="3" rx="1.5" fill="#8B3A5A"/>
+      <ellipse cx="29" cy="29" rx="12.5" ry="10" fill="rgba(255,255,255,0.6)"/>
+      <g clip-path="url(#pigBelly)">
+        <g class="pig-fill">
+          <rect x="16" y="19" width="26" height="20.5" fill="#F4C430"/>
+          <ellipse cx="22" cy="35" rx="4.5" ry="2" fill="#FFE27A"/>
+          <ellipse cx="33" cy="33" rx="4.5" ry="2" fill="#FFE27A"/>
+          <ellipse cx="27" cy="28" rx="4.5" ry="2" fill="#FFE27A"/>
+          <ellipse cx="37" cy="25" rx="4.5" ry="2" fill="#FFE27A"/>
+          <ellipse cx="20" cy="24" rx="4.5" ry="2" fill="#FFE27A"/>
+        </g>
+      </g>
+      <ellipse cx="29" cy="29" rx="12.5" ry="10" fill="none" stroke="#E07A9E" stroke-width="1.5"/>
+      <ellipse cx="25" cy="24" rx="4" ry="2" fill="white" opacity="0.7"/>
+      <ellipse cx="55" cy="27" rx="6" ry="7" fill="#F48FB1" stroke="#E07A9E" stroke-width="1.5"/>
+      <ellipse cx="53.5" cy="27" rx="1.2" ry="2" fill="#8B3A5A"/>
+      <ellipse cx="57" cy="27" rx="1.2" ry="2" fill="#8B3A5A"/>
+      <g class="pig-happy">
+        <circle cx="46" cy="20" r="2.4" fill="#3D2B1F"/>
+        <circle cx="46.8" cy="19.2" r="0.8" fill="white"/>
+      </g>
+      <path class="pig-sad" d="M 43.5 21 q 2.5 -2.5 5 0" stroke="#3D2B1F" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <circle cx="46" cy="30" r="3" fill="#FF8FB0" opacity="0.55"/>
+    </g>
+  </svg>
+</template>
 
 <template id="pomTemplate">
   <svg viewBox="0 0 130 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -727,9 +865,9 @@
   <div class="card">
     <div class="pom-container" id="pomStart"></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v4 - Updated 2026-10-02 21:32 EDT</p>
+    <p class="version">v5 - Updated 2026-10-02 21:41 EDT</p>
 
-    <div class="bank" id="startBank"><span class="coin">¢</span><span class="amount" id="startBankAmount">$0.00</span></div>
+    <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
 
     <div class="speech-bubble below" id="startBubble" aria-live="polite">
@@ -739,9 +877,13 @@
     <p class="pick-title">Pick your biggest number</p>
     <p class="pick-sub" id="pickSub">Choose a number from 1 to 13</p>
     <div class="picker" id="picker"></div>
+    <p class="medal-key">🥉 ⅓ of stickers · 🥈 ⅔ · 🥇 all of them</p>
 
     <button class="btn btn-primary" id="startBtn" disabled>Let's Go! 🚀</button>
-    <button class="btn btn-secondary" id="cashoutBtn">💵 Cash Out</button>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="stickersBtn">⭐ Stickers</button>
+      <button class="btn btn-secondary" id="cashoutBtn">💵 Cash Out</button>
+    </div>
   </div>
 </div>
 
@@ -753,7 +895,7 @@
         <button class="quit-btn" id="quitBtn">← Home</button>
         <button class="mute-btn bar-mute" id="barMuteBtn" aria-label="Mute sounds">🔊</button>
       </div>
-      <div class="bank" id="gameBank"><span class="coin">¢</span><span class="amount" id="gameBankAmount">$0.00</span></div>
+      <div class="bank" id="gameBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="gameBankAmount">$0.00</span></div>
       <div class="round-info">
         <div id="qCounter">1 / 10</div>
         <div class="earned" id="roundEarned">+0¢</div>
@@ -812,9 +954,21 @@
       <div class="stat"><b id="statEarned">+0¢</b>this round</div>
       <div class="stat"><b id="statBank">$0.00</b>piggy bank</div>
     </div>
+    <div class="new-stickers" id="newStickers"></div>
     <div class="practice-list" id="practiceList"></div>
     <button class="btn btn-primary" id="againBtn">Play Again! 🔁</button>
     <button class="btn btn-secondary" id="homeBtn">Pick a Different Number</button>
+  </div>
+</div>
+
+<!-- ===== STICKER CHART SCREEN ===== -->
+<div class="screen" id="stickerScreen">
+  <div class="card">
+    <h1>Sticker Chart ⭐</h1>
+    <p class="sticker-count" id="stickerCount">0 of 91 stickers</p>
+    <div class="sticker-grid" id="stickerGrid"></div>
+    <p class="sticker-help">Get a fact right on the first try 3 times to earn its sticker.<br>Each dot is one time. 3 × 7 and 7 × 3 share a sticker!</p>
+    <button class="btn btn-secondary" id="stickerBackBtn">← Back</button>
   </div>
 </div>
 
@@ -822,7 +976,7 @@
 <div class="screen" id="cashoutScreen">
   <div class="card">
     <h1>Cash Out 💵</h1>
-    <div class="bank" id="cashBank"><span class="coin">¢</span><span class="amount" id="cashBankAmount">$0.00</span></div>
+    <div class="bank" id="cashBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="cashBankAmount">$0.00</span></div>
     <p class="bank-label">in the piggy bank right now</p>
     <p class="pay-rates">Pay per right answer:<br><span>×1 → 1¢</span> · <span>×2 or ×10 → 2¢</span> · <span>×3–×5 → 4¢</span> · <span>everything else → 7¢</span><br><span>Wrong answer → −2¢</span></p>
     <button class="btn btn-pay" id="payBtn">Pay out $0.00</button>
@@ -861,10 +1015,18 @@ function centsFor(a, b) {
   return 7;
 }
 
+// Every fact once (3×7 and 7×3 are the same), in a fixed order so progress saves as one short string.
+const FACT_KEYS = [];
+for (let a = 1; a <= MAX_NUMBER; a++) for (let b = a; b <= MAX_NUMBER; b++) FACT_KEYS.push(`${a}x${b}`);
+const FACT_INDEX = Object.fromEntries(FACT_KEYS.map((k, i) => [k, i]));
+const STICKER_AT = 3; // first-try right answers needed for a sticker
+const STICKERS = ['⭐', '🐾', '🌈', '🦋', '🍓', '🌸', '🐶', '🍩', '🎈', '🦄', '🍭', '🌟', '💎'];
+const stickerFor = key => STICKERS[(FACT_INDEX[key] * 7) % STICKERS.length];
+
 // ===== PERSISTENCE =====
 // Saved in localStorage with a cookie mirror, so progress survives if either one is cleared.
 function defaultState() {
-  return { totalCents: 0, paidCents: 0, payouts: [], weights: {}, lastMax: 0, muted: false, savedAt: 0 };
+  return { totalCents: 0, paidCents: 0, payouts: [], weights: {}, mastery: FACT_KEYS.map(() => 0), lastMax: 0, muted: false, savedAt: 0 };
 }
 
 function readCookie() {
@@ -888,6 +1050,9 @@ function loadState() {
       if (/^\d+x\d+$/.test(key) && Number.isFinite(w) && w > 1) state.weights[key] = Math.min(w, 12);
     }
   }
+  if (typeof saved.mastery === 'string') {
+    for (let i = 0; i < FACT_KEYS.length; i++) state.mastery[i] = Math.min(STICKER_AT, +saved.mastery[i] || 0);
+  }
   if (Number.isFinite(saved.paidCents)) state.paidCents = Math.max(0, Math.round(saved.paidCents));
   if (Array.isArray(saved.payouts)) {
     state.payouts = saved.payouts
@@ -907,7 +1072,7 @@ function saveState() {
     if (w > 1.01) weights[key] = Math.round(w * 100) / 100;
   }
   state.weights = weights;
-  const json = JSON.stringify(state);
+  const json = JSON.stringify({ ...state, mastery: state.mastery.join('') });
   try { localStorage.setItem(STORE_KEY, json); } catch { /* storage may be unavailable in private mode */ }
   const secure = location.protocol === 'https:' ? '; Secure' : '';
   document.cookie = `${COOKIE_NAME}=${encodeURIComponent(json)}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax${secure}`;
@@ -1004,6 +1169,12 @@ const sfx = {
     [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, { at: i * 0.11, dur: 0.9, vol: 0.24 }));
     [523, 659, 784, 1047].forEach(f => tone(f, { at: 0.62, dur: 1.8, vol: 0.16 }));
   },
+  trick() {
+    [659, 784, 988, 1175].forEach((f, i) => tone(f, { at: 0.15 + i * 0.08, voice: 'marimba', dur: 0.3, vol: 0.2 }));
+  },
+  sticker() {
+    [784, 1047, 1319, 1568].forEach((f, i) => tone(f, { at: i * 0.07, dur: 0.7, vol: 0.2 }));
+  },
   roundEnd() {
     [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, { at: i * 0.14, dur: 0.9, vol: 0.24 }));
     [262, 523, 659, 784].forEach(f => tone(f, { at: 0.75, dur: 2, vol: 0.15 }));
@@ -1017,11 +1188,45 @@ const formatDelta = cents => (cents >= 0 ? '+' : '−') + Math.abs(cents) + '¢'
 const factKey = (a, b) => (a <= b ? `${a}x${b}` : `${b}x${a}`);
 const weightOf = (a, b) => state.weights[factKey(a, b)] || 1;
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const masteryOf = (a, b) => state.mastery[FACT_INDEX[factKey(a, b)]];
+const hasSticker = (a, b) => masteryOf(a, b) >= STICKER_AT;
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
   document.body.classList.toggle('in-game', id === 'gameScreen');
   window.scrollTo(0, 0);
+}
+
+const TRICKS = [
+  { cls: 'trick-spin', say: n => `${n} in a row! Watch me spin! 🌀` },
+  { cls: 'trick-flip', say: n => `${n} in a row! Backflip time! 🤸` },
+  { cls: 'trick-dance', say: n => `${n} in a row! Happy dance! 💃` },
+];
+
+// Ms. Menna does a trick for 3 or more first-try answers in a row: spin, backflip, dance, then repeat.
+function doTrick(streak) {
+  const trick = TRICKS[(streak - 3) % TRICKS.length];
+  const el = $('pomGame');
+  el.classList.remove('bounce', 'shake', 'surprised', ...TRICKS.map(t => t.cls));
+  void el.offsetWidth;
+  el.classList.add(trick.cls);
+  setTimeout(() => el.classList.remove(trick.cls), 1150);
+  const r = el.getBoundingClientRect();
+  for (let i = 0; i < 6; i++) {
+    const star = document.createElement('span');
+    star.className = 'trick-star';
+    star.textContent = pick(['⭐', '✨', '🌟']);
+    const ang = (i / 6) * Math.PI * 2;
+    star.style.left = (r.left + r.width / 2) + 'px';
+    star.style.top = (r.top + r.height / 2) + 'px';
+    star.style.setProperty('--dx', Math.cos(ang) * 60 + 'px');
+    star.style.setProperty('--dy', Math.sin(ang) * 60 + 'px');
+    star.style.animationDelay = '0.35s';
+    document.body.appendChild(star);
+    setTimeout(() => star.remove(), 1400);
+  }
+  sfx.trick();
+  return trick;
 }
 
 function animatePom(el, cls) {
@@ -1036,6 +1241,14 @@ function retrigger(el, cls) {
   el.classList.remove(cls);
   void el.offsetWidth;
   el.classList.add(cls);
+}
+
+// Piggy bank wiggles ('pulse') or looks sad ('drop'), then goes back to normal.
+function pigReact(bankEl, cls) {
+  clearTimeout(bankEl.pigTimer);
+  bankEl.classList.remove('pulse', 'drop');
+  retrigger(bankEl, cls);
+  bankEl.pigTimer = setTimeout(() => bankEl.classList.remove(cls), 900);
 }
 
 // ===== VISUAL EFFECTS =====
@@ -1122,9 +1335,21 @@ function buildFloaters() {
 }
 
 // ===== BANK =====
+// How full the piggy bank looks: empty, then fuller at 1¢, $1, $3 and stuffed at $6.
+function pigLevel(cents) {
+  if (cents <= 0) return 0;
+  if (cents < 100) return 1;
+  if (cents < 300) return 2;
+  if (cents < 600) return 3;
+  return 4;
+}
+
 function renderBank() {
   $('startBankAmount').textContent = formatMoney(state.totalCents);
   $('gameBankAmount').textContent = formatMoney(state.totalCents);
+  $('cashBankAmount').textContent = formatMoney(state.totalCents);
+  const level = pigLevel(state.totalCents);
+  document.querySelectorAll('.bank').forEach(el => { el.dataset.level = level; });
 }
 
 // Returns the amount actually changed, since the bank never goes below $0.00.
@@ -1157,7 +1382,31 @@ function buildPicker() {
     btn.addEventListener('click', () => selectMax(n, true));
     picker.appendChild(btn);
   }
+  renderMedals();
   if (selectedMax) selectMax(selectedMax, false);
+}
+
+// A number's medal shows how many stickers she has for the facts in a round up to that number.
+function medalFor(n) {
+  let got = 0;
+  for (let a = 1; a <= n; a++) for (let b = a; b <= n; b++) if (hasSticker(a, b)) got++;
+  const share = got / (n * (n + 1) / 2);
+  return share >= 1 ? '🥇' : share >= 2 / 3 ? '🥈' : share >= 1 / 3 ? '🥉' : '';
+}
+
+function renderMedals() {
+  document.querySelectorAll('.pick-btn').forEach(btn => {
+    const medal = medalFor(+btn.dataset.n);
+    let el = btn.querySelector('.medal');
+    if (!medal) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement('span');
+      el.className = 'medal';
+      btn.appendChild(el);
+    }
+    el.textContent = medal;
+    btn.setAttribute('aria-label', `${btn.dataset.n}, ${{ '🥇': 'gold', '🥈': 'silver', '🥉': 'bronze' }[medal]} medal`);
+  });
 }
 
 function selectMax(n, withSound) {
@@ -1190,6 +1439,9 @@ function startRound(max) {
     missed: [],
     asked: new Set(),
     prevKey: null,
+    streak: 0,
+    retries: [], // facts missed this round, asked again a few questions later
+    newStickers: [],
     a: 0,
     b: 0,
     attempts: 0,
@@ -1241,7 +1493,9 @@ function nextQuestion() {
     showSummary();
     return;
   }
-  const q = pickQuestion();
+  const due = game.retries.findIndex(r => r.at <= game.index && r.key !== game.prevKey);
+  const retry = due >= 0 ? game.retries.splice(due, 1)[0] : null;
+  const q = retry || pickQuestion();
   Object.assign(game, { a: q.a, b: q.b, attempts: 0, input: '', locked: false });
   game.prevKey = factKey(q.a, q.b);
   game.asked.add(game.prevKey);
@@ -1263,7 +1517,9 @@ function nextQuestion() {
   renderAnswer();
   $('gameBubble').textContent = game.index === 0
     ? pick(["Let's multiply! Type your answer on the number pad.", 'Ready? Here comes the first one!'])
-    : pick(['Here comes the next one!', 'What do you think?', 'You can do it!', 'Think carefully!', 'Ready? Go!']);
+    : retry
+      ? pick(['Remember this one? Let\'s try it again! 🐾', 'This one came back! Do you remember it?'])
+      : pick(['Here comes the next one!', 'What do you think?', 'You can do it!', 'Think carefully!', 'Ready? Go!']);
 }
 
 function renderAnswer(status) {
@@ -1309,10 +1565,18 @@ function submitAnswer() {
 function onCorrect(answer) {
   game.locked = true;
   const key = factKey(game.a, game.b);
+  let newSticker = false;
   if (game.attempts === 0) {
     game.firstTry++;
+    game.streak++;
     const w = weightOf(game.a, game.b);
     state.weights[key] = 1 + (w - 1) * 0.6;
+    const i = FACT_INDEX[key];
+    if (state.mastery[i] < STICKER_AT) {
+      state.mastery[i]++;
+      newSticker = state.mastery[i] === STICKER_AT;
+      if (newSticker) game.newStickers.push({ a: game.a, b: game.b });
+    }
   }
   const cents = centsFor(game.a, game.b);
   renderAnswer('correct');
@@ -1321,27 +1585,44 @@ function onCorrect(answer) {
   flyText('+' + cents + '¢', display, 'plus', -120);
   flyCoins(display, $('gameBank'), cents);
   game.roundCents += changeBank(cents);
-  later(() => retrigger($('gameBank'), 'pulse'), 650);
+  later(() => pigReact($('gameBank'), 'pulse'), 650);
   renderRoundEarned();
-  animatePom($('pomGame'), 'bounce');
-  if (game.attempts === 0 && Math.random() < 0.35) confetti(18);
+  const trick = game.attempts === 0 && game.streak >= 3 ? doTrick(game.streak) : null;
+  if (!trick) animatePom($('pomGame'), 'bounce');
+  if (trick && game.streak % 5 === 0) confetti(60);
+  else if (game.attempts === 0 && Math.random() < 0.35) confetti(18);
+  if (newSticker) {
+    later(() => {
+      banner(`${stickerFor(key)} New sticker: ${game.a} × ${game.b}!`);
+      sfx.sticker();
+    }, 500);
+  }
 
   $('feedback').className = 'feedback good';
   $('feedback').textContent = `${game.a} × ${game.b} = ${answer} ✓`;
-  $('gameBubble').textContent = game.attempts === 0
+  $('gameBubble').textContent = trick
+    ? trick.say(game.streak)
+    : game.attempts === 0
     ? pick(['Pawsome! 🐾', 'Woof woof! Correct!', 'You got it! ⭐', 'Super smart!', `Yay! +${cents}¢ for you!`, 'Wag wag! That\'s right!'])
     : pick(['You figured it out! 🐾', 'Yes! Great job not giving up!', 'That\'s it! Way to keep trying!']);
 
   game.index++;
   $('progressFill').style.width = (game.index / QUESTIONS_PER_ROUND * 100) + '%';
-  later(nextQuestion, game.attempts === 0 ? 1300 : 1900);
+  later(nextQuestion, trick || newSticker ? 1700 : game.attempts === 0 ? 1300 : 1900);
 }
 
 function onWrong(answer) {
   game.attempts++;
   const key = factKey(game.a, game.b);
   if (game.attempts <= 2) state.weights[key] = Math.min(12, weightOf(game.a, game.b) + 2);
-  if (game.attempts === 1) game.missed.push({ a: game.a, b: game.b });
+  game.streak = 0;
+  if (game.attempts === 1) {
+    game.missed.push({ a: game.a, b: game.b });
+    // Not yet learned: lose one dot towards the sticker. Stickers she has earned stay.
+    const i = FACT_INDEX[key];
+    if (state.mastery[i] < STICKER_AT) state.mastery[i] = Math.max(0, state.mastery[i] - 1);
+    if (!game.retries.some(r => r.key === key)) game.retries.push({ a: game.a, b: game.b, key, at: game.index + 3 });
+  }
 
   renderAnswer('wrong');
   sfx.wrong();
@@ -1350,7 +1631,7 @@ function onWrong(answer) {
   renderRoundEarned();
   if (changed < 0) {
     flyText(formatDelta(changed), $('answerDisplay'), 'minus', 60);
-    retrigger($('gameBank'), 'drop');
+    pigReact($('gameBank'), 'drop');
   }
   animatePom($('pomGame'), 'shake');
   $('feedback').className = 'feedback bad';
@@ -1461,6 +1742,9 @@ function showSummary() {
   $('statFirstTry').textContent = `${firstTry} / ${QUESTIONS_PER_ROUND}`;
   $('statEarned').textContent = formatDelta(roundCents);
   $('statBank').textContent = formatMoney(state.totalCents);
+  $('newStickers').textContent = game.newStickers.length
+    ? 'New stickers: ' + game.newStickers.map(f => `${stickerFor(factKey(f.a, f.b))} ${f.a} × ${f.b}`).join('  ')
+    : '';
 
   const unique = [];
   const seen = new Set();
@@ -1482,11 +1766,39 @@ function goHome() {
   clearTimers();
   game = null;
   renderBank();
+  renderMedals();
   $('startBubble').textContent = pick([
     'Woof! Pick your biggest number, and let\'s practice!',
     'Welcome back! Which number should we practice?',
   ]);
   showScreen('startScreen');
+}
+
+// ===== STICKER CHART =====
+let stickersSeen = null; // stickers shown last time, so new ones can pop in
+
+function showStickers() {
+  const grid = $('stickerGrid');
+  const cells = ['<div class="corner">×</div>'];
+  for (let b = 1; b <= MAX_NUMBER; b++) cells.push(`<div class="head" style="background:${PICK_COLORS[b - 1]}">${b}</div>`);
+  for (let a = 1; a <= MAX_NUMBER; a++) {
+    cells.push(`<div class="head" style="background:${PICK_COLORS[a - 1]}">${a}</div>`);
+    for (let b = 1; b <= MAX_NUMBER; b++) {
+      const key = factKey(a, b);
+      const m = masteryOf(a, b);
+      if (m >= STICKER_AT) {
+        const isNew = stickersSeen && !stickersSeen.has(key);
+        cells.push(`<div class="got${isNew ? ' new' : ''}" title="${a} × ${b} = ${a * b}">${stickerFor(key)}</div>`);
+      } else {
+        cells.push(`<div title="${a} × ${b}">${m ? `<span class="dots">${'●'.repeat(m)}</span>` : ''}</div>`);
+      }
+    }
+  }
+  grid.innerHTML = cells.join('');
+  const got = state.mastery.filter(m => m >= STICKER_AT).length;
+  $('stickerCount').textContent = `${got} of ${FACT_KEYS.length} stickers${got === FACT_KEYS.length ? ' — all of them! 🏆' : ''}`;
+  stickersSeen = new Set(FACT_KEYS.filter(k => state.mastery[FACT_INDEX[k]] >= STICKER_AT));
+  showScreen('stickerScreen');
 }
 
 // ===== CASH OUT =====
@@ -1501,7 +1813,7 @@ function resetPayButton() {
 }
 
 function renderCashout() {
-  $('cashBankAmount').textContent = formatMoney(state.totalCents);
+  renderBank();
   $('statPaid').textContent = formatMoney(state.paidCents);
   $('statAllTime').textContent = formatMoney(state.paidCents + state.totalCents);
   const dateFmt = { month: 'short', day: 'numeric', year: 'numeric' };
@@ -1536,7 +1848,7 @@ function onPayTap() {
   saveState();
   renderBank();
   renderCashout();
-  retrigger($('cashBank'), 'pulse');
+  pigReact($('cashBank'), 'pulse');
   sfx.milestone();
   confetti(90);
   banner(`💵 ${formatMoney(amount)} paid! 🎉`);
@@ -1553,6 +1865,12 @@ function renderMute() {
 function init() {
   document.querySelectorAll('#pomStart, #pomGame').forEach(el => {
     el.appendChild($('pomTemplate').content.cloneNode(true));
+  });
+  // Each pig needs its own clipPath id, or a pig on a hidden screen breaks the others.
+  document.querySelectorAll('.bank .pig').forEach((el, i) => {
+    el.appendChild($('pigTemplate').content.cloneNode(true));
+    el.querySelector('clipPath').id = 'pigBelly' + i;
+    el.querySelector('[clip-path]').setAttribute('clip-path', `url(#pigBelly${i})`);
   });
   buildFloaters();
   buildPicker();
@@ -1573,6 +1891,8 @@ function init() {
   $('homeBtn').addEventListener('click', goHome);
   $('quitBtn').addEventListener('click', goHome);
   $('cashoutBtn').addEventListener('click', showCashout);
+  $('stickersBtn').addEventListener('click', showStickers);
+  $('stickerBackBtn').addEventListener('click', goHome);
   $('cashBackBtn').addEventListener('click', goHome);
   $('payBtn').addEventListener('click', onPayTap);
   $('hintBtn').addEventListener('click', () => {

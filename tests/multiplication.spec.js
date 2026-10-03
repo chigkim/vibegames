@@ -227,3 +227,35 @@ test('saved progress still fits in the cookie mirror', async ({ page }) => {
   });
   expect(size).toBeLessThan(4096);
 });
+
+test('Pom buys toys, plays with them, and uses them in streak tricks', async ({ page }) => {
+  await page.evaluate(() => { state.gems = 20; state.totalCents = 90; saveState(); });
+  await page.reload();
+  await expect(page.locator('#toyShelf')).toBeHidden();
+
+  await page.locator('#closetBtn').click();
+  await page.locator('.closet-tab[data-slot="toy"]').click();
+  await page.locator('.item[data-id="ball"]').click(); // tries it out first
+  await expect(page.locator('#pomCloset')).toHaveClass(/play-ball/);
+  await expect(page.locator('#buyBtn')).toHaveText('Buy Bouncy Ball for 10 💎');
+  await page.locator('#buyBtn').click();
+  await expect(page.locator('#pomCloset .gem-badge')).toHaveText('💎 10');
+  await expect(page.locator('.item[data-id="ball"] .price')).toHaveText('Play! ▶');
+  await page.locator('#closetBackBtn').click();
+
+  // Toys sit on the shelf and are never worn
+  await expect(page.locator('#toyShelf .toy-btn')).toHaveCount(1);
+  await page.locator('#toyShelf .toy-btn').click();
+  await expect(page.locator('#pomStart')).toHaveClass(/play-ball/);
+  await expect(page.locator('#pomStart .toy-fx')).toHaveCount(1);
+  await expect(page.locator('#startBubble')).toContainText('Fetch');
+  await page.reload();
+  const saved = await page.evaluate(() => ({ gems: state.gems, owned: state.owned, worn: state.worn, cents: state.totalCents }));
+  expect(saved).toEqual({ gems: 10, owned: ['ball'], worn: { hat: 'cap', fur: 'classic' }, cents: 90 });
+
+  // spin, flip, dance, then the ball
+  const say = await page.evaluate(() => doTrick(6).say(6));
+  expect(say).toContain('Fetch');
+  await expect(page.locator('#pomGame')).toHaveClass(/play-ball/);
+  expect(await page.evaluate(() => doTrick(7).cls)).toBe('trick-spin');
+});

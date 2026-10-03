@@ -216,6 +216,106 @@
     100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1); opacity: 0; }
   }
 
+  /* Toys: Pom's picture moves while the toy flies around her. --s shrinks the moves for the small Pom. */
+  .pom-container { --s: 1; }
+  .pom-container.small { --s: 0.65; }
+  .toy-fx {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    line-height: 1;
+    font-size: calc(var(--s) * clamp(1.7rem, 5vmin, 2.4rem));
+    transform: translate(-50%, -50%);
+  }
+  .toy-fx.ball { left: 82%; top: 86%; animation: toyBall 1.3s ease-in-out; }
+  @keyframes toyBall {
+    0%, 100% { transform: translate(-50%, -50%); }
+    20% { transform: translate(calc(-50% + 30px * var(--s)), calc(-50% - 60px * var(--s))) rotate(180deg); }
+    40% { transform: translate(calc(-50% + 60px * var(--s)), -50%) rotate(360deg); }
+    60% { transform: translate(calc(-50% + 30px * var(--s)), calc(-50% - 40px * var(--s))) rotate(540deg); }
+    80% { transform: translate(-50%, -50%) rotate(720deg); }
+  }
+  .toy-fx.duck { left: 84%; top: 82%; transform-origin: 50% 100%; animation: toySquish 0.3s ease-in-out 4; }
+  @keyframes toySquish { 50% { transform: translate(-50%, -50%) scale(1.3, 0.7); } }
+  .toy-fx.rope { left: 50%; top: 58%; animation: toyTug 0.65s ease-in-out 2; }
+  @keyframes toyTug {
+    25% { transform: translate(calc(-50% - 14px * var(--s)), -50%) rotate(-12deg); }
+    75% { transform: translate(calc(-50% + 14px * var(--s)), -50%) rotate(12deg); }
+  }
+  .toy-fx.frisbee { left: 50%; top: 52%; animation: toyFrisbee 1.3s ease-in-out; }
+  @keyframes toyFrisbee {
+    0% { transform: translate(-50%, -50%) scale(0.6); }
+    45% { transform: translate(calc(-50% + 90px * var(--s)), calc(-50% - 70px * var(--s))) rotate(540deg) scale(1.1); }
+    75% { transform: translate(calc(-50% - 10px * var(--s)), calc(-50% - 60px * var(--s))) rotate(900deg); }
+    100% { transform: translate(-50%, -50%) rotate(1080deg) scale(0.8); }
+  }
+  .toy-fx.bubbles {
+    top: 70%;
+    width: calc(var(--s) * 26px);
+    height: calc(var(--s) * 26px);
+    border-radius: 50%;
+    border: 2px solid rgba(111,195,242,0.8);
+    background: radial-gradient(circle at 35% 30%, #fff 0 15%, rgba(201,184,255,0.35) 40%, rgba(111,195,242,0.25));
+    opacity: 0;
+    animation: toyBubble 1s ease-out forwards;
+  }
+  @keyframes toyBubble {
+    0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+    20% { opacity: 1; }
+    90% { transform: translate(-50%, calc(-50% - 110px * var(--s))) scale(1.1); opacity: 1; }
+    100% { transform: translate(-50%, calc(-50% - 120px * var(--s))) scale(1.6); opacity: 0; }
+  }
+  .toy-fx.box { left: 50%; top: 80%; font-size: calc(var(--s) * clamp(3rem, 9vmin, 4.2rem)); animation: toyBox 1.4s ease-in-out forwards; }
+  @keyframes toyBox {
+    0% { transform: translate(-50%, -50%) scale(0); }
+    15%, 85% { transform: translate(-50%, -50%) scale(1); }
+    100% { transform: translate(-50%, -50%) scale(0); }
+  }
+  .pom-container.play-ball > svg { animation: pomChase 1.3s ease-in-out; }
+  @keyframes pomChase {
+    25% { transform: translate(calc(14px * var(--s)), calc(-10px * var(--s))) rotate(8deg); }
+    50% { transform: translate(calc(24px * var(--s)), 0) rotate(0); }
+    75% { transform: translate(calc(10px * var(--s)), calc(-8px * var(--s))) rotate(-6deg); }
+  }
+  .pom-container.play-duck > svg { animation: pomHop 0.6s ease-in-out 2; }
+  @keyframes pomHop { 40% { transform: translateY(calc(-16px * var(--s))) rotate(-6deg); } }
+  .pom-container.play-rope > svg { animation: pomTug 0.65s ease-in-out 2; }
+  @keyframes pomTug {
+    25% { transform: translateX(calc(-8px * var(--s))) rotate(-8deg); }
+    75% { transform: translateX(calc(8px * var(--s))) rotate(8deg); }
+  }
+  .pom-container.play-frisbee > svg { animation: pomCatch 1.3s ease-in-out; }
+  @keyframes pomCatch {
+    0%, 50%, 100% { transform: translateY(0); }
+    55% { transform: translateY(calc(4px * var(--s))) scale(1.08, 0.9); }
+    78% { transform: translateY(calc(-34px * var(--s))) rotate(-10deg); }
+  }
+  .pom-container.play-bubbles > svg { animation: pomDance 1.1s ease-in-out; }
+  .pom-container.play-box > svg { animation: pomHide 1.4s ease-in-out; }
+  @keyframes pomHide {
+    0%, 100% { transform: translateY(0) scale(1); }
+    20%, 55% { transform: translateY(30%) scale(0.7); }
+    70% { transform: translateY(-14%) scale(1.1); }
+    85% { transform: translateY(0) scale(1); }
+  }
+
+  /* Pom's toys on the start screen */
+  .toy-shelf { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 2px 0 12px; }
+  .toy-shelf[hidden] { display: none; }
+  .toy-btn {
+    width: clamp(44px, 9vmin, 56px);
+    height: clamp(44px, 9vmin, 56px);
+    border-radius: 50%;
+    border: 3px solid var(--peach);
+    background: white;
+    font-size: clamp(1.3rem, 4vmin, 1.7rem);
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #EEC89A;
+    touch-action: manipulation;
+  }
+  .toy-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #EEC89A; }
+
   .pom-mouth-happy, .pom-mouth-o { transition: opacity 0.2s; }
   .pom-container.surprised .pom-mouth-happy { opacity: 0; }
   .pom-container:not(.surprised) .pom-mouth-o { opacity: 0; }
@@ -833,6 +933,7 @@
   .item.owned .price { color: var(--dark-green); }
   .item.wearing { border-color: var(--green); background: #EFFFF1; box-shadow: 0 4px 0 var(--dark-green); }
   .item.trying { border-color: #A994F5; background: #F1ECFF; box-shadow: 0 0 0 3px #D9CCFF, 0 4px 0 #A994F5; }
+  .btn-buy[hidden] { display: none; }
   .btn-buy { background: linear-gradient(135deg, #A994F5, #7B5BE0); color: white; width: 100%; }
   .closet-help { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin-top: 10px; }
 
@@ -950,8 +1051,9 @@
 <div class="screen active" id="startScreen">
   <div class="card">
     <div class="pom-container" id="pomStart"></div>
+    <div class="toy-shelf" id="toyShelf" hidden></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v6 - Updated 2026-10-03 03:49 EDT</p>
+    <p class="version">v7 - Updated 2026-10-03 04:01 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1137,6 +1239,7 @@ const CLOSET_SLOTS = [
   { id: 'neck', ico: '🎀', name: 'Neck' },
   { id: 'back', ico: '🦸', name: 'Back' },
   { id: 'fur', ico: '🎨', name: 'Fur' },
+  { id: 'toy', ico: '🧸', name: 'Toys' },
 ];
 
 // Accessories are SVG drawn on Pom's 130×130 picture. Fur items recolor her five fur shades.
@@ -1195,6 +1298,13 @@ const CLOSET = [
   { id: 'choc', slot: 'fur', name: 'Chocolate', price: 25, fur: ['#8B5A35', '#9C6A42', '#B07D52', '#6E4527', '#5E3A20'] },
   { id: 'pink', slot: 'fur', name: 'Cotton Candy', price: 40, fur: ['#F4A3C4', '#F7B7D2', '#FBCDE1', '#E888B0', '#D9739E'] },
   { id: 'blue', slot: 'fur', name: 'Blueberry', price: 40, fur: ['#8FBCEB', '#A5CBF0', '#BEDAF5', '#729FD6', '#5F8BC2'] },
+  // Toys are kept, not worn. Pom plays with them when tapped and during streak tricks.
+  { id: 'ball', slot: 'toy', name: 'Bouncy Ball', ico: '⚽', price: 10, say: 'Fetch! I got it! 🐾' },
+  { id: 'duck', slot: 'toy', name: 'Squeaky Duck', ico: '🐤', price: 12, say: 'Squeak squeak! Hee hee!' },
+  { id: 'rope', slot: 'toy', name: 'Tug Yarn', ico: '🧶', price: 15, say: 'Grrr! Tug of war! 💪' },
+  { id: 'frisbee', slot: 'toy', name: 'Flying Disc', ico: '🥏', price: 25, say: 'Wheee! Nice catch, me! ✨' },
+  { id: 'bubbles', slot: 'toy', name: 'Bubbles', ico: '🧼', price: 30, say: 'Pop! Pop! I love bubbles!' },
+  { id: 'box', slot: 'toy', name: 'Hidey Box', ico: '📦', price: 40, say: 'Peekaboo! Did you miss me?' },
 ];
 const ITEMS = Object.fromEntries(CLOSET.map(item => [item.id, item]));
 const DEFAULT_WORN = { hat: 'cap', fur: 'classic' };
@@ -1247,7 +1357,7 @@ function loadState() {
   if (saved.worn && typeof saved.worn === 'object') {
     state.worn = { fur: 'classic' };
     for (const [slot, id] of Object.entries(saved.worn)) {
-      if (ITEMS[id] && ITEMS[id].slot === slot && (ITEMS[id].price === 0 || state.owned.includes(id))) state.worn[slot] = id;
+      if (ITEMS[id] && ITEMS[id].slot === slot && slot !== 'toy' && (ITEMS[id].price === 0 || state.owned.includes(id))) state.worn[slot] = id;
     }
   }
   state.savedAt = saved.savedAt || 0;
@@ -1368,6 +1478,20 @@ const sfx = {
     tone(1319, { dur: 0.4, vol: 0.16 });
     tone(1568, { at: 0.07, dur: 0.6, vol: 0.16 });
   },
+  toy: {
+    ball() { [0, 0.4, 0.8].forEach((at, i) => tone(392 + i * 98, { at, voice: 'marimba', dur: 0.3, vol: 0.24, glide: 1.6 })); },
+    duck() { [0, 0.3, 0.6, 0.9].forEach(at => tone(988, { at, voice: 'soft', dur: 0.14, vol: 0.18, glide: 1.4 })); },
+    rope() { [0, 0.33, 0.66, 0.99].forEach((at, i) => tone(i % 2 ? 220 : 196, { at, voice: 'soft', dur: 0.28, vol: 0.24, glide: 1.15 })); },
+    frisbee() {
+      tone(523, { voice: 'soft', dur: 0.6, vol: 0.18, glide: 2 });
+      [784, 1047].forEach((f, i) => tone(f, { at: 0.95 + i * 0.08, dur: 0.5, vol: 0.22 }));
+    },
+    bubbles() { for (let i = 0; i < 5; i++) tone(PENTA[8 + i], { at: 0.75 + i * 0.1, voice: 'marimba', dur: 0.12, vol: 0.2 }); },
+    box() {
+      [330, 294].forEach((f, i) => tone(f, { at: i * 0.2, voice: 'soft', dur: 0.3, vol: 0.2 }));
+      [784, 1047, 1319].forEach((f, i) => tone(f, { at: 0.9 + i * 0.07, dur: 0.6, vol: 0.22 }));
+    },
+  },
   roundEnd() {
     [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, { at: i * 0.14, dur: 0.9, vol: 0.24 }));
     [262, 523, 659, 784].forEach(f => tone(f, { at: 0.75, dur: 2, vol: 0.15 }));
@@ -1396,11 +1520,47 @@ const TRICKS = [
   { cls: 'trick-dance', say: n => `${n} in a row! Happy dance! 💃` },
 ];
 
-// Ms. Menna does a trick for 3 or more first-try answers in a row: spin, backflip, dance, then repeat.
+const TOY_CLASSES = ['ball', 'duck', 'rope', 'frisbee', 'bubbles', 'box'].map(id => 'play-' + id);
+
+// Pom plays with a toy: her picture moves and the toy flies around her.
+function playToy(el, id) {
+  const toy = ITEMS[id];
+  clearTimeout(el.toyTimer);
+  el.querySelectorAll('.toy-fx').forEach(t => t.remove());
+  el.classList.remove('bounce', 'shake', 'surprised', ...TRICKS.map(t => t.cls), ...TOY_CLASSES);
+  void el.offsetWidth;
+  el.classList.add('play-' + id);
+  const count = id === 'bubbles' ? 5 : 1;
+  for (let i = 0; i < count; i++) {
+    const fx = document.createElement('span');
+    fx.className = 'toy-fx ' + id;
+    if (id !== 'bubbles') fx.textContent = toy.ico; // bubbles are drawn with CSS
+    if (count > 1) {
+      fx.style.left = (15 + i * 17) + '%';
+      fx.style.animationDelay = (i * 0.1) + 's';
+    }
+    el.appendChild(fx);
+  }
+  sfx.toy[id]();
+  el.toyTimer = setTimeout(() => {
+    el.classList.remove('play-' + id);
+    el.querySelectorAll('.toy-fx').forEach(t => t.remove());
+  }, 1500);
+}
+
+// Ms. Menna does a trick for 3 or more first-try answers in a row: spin, backflip, dance,
+// then plays with each toy she owns, then repeats.
 function doTrick(streak) {
-  const trick = TRICKS[(streak - 3) % TRICKS.length];
+  const toys = CLOSET.filter(item => item.slot === 'toy' && owns(item.id));
+  const turn = (streak - 3) % (TRICKS.length + toys.length);
+  if (turn >= TRICKS.length) {
+    const toy = toys[turn - TRICKS.length];
+    playToy($('pomGame'), toy.id);
+    return { cls: 'play-' + toy.id, say: n => `${n} in a row! ${toy.say}` };
+  }
+  const trick = TRICKS[turn];
   const el = $('pomGame');
-  el.classList.remove('bounce', 'shake', 'surprised', ...TRICKS.map(t => t.cls));
+  el.classList.remove('bounce', 'shake', 'surprised', ...TRICKS.map(t => t.cls), ...TOY_CLASSES);
   void el.offsetWidth;
   el.classList.add(trick.cls);
   setTimeout(() => el.classList.remove(trick.cls), 1150);
@@ -2012,6 +2172,7 @@ function showStickers() {
 // ===== GEMS =====
 function renderGems() {
   document.querySelectorAll('.gem-badge').forEach(el => { el.textContent = '💎 ' + state.gems; });
+  renderToyShelf();
   // Glows when Pom can afford something new.
   $('closetBtn').classList.toggle('glow', CLOSET.some(item => !owns(item.id) && item.price <= state.gems));
 }
@@ -2048,6 +2209,13 @@ const owns = id => ITEMS[id].price === 0 || state.owned.includes(id);
 let closetTab = 'hat';
 let tryingOn = null; // an item Pom is trying on before buying it
 
+function renderToyShelf() {
+  const toys = CLOSET.filter(item => item.slot === 'toy' && owns(item.id));
+  $('toyShelf').hidden = !toys.length;
+  $('toyShelf').innerHTML = toys.map(toy =>
+    `<button class="toy-btn" data-id="${toy.id}" aria-label="Play with the ${toy.name}">${toy.ico}</button>`).join('');
+}
+
 function dressPom(el, worn) {
   for (const slot of ['hat', 'face', 'neck', 'back']) {
     el.querySelector('.acc-' + slot).innerHTML = worn[slot] ? ITEMS[worn[slot]].svg : '';
@@ -2056,7 +2224,7 @@ function dressPom(el, worn) {
 }
 
 function dressAllPoms() {
-  const outfit = tryingOn ? { ...state.worn, [ITEMS[tryingOn].slot]: tryingOn } : state.worn;
+  const outfit = tryingOn && ITEMS[tryingOn].slot !== 'toy' ? { ...state.worn, [ITEMS[tryingOn].slot]: tryingOn } : state.worn;
   dressPom($('pomStart'), state.worn);
   dressPom($('pomGame'), state.worn);
   dressPom($('pomCloset'), outfit);
@@ -2075,7 +2243,7 @@ function renderCloset() {
     const mine = owns(item.id);
     const wearing = state.worn[item.slot] === item.id;
     const cls = wearing ? ' owned wearing' : mine ? ' owned' : item.id === tryingOn ? ' trying' : item.price > state.gems ? ' too-much' : '';
-    const price = wearing ? 'Wearing ✓' : mine ? 'Yours!' : `💎 ${item.price}`;
+    const price = wearing ? 'Wearing ✓' : mine ? (item.slot === 'toy' ? 'Play! ▶' : 'Yours!') : `💎 ${item.price}`;
     return `<button class="item${cls}" data-id="${item.id}">${itemPicture(item)}<span class="name">${item.name}</span><span class="price">${price}</span></button>`;
   }).join('');
 
@@ -2102,6 +2270,18 @@ function showCloset() {
 // Tapping something Pom owns puts it on or takes it off. Anything else she tries on first.
 function onItemTap(id) {
   const item = ITEMS[id];
+  if (item.slot === 'toy') {
+    const short = item.price - state.gems;
+    tryingOn = owns(id) || tryingOn === id ? null : id;
+    if (owns(id) || tryingOn) playToy($('pomCloset'), id);
+    else sfx.hint();
+    $('closetBubble').textContent = owns(id) ? item.say
+      : !tryingOn ? 'Okay! Let\'s pick something else.'
+      : short > 0 ? `I want to play with the ${item.name}! We need ${short} more 💎. Let's practice!`
+      : `Can I have the ${item.name} for ${item.price} 💎? Pleeease?`;
+    renderCloset();
+    return;
+  }
   if (owns(id)) {
     tryingOn = null;
     if (state.worn[item.slot] === id && item.slot !== 'fur') {
@@ -2133,12 +2313,13 @@ function buyItem() {
   if (!item || item.price > state.gems) return;
   state.gems -= item.price;
   state.owned.push(item.id);
-  state.worn[item.slot] = item.id;
+  if (item.slot !== 'toy') state.worn[item.slot] = item.id;
   tryingOn = null;
   saveState();
   renderCloset();
   retrigger($('pomCloset').querySelector('.gem-badge'), 'drop');
-  animatePom($('pomCloset'), 'bounce');
+  if (item.slot === 'toy') setTimeout(() => playToy($('pomCloset'), item.id), 400);
+  else animatePom($('pomCloset'), 'bounce');
   sfx.sticker();
   setTimeout(sfx.milestone, 250);
   confetti(70);
@@ -2253,6 +2434,12 @@ function init() {
     closetTab = tab.dataset.slot;
     sfx.tap(CLOSET_SLOTS.findIndex(s => s.id === closetTab));
     renderCloset();
+  });
+  $('toyShelf').addEventListener('click', e => {
+    const btn = e.target.closest('.toy-btn');
+    if (!btn) return;
+    playToy($('pomStart'), btn.dataset.id);
+    $('startBubble').textContent = ITEMS[btn.dataset.id].say;
   });
   $('closetItems').addEventListener('click', e => {
     const item = e.target.closest('.item');

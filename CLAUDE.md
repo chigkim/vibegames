@@ -41,7 +41,7 @@ npx serve .
 python -m http.server 8080
 ```
 
-Testing uses Playwright:
+Testing uses Playwright. For first-time setup (installing dependencies and browsers, and fixing a browser install that freezes), follow the "Testing Environment Setup" section in `README.md`.
 
 ```
 npx playwright test

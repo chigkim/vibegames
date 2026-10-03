@@ -109,6 +109,30 @@ test('a first wrong answer offers the picture hint', async ({ page }) => {
   await expect(page.locator('#hintBtn')).toBeHidden();
 });
 
+test('a right answer after the picture pays 1¢ whatever the factors', async ({ page }) => {
+  await page.evaluate(() => { state.totalCents = 50; saveState(); });
+  await page.reload();
+  await page.locator('#picker .pick-btn').nth(11).click(); // up to 12
+  await page.locator('#startBtn').click();
+
+  // Hint button after one miss
+  await page.evaluate(() => { game.a = 7; game.b = 8; $('factorA').textContent = 7; $('factorB').textContent = 8; });
+  await answer(page, false);
+  await page.locator('#hintBtn').click({ force: true });
+  await expect(page.locator('#worth')).toHaveText('With the picture, this one pays 1¢');
+  await answer(page, true);
+  await expect(page.locator('#gameBankAmount')).toHaveText('$0.49'); // 50 − 2 + 1
+
+  // Count-together picture after two misses
+  await page.waitForTimeout(2200);
+  await page.evaluate(() => { game.a = 9; game.b = 9; $('factorA').textContent = 9; $('factorB').textContent = 9; });
+  await answer(page, false);
+  await answer(page, false);
+  await expect(page.locator('#gridArea')).toBeVisible();
+  await answer(page, true);
+  await expect(page.locator('#gameBankAmount')).toHaveText('$0.46'); // 49 − 2 − 2 + 1
+});
+
 test('a save in another tab is not undone by this tab', async ({ page, context }) => {
   const other = await context.newPage();
   await other.goto('/multiplication-ms-menna.html');

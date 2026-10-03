@@ -1055,7 +1055,7 @@
     <div class="pom-container" id="pomStart"></div>
     <div class="toy-shelf" id="toyShelf" hidden></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v10 - Updated 2026-10-03 05:50 EDT</p>
+    <p class="version">v11 - Updated 2026-10-03 15:04 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1204,6 +1204,7 @@
 // ===== CONSTANTS =====
 const QUESTIONS_PER_ROUND = 10;
 const WRONG_CENTS = 2;
+const HINT_CENTS = 1; // Pay for a right answer after the picture was shown, whatever the factors.
 const MAX_NUMBER = 13;
 const MAX_PAYOUTS_KEPT = 30; // keeps the cookie mirror under its 4 KB limit
 const STORE_KEY = 'mennaMultiplication';
@@ -1864,7 +1865,7 @@ function nextQuestion() {
   const due = game.retries.findIndex(r => r.at <= game.index && r.key !== game.prevKey);
   const retry = due >= 0 ? game.retries.splice(due, 1)[0] : null;
   const q = retry || pickQuestion();
-  Object.assign(game, { a: q.a, b: q.b, attempts: 0, input: '', locked: false });
+  Object.assign(game, { a: q.a, b: q.b, attempts: 0, hinted: false, input: '', locked: false });
   game.prevKey = factKey(q.a, q.b);
   game.asked.add(game.prevKey);
 
@@ -1948,7 +1949,7 @@ function onCorrect(answer) {
       if (newSticker) game.newStickers.push({ a: game.a, b: game.b });
     }
   }
-  const cents = centsFor(game.a, game.b);
+  const cents = game.hinted ? HINT_CENTS : centsFor(game.a, game.b);
   renderAnswer('correct');
   sfx.coin();
   const display = $('answerDisplay');
@@ -2039,6 +2040,11 @@ function showGrid(countOut) {
   const grid = $('arrayGrid');
   area.classList.add('show');
   $('hintBtn').classList.remove('show');
+  if (!game.hinted) {
+    game.hinted = true;
+    $('worth').textContent = `With the picture, this one pays ${HINT_CENTS}¢`;
+    $('worth').className = 'worth tier-1';
+  }
   $('gridCaption').innerHTML =
     `<span class="r">${a} ${a === 1 ? 'row' : 'rows'}</span> of <span class="c">${b} ${b === 1 ? 'dot' : 'dots'}</span>`;
 

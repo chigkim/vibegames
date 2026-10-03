@@ -37,6 +37,7 @@ The games are tested with [Playwright](https://playwright.dev) in headless Chrom
 
 - `tests/games.spec.js` runs the same smoke tests on every game: it loads without errors, starts and plays for a moment, draws on its canvas (Phaser games), and shows the same version number as its card on `index.html`. Add an entry to its `GAMES` list when you add a game.
 - `tests/rise.spec.js` has extra checks for Rise (screens, HUD, mute button, saved guide setting).
+- `tests/multiplication.spec.js` checks the Multiplication pay table, that right and wrong answers change the piggy bank by the right amount, and that cashing out records the payout and survives a reload. The coins are exchanged for real money, so keep these passing.
 
 ### Requirements
 
@@ -83,10 +84,10 @@ You don't need to start a server first. The config starts `npx serve . -l 8788` 
 A good run looks like this:
 
 ```
-Running 27 tests using 1 worker
+Running 30 tests using 1 worker
   ✓   1 [chromium] › tests/games.spec.js:74:5 › rise.html › loads without JS errors
   ...
-  27 passed
+  30 passed
 ```
 
 ### Troubleshooting: browser install freezes

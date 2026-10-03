@@ -631,6 +631,38 @@
     color: var(--dark-brown);
   }
 
+  /* ===== PAY PER QUESTION ===== */
+  /* Sits on the question box's top border so it adds no height. */
+  .worth {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    white-space: nowrap;
+    border-radius: 50px;
+    padding: 1px 12px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: var(--dark-brown);
+    background: #FFF3C4;
+    border: 2px solid var(--gold);
+  }
+  .worth.tier-1 { background: #F1EDE8; border-color: #D8CFC4; color: var(--brown); }
+  .worth.tier-2 { background: #E6F4FF; border-color: var(--sky); }
+  .worth.tier-4 { background: #E9F8EC; border-color: var(--green); }
+  .worth.tier-7 { background: linear-gradient(135deg, #FFF3C4, #FFE08A); border-color: #E8B84A; }
+
+  /* ===== CASH OUT ===== */
+  .pay-rates { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin: 0 0 14px; }
+  .pay-rates span { white-space: nowrap; }
+  .btn-pay { background: linear-gradient(135deg, var(--green), var(--dark-green)); color: white; width: 100%; }
+  .btn-pay.confirming { background: linear-gradient(135deg, var(--orange), #E8692A); }
+  .payout-list { margin: 16px 0 4px; text-align: left; font-weight: 700; color: var(--dark-brown); }
+  .payout-list h2 { font-family: 'Baloo 2', cursive; font-size: 1.1rem; color: var(--brown); margin-bottom: 6px; text-align: center; }
+  .payout-row { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 2px dashed var(--peach); }
+  .payout-row:last-child { border-bottom: none; }
+  .payout-empty { text-align: center; color: var(--brown); opacity: 0.7; }
+
   @media (max-width: 420px) {
     .teacher-row { gap: 16px; }
     .speech-bubble { font-size: 0.95rem; }
@@ -695,10 +727,10 @@
   <div class="card">
     <div class="pom-container" id="pomStart"></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v3 - Updated 2026-10-02 21:06 EDT</p>
+    <p class="version">v4 - Updated 2026-10-02 21:32 EDT</p>
 
     <div class="bank" id="startBank"><span class="coin">¢</span><span class="amount" id="startBankAmount">$0.00</span></div>
-    <p class="bank-label">Your piggy bank 🐷 — earn 5¢ for every right answer!</p>
+    <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
 
     <div class="speech-bubble below" id="startBubble" aria-live="polite">
       Woof! Pick your biggest number, and I'll ask you times questions up to that number!
@@ -709,6 +741,7 @@
     <div class="picker" id="picker"></div>
 
     <button class="btn btn-primary" id="startBtn" disabled>Let's Go! 🚀</button>
+    <button class="btn btn-secondary" id="cashoutBtn">💵 Cash Out</button>
   </div>
 </div>
 
@@ -734,6 +767,7 @@
     </div>
 
     <div class="question-box">
+      <div class="worth" id="worth"></div>
       <div class="equation" id="equation" aria-live="polite">
         <span class="factor rows" id="factorA">4</span>
         <span class="times">×</span>
@@ -784,15 +818,32 @@
   </div>
 </div>
 
+<!-- ===== CASH OUT SCREEN ===== -->
+<div class="screen" id="cashoutScreen">
+  <div class="card">
+    <h1>Cash Out 💵</h1>
+    <div class="bank" id="cashBank"><span class="coin">¢</span><span class="amount" id="cashBankAmount">$0.00</span></div>
+    <p class="bank-label">in the piggy bank right now</p>
+    <p class="pay-rates">Pay per right answer:<br><span>×1 → 1¢</span> · <span>×2 or ×10 → 2¢</span> · <span>×3–×5 → 4¢</span> · <span>everything else → 7¢</span><br><span>Wrong answer → −2¢</span></p>
+    <button class="btn btn-pay" id="payBtn">Pay out $0.00</button>
+    <div class="stat-row">
+      <div class="stat"><b id="statPaid">$0.00</b>paid so far</div>
+      <div class="stat"><b id="statAllTime">$0.00</b>earned all-time</div>
+    </div>
+    <div class="payout-list" id="payoutList"></div>
+    <button class="btn btn-secondary" id="cashBackBtn">← Back</button>
+  </div>
+</div>
+
 <script src="./libs/zzfx-1.4.0.micro.min.js"></script>
 <script>
 'use strict';
 
 // ===== CONSTANTS =====
 const QUESTIONS_PER_ROUND = 10;
-const CORRECT_CENTS = 5;
 const WRONG_CENTS = 2;
 const MAX_NUMBER = 13;
+const MAX_PAYOUTS_KEPT = 30; // keeps the cookie mirror under its 4 KB limit
 const STORE_KEY = 'mennaMultiplication';
 const COOKIE_NAME = 'mennaMult';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 400; // Browsers cap cookie lifetime at 400 days.
@@ -801,10 +852,19 @@ const PICK_COLORS = ['#FFB3C6', '#FFD6B0', '#FFE08A', '#C8F0B0', '#A8DAFF', '#C9
 const ROW_COLORS = ['#FF9FBF', '#FFB870', '#FFD84D', '#8FDB7A', '#6FC3F2', '#A994F5', '#FF9E80',
   '#5FD6B8', '#F59BE0', '#8FB8F5', '#F2C94C', '#B79CF2', '#FF8A8A'];
 
+// Pay per right answer. Easy facts pay less so picking 2 or 3 isn't the best way to earn.
+function centsFor(a, b) {
+  const small = Math.min(a, b);
+  if (small === 1) return 1;
+  if (small === 2 || a === 10 || b === 10) return 2;
+  if (small <= 5) return 4;
+  return 7;
+}
+
 // ===== PERSISTENCE =====
 // Saved in localStorage with a cookie mirror, so progress survives if either one is cleared.
 function defaultState() {
-  return { totalCents: 0, weights: {}, lastMax: 0, muted: false, savedAt: 0 };
+  return { totalCents: 0, paidCents: 0, payouts: [], weights: {}, lastMax: 0, muted: false, savedAt: 0 };
 }
 
 function readCookie() {
@@ -827,6 +887,12 @@ function loadState() {
     for (const [key, w] of Object.entries(saved.weights)) {
       if (/^\d+x\d+$/.test(key) && Number.isFinite(w) && w > 1) state.weights[key] = Math.min(w, 12);
     }
+  }
+  if (Number.isFinite(saved.paidCents)) state.paidCents = Math.max(0, Math.round(saved.paidCents));
+  if (Array.isArray(saved.payouts)) {
+    state.payouts = saved.payouts
+      .filter(po => po && Number.isFinite(po.t) && Number.isFinite(po.c) && po.c > 0)
+      .slice(0, MAX_PAYOUTS_KEPT);
   }
   if (Number.isInteger(saved.lastMax) && saved.lastMax >= 1 && saved.lastMax <= MAX_NUMBER) state.lastMax = saved.lastMax;
   state.muted = !!saved.muted;
@@ -1180,6 +1246,9 @@ function nextQuestion() {
   game.prevKey = factKey(q.a, q.b);
   game.asked.add(game.prevKey);
 
+  const cents = centsFor(q.a, q.b);
+  $('worth').textContent = `This one pays ${cents}¢!`;
+  $('worth').className = 'worth tier-' + cents;
   $('factorA').textContent = q.a;
   $('factorB').textContent = q.b;
   retrigger($('equation'), 'new');
@@ -1245,12 +1314,13 @@ function onCorrect(answer) {
     const w = weightOf(game.a, game.b);
     state.weights[key] = 1 + (w - 1) * 0.6;
   }
+  const cents = centsFor(game.a, game.b);
   renderAnswer('correct');
   sfx.coin();
   const display = $('answerDisplay');
-  flyText('+' + CORRECT_CENTS + '¢', display, 'plus', -120);
-  flyCoins(display, $('gameBank'), CORRECT_CENTS);
-  game.roundCents += changeBank(CORRECT_CENTS);
+  flyText('+' + cents + '¢', display, 'plus', -120);
+  flyCoins(display, $('gameBank'), cents);
+  game.roundCents += changeBank(cents);
   later(() => retrigger($('gameBank'), 'pulse'), 650);
   renderRoundEarned();
   animatePom($('pomGame'), 'bounce');
@@ -1259,7 +1329,7 @@ function onCorrect(answer) {
   $('feedback').className = 'feedback good';
   $('feedback').textContent = `${game.a} × ${game.b} = ${answer} ✓`;
   $('gameBubble').textContent = game.attempts === 0
-    ? pick(['Pawsome! 🐾', 'Woof woof! Correct!', 'You got it! ⭐', 'Super smart!', 'Yay! +5¢ for you!', 'Wag wag! That\'s right!'])
+    ? pick(['Pawsome! 🐾', 'Woof woof! Correct!', 'You got it! ⭐', 'Super smart!', `Yay! +${cents}¢ for you!`, 'Wag wag! That\'s right!'])
     : pick(['You figured it out! 🐾', 'Yes! Great job not giving up!', 'That\'s it! Way to keep trying!']);
 
   game.index++;
@@ -1419,6 +1489,59 @@ function goHome() {
   showScreen('startScreen');
 }
 
+// ===== CASH OUT =====
+let payConfirmTimer = null;
+
+function resetPayButton() {
+  clearTimeout(payConfirmTimer);
+  const btn = $('payBtn');
+  btn.classList.remove('confirming');
+  btn.disabled = state.totalCents <= 0;
+  btn.textContent = state.totalCents > 0 ? `Pay out ${formatMoney(state.totalCents)}` : 'Nothing to pay out yet';
+}
+
+function renderCashout() {
+  $('cashBankAmount').textContent = formatMoney(state.totalCents);
+  $('statPaid').textContent = formatMoney(state.paidCents);
+  $('statAllTime').textContent = formatMoney(state.paidCents + state.totalCents);
+  const dateFmt = { month: 'short', day: 'numeric', year: 'numeric' };
+  $('payoutList').innerHTML = '<h2>Payouts</h2>' + (state.payouts.length
+    ? state.payouts.map(po =>
+      `<div class="payout-row"><span>${new Date(po.t).toLocaleDateString(undefined, dateFmt)}</span><span>${formatMoney(po.c)}</span></div>`).join('')
+    : '<div class="payout-empty">No payouts yet</div>');
+  resetPayButton();
+}
+
+function showCashout() {
+  renderCashout();
+  showScreen('cashoutScreen');
+}
+
+// First tap asks for confirmation; the second records the payout and empties the bank.
+function onPayTap() {
+  const btn = $('payBtn');
+  if (state.totalCents <= 0) return;
+  if (!btn.classList.contains('confirming')) {
+    btn.classList.add('confirming');
+    btn.textContent = `Tap again once ${formatMoney(state.totalCents)} is paid ✓`;
+    sfx.hint();
+    payConfirmTimer = setTimeout(resetPayButton, 5000);
+    return;
+  }
+  const amount = state.totalCents;
+  state.payouts.unshift({ t: Date.now(), c: amount });
+  state.payouts.length = Math.min(state.payouts.length, MAX_PAYOUTS_KEPT);
+  state.paidCents += amount;
+  state.totalCents = 0;
+  saveState();
+  renderBank();
+  renderCashout();
+  retrigger($('cashBank'), 'pulse');
+  sfx.milestone();
+  confetti(90);
+  banner(`💵 ${formatMoney(amount)} paid! 🎉`);
+}
+
 // ===== WIRING =====
 function renderMute() {
   document.querySelectorAll('#muteBtn, #barMuteBtn').forEach(btn => {
@@ -1449,6 +1572,9 @@ function init() {
   $('againBtn').addEventListener('click', () => startRound(game.max));
   $('homeBtn').addEventListener('click', goHome);
   $('quitBtn').addEventListener('click', goHome);
+  $('cashoutBtn').addEventListener('click', showCashout);
+  $('cashBackBtn').addEventListener('click', goHome);
+  $('payBtn').addEventListener('click', onPayTap);
   $('hintBtn').addEventListener('click', () => {
     sfx.hint();
     $('gameBubble').textContent = `Look! ${game.a} ${game.a === 1 ? 'row' : 'rows'} with ${game.b} in each row. How many in all?`;

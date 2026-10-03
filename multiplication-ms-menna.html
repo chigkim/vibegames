@@ -695,7 +695,7 @@
   <div class="card">
     <div class="pom-container" id="pomStart"></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v1 - Updated 2026-10-02 20:04 EDT</p>
+    <p class="version">v2 - Updated 2026-10-02 20:08 EDT</p>
 
     <div class="bank" id="startBank"><span class="coin">¢</span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — earn 5¢ for every right answer!</p>
@@ -856,30 +856,92 @@ function resumeAudio() {
   } catch { /* audio is optional */ }
 }
 
-function play(params) {
+// Soft bell / marimba voices built from sine partials on ZzFX's audio context.
+let audioOut = null;
+function audioBus() {
+  if (audioOut) return audioOut;
+  const ctx = typeof zzfxX !== 'undefined' ? zzfxX : new (window.AudioContext || window.webkitAudioContext)();
+  const master = ctx.createGain();
+  master.gain.value = 0.5;
+  const warm = ctx.createBiquadFilter();
+  warm.type = 'lowpass';
+  warm.frequency.value = 3800;
+  warm.Q.value = 0.5;
+  // light echo for a sparkly, roomy tail
+  const echo = ctx.createDelay();
+  echo.delayTime.value = 0.16;
+  const echoGain = ctx.createGain();
+  echoGain.gain.value = 0.22;
+  master.connect(warm);
+  warm.connect(ctx.destination);
+  warm.connect(echo);
+  echo.connect(echoGain);
+  echoGain.connect(echo);
+  echoGain.connect(ctx.destination);
+  audioOut = { ctx, master };
+  return audioOut;
+}
+
+const VOICES = {
+  // [ratio, level, decay scale]
+  bell: [[1, 1, 1], [2, 0.32, 0.6], [3, 0.12, 0.4], [4.2, 0.05, 0.25]],
+  marimba: [[1, 1, 1], [4, 0.12, 0.3]],
+  soft: [[1, 1, 1], [2, 0.08, 0.5]],
+};
+
+function tone(freq, { at = 0, dur = 0.6, vol = 0.3, voice = 'bell', glide = 0 } = {}) {
   if (state.muted) return;
   resumeAudio();
-  try { if (typeof zzfx === 'function') zzfx(...params); } catch { /* never block gameplay on audio */ }
+  try {
+    const { ctx, master } = audioBus();
+    const t = ctx.currentTime + 0.01 + at;
+    VOICES[voice].forEach(([ratio, level, decay]) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq * ratio, t);
+      if (glide) osc.frequency.exponentialRampToValueAtTime(freq * ratio * glide, t + dur * 0.8);
+      const end = t + dur * decay;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol * level, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, end);
+      osc.connect(g);
+      g.connect(master);
+      osc.start(t);
+      osc.stop(end + 0.05);
+    });
+  } catch { /* never block gameplay on audio */ }
 }
 
-function playNotes(freqs, gap, params) {
-  freqs.forEach((f, i) => setTimeout(() => {
-    const p = params.slice();
-    p[2] = f;
-    play(p);
-  }, i * gap));
-}
+// C major pentatonic, so any run of notes sounds friendly
+const PENTA = [262, 294, 330, 392, 440, 523, 587, 659, 784, 880, 1047, 1175, 1319, 1568];
 
 const sfx = {
-  tap(digit) { play([0.35, 0, 520 + digit * 45, 0, 0.01, 0.05, 1, 1.5]); },
-  del() { play([0.3, 0, 300, 0, 0.01, 0.06, 1, 1, -8]); },
-  select(n) { play([0.5, 0, 330 + n * 40, 0.01, 0.04, 0.12, 0, 1.5, 0, 0, 120, 0.05]); },
-  coin() { play([0.7, 0.05, 1046, 0, 0.03, 0.25, 1, 1.8, 0, 0, 523, 0.06]); },
-  wrong() { play([0.5, 0.05, 220, 0.02, 0.1, 0.25, 2, 1.2, -12, 0, 0, 0, 0, 0.1]); },
-  hint() { playNotes([660, 880], 90, [0.4, 0, 0, 0.01, 0.04, 0.15, 0, 1.5]); },
-  count(i) { play([0.4, 0, 400 + i * 55, 0, 0.02, 0.1, 0, 1.6]); },
-  milestone() { playNotes([523, 659, 784, 1046, 784, 1046], 110, [0.6, 0, 0, 0.01, 0.08, 0.25, 1, 1.4]); },
-  roundEnd() { playNotes([392, 523, 659, 784, 1046], 140, [0.6, 0, 0, 0.02, 0.1, 0.3, 0, 1.3]); },
+  tap(digit) { tone(PENTA[3 + (digit % 8)], { voice: 'marimba', dur: 0.25, vol: 0.22 }); },
+  del() { tone(330, { voice: 'soft', dur: 0.2, vol: 0.2, glide: 0.8 }); },
+  select(n) { tone(PENTA[n % PENTA.length], { voice: 'bell', dur: 0.7, vol: 0.28 }); },
+  coin() {
+    tone(784, { dur: 0.5, vol: 0.28 });
+    tone(1175, { at: 0.08, dur: 0.9, vol: 0.26 });
+  },
+  wrong() {
+    // gentle "uh-oh": two soft low notes stepping down
+    tone(392, { voice: 'soft', dur: 0.3, vol: 0.26 });
+    tone(311, { voice: 'soft', at: 0.18, dur: 0.45, vol: 0.24, glide: 0.94 });
+  },
+  hint() {
+    tone(523, { dur: 0.5, vol: 0.24 });
+    tone(784, { at: 0.1, dur: 0.8, vol: 0.24 });
+  },
+  count(i) { tone(PENTA[Math.min(i, PENTA.length - 1)], { voice: 'marimba', dur: 0.35, vol: 0.24 }); },
+  milestone() {
+    [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, { at: i * 0.11, dur: 0.9, vol: 0.24 }));
+    [523, 659, 784, 1047].forEach(f => tone(f, { at: 0.62, dur: 1.8, vol: 0.16 }));
+  },
+  roundEnd() {
+    [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, { at: i * 0.14, dur: 0.9, vol: 0.24 }));
+    [262, 523, 659, 784].forEach(f => tone(f, { at: 0.75, dur: 2, vol: 0.15 }));
+  },
 };
 
 // ===== HELPERS =====

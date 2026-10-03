@@ -33,43 +33,13 @@ You may use the vendored libraries inside the libs/ folder:
 
 ## Development
 
-No build step. Open any HTML file directly in a browser, or serve with any static file server:
+`README.md` covers the list of games and the libraries each uses, how to run the games locally, and how to set up and run the Playwright tests (including the fix for a browser install that freezes). Read it before running or testing anything.
 
-```
-npx serve .
-# or
-python -m http.server 8080
-```
-
-Testing uses Playwright. For first-time setup (installing dependencies and browsers, and fixing a browser install that freezes), follow the "Testing Environment Setup" section in `README.md`.
-
-```
-npx playwright test
-npx playwright test --headed          # show browser
-npx playwright test tests/rise.spec  # single test file
-```
+When you add or rename a game or library, update the tables in `README.md`.
 
 ## Architecture
 
 **Each game is a single self-contained HTML file** with inline CSS and inline JS. There is no module system, bundler, or build pipeline. The landing page is `index.html`.
-
-### Libraries (all vendored in `libs/`)
-
-| File | Purpose |
-|------|---------|
-| `phaser-3.90.0.min.js` | Canvas game engine (rendering, input, physics) |
-| `tone-15.1.22.js` | Audio synthesis (music beds, synth sound effects) |
-| `zzfx-1.3.2.micro.min.js` | Micro procedural sound effects |
-| `nipplejs-0.10.2.min.js` | Virtual joystick for touch input (`hero-rescue.html` only) |
-
-### Games
-
-| File | Engine | Description |
-|------|--------|-------------|
-| `rise.html` | Phaser + Tone + ZzFX | Rope-swinging arcade climber |
-| `flappy-birdie.html` | Phaser + Tone + ZzFX | Multi-level flappy bird |
-| `hero-rescue.html` | Phaser + Tone + ZzFX + nippleJS | Vehicle driving/rescue missions |
-| `ms-menna-math.html` | Vanilla JS only | Math quiz app (no Phaser) |
 
 ### Phaser game pattern (rise, flappy-birdie, hero-rescue)
 
@@ -88,9 +58,11 @@ Every Phaser game follows the same structure:
 - HUD sizes use `clamp(min, Xvmin, max)` so they scale with the smaller viewport dimension
 - `window.visualViewport` (with `window.innerWidth/Height` fallback) is used for accurate sizing on mobile
 
-### ms-menna-math.html
+### Non-Phaser games (ms-menna-math, multiplication-ms-menna)
 
-Vanilla JS only (no Phaser). Game state is managed via `showScreen(id)` toggling CSS classes. Uses the Web Speech API (`speechSynthesis`) for text-to-speech feedback. No canvas.
+Vanilla JS only (no Phaser). `multiplication-ms-menna.html` uses ZzFX for sound.
+
+`ms-menna-math.html`: Game state is managed via `showScreen(id)` toggling CSS classes. Uses the Web Speech API (`speechSynthesis`) for text-to-speech feedback. No canvas.
 
 ## Updating the home page
 

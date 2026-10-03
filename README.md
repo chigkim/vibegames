@@ -1,5 +1,36 @@
 # vibegames
 
+Small browser games for young children, made to play on phones and tablets (especially Safari on iOS). Open `index.html` to see the full list.
+
+## Games
+
+| File | Built with | Description |
+|------|------------|-------------|
+| `rise.html` | Phaser + Tone.js + ZzFX | Rope-swinging arcade climber |
+| `flappy-birdie.html` | Phaser + Tone.js + ZzFX | Multi-level flappy bird |
+| `hero-rescue.html` | Phaser + Tone.js + ZzFX + NippleJS | Vehicle driving and rescue missions |
+| `ms-menna-math.html` | Plain JavaScript | Math quiz with spoken feedback |
+| `multiplication-ms-menna.html` | Plain JavaScript + ZzFX | Multiplication practice |
+
+Each game is one self-contained HTML file with its CSS and JavaScript inline. The libraries it uses are stored in `libs/`:
+
+| File | Purpose |
+|------|---------|
+| `phaser-3.90.0.min.js` | Canvas game engine (rendering, input, physics) |
+| `tone-15.1.22.js` | Synthesized music and sound effects |
+| `zzfx-1.3.2.micro.min.js` | Tiny arcade-style sound effects |
+| `nipplejs-0.10.2.min.js` | On-screen joystick for touch controls |
+
+## Running locally
+
+There is no build step. Open any HTML file in a browser, or serve the folder with any static file server:
+
+```sh
+npx serve .
+# or
+python -m http.server 8080
+```
+
 ## Testing Environment Setup
 
 The games are tested with [Playwright](https://playwright.dev) in headless Chromium. Test files live in `tests/` and the config is `playwright.config.js`.

@@ -1053,7 +1053,7 @@
     <div class="pom-container" id="pomStart"></div>
     <div class="toy-shelf" id="toyShelf" hidden></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v7 - Updated 2026-10-03 04:01 EDT</p>
+    <p class="version">v8 - Updated 2026-10-03 00:13 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1194,6 +1194,8 @@
 </div>
 
 <script src="./libs/zzfx-1.4.0.micro.min.js"></script>
+<script src="./libs/easy-speech-2.4.0.js"></script>
+<script src="./libs/speech.js"></script>
 <script>
 'use strict';
 
@@ -1498,6 +1500,16 @@ const sfx = {
   },
 };
 
+// ===== TEXT TO SPEECH =====
+// Ms. Menna reads her speech bubbles out loud with the shared voice in libs/speech.js.
+Speech.setup({ words: [[/💎/g, ' gems'], [/✓/g, ' check']] });
+
+// Shows text in a speech bubble and reads it. `extra` is spoken after it, but not shown.
+function say(bubbleId, text, extra = '') {
+  $(bubbleId).textContent = text;
+  Speech.speak(extra ? text + ' ' + extra : text);
+}
+
 // ===== HELPERS =====
 const $ = id => document.getElementById(id);
 const formatMoney = cents => '$' + (cents / 100).toFixed(2);
@@ -1769,11 +1781,11 @@ function selectMax(n, withSound) {
   $('pickSub').textContent = n === 1 ? 'Questions will use the number 1' : `Questions will use numbers 1 to ${n}`;
   if (withSound) {
     sfx.select(n);
-    $('startBubble').textContent = pick([
+    say('startBubble', pick([
       `Ooh, ${n}! Great choice! Tap "Let's Go" when you're ready!`,
       `Up to ${n}? You've got this! 🐾`,
       `${n} it is! Let's earn some coins!`,
-    ]);
+    ]));
     animatePom($('pomStart'), 'bounce');
   }
 }
@@ -1869,11 +1881,12 @@ function nextQuestion() {
   $('gridArea').classList.remove('show');
   $('arrayGrid').innerHTML = '';
   renderAnswer();
-  $('gameBubble').textContent = game.index === 0
+  say('gameBubble', game.index === 0
     ? pick(["Let's multiply! Type your answer on the number pad.", 'Ready? Here comes the first one!'])
     : retry
       ? pick(['Remember this one? Let\'s try it again! 🐾', 'This one came back! Do you remember it?'])
-      : pick(['Here comes the next one!', 'What do you think?', 'You can do it!', 'Think carefully!', 'Ready? Go!']);
+      : pick(['Here comes the next one!', 'What do you think?', 'You can do it!', 'Think carefully!', 'Ready? Go!']),
+    `${q.a} times ${q.b}?`);
 }
 
 function renderAnswer(status) {
@@ -1899,6 +1912,7 @@ function pressKey(key) {
     renderAnswer();
   } else {
     if (game.input.length >= 3) return;
+    if (!game.input) Speech.stop(); // the child is answering, so Ms. Menna stops talking
     game.input = (game.input === '0' ? '' : game.input) + key;
     sfx.tap(+key);
     renderAnswer();
@@ -1907,7 +1921,7 @@ function pressKey(key) {
 
 function submitAnswer() {
   if (!game.input) {
-    $('gameBubble').textContent = 'Type a number first, then press ✓!';
+    say('gameBubble', 'Type a number first, then press ✓!');
     animatePom($('pomGame'), 'shake');
     return;
   }
@@ -1959,11 +1973,11 @@ function onCorrect(answer) {
 
   $('feedback').className = 'feedback good';
   $('feedback').textContent = `${game.a} × ${game.b} = ${answer} ✓`;
-  $('gameBubble').textContent = trick
+  say('gameBubble', trick
     ? trick.say(game.streak)
     : game.attempts === 0
     ? pick(['Pawsome! 🐾', 'Woof woof! Correct!', 'You got it! ⭐', 'Super smart!', `Yay! +${cents}¢ for you!`, 'Wag wag! That\'s right!'])
-    : pick(['You figured it out! 🐾', 'Yes! Great job not giving up!', 'That\'s it! Way to keep trying!']);
+    : pick(['You figured it out! 🐾', 'Yes! Great job not giving up!', 'That\'s it! Way to keep trying!']));
 
   game.index++;
   $('progressFill').style.width = (game.index / QUESTIONS_PER_ROUND * 100) + '%';
@@ -1997,13 +2011,13 @@ function onWrong(answer) {
   $('feedback').textContent = 'Not quite — try again!';
 
   if (game.attempts === 1) {
-    $('gameBubble').textContent = pick([
+    say('gameBubble', pick([
       'Oops! Give it one more try!',
       'So close! Think about it and try again!',
-    ]);
+    ]));
   } else {
     $('hintBtn').classList.remove('show');
-    $('gameBubble').textContent = `Let's count together! ${game.a} ${game.a === 1 ? 'row' : 'rows'} of ${game.b}…`;
+    say('gameBubble', `Let's count together! ${game.a} ${game.a === 1 ? 'row' : 'rows'} of ${game.b}…`);
     showGrid(true);
   }
 
@@ -2075,7 +2089,7 @@ function showGrid(countOut) {
       row.sum.classList.add('show');
       sfx.count(i);
       if (i === rows.length - 1) {
-        $('gameBubble').textContent = `${a} rows of ${b} make ${a * b}! Now type it in!`;
+        say('gameBubble', `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make ${a * b}! Now type it in!`);
       }
     }, 900 + i * step));
   }
@@ -2093,11 +2107,13 @@ function showSummary() {
   $('summaryTitle').textContent = stars === 3 ? 'Amazing!' : stars === 2 ? 'Great job!' : 'Nice work!';
   $('finalStars').innerHTML = [1, 2, 3].map(i =>
     `<span class="${i <= stars ? '' : 'dim'}" style="animation-delay:${0.2 + i * 0.2}s">⭐</span>`).join('');
-  $('summaryBubble').textContent = stars === 3
+  say('summaryBubble', stars === 3
     ? 'Woof woof! You are a multiplication superstar! 🐾'
     : stars === 2
       ? 'Wag wag! You did really well! Keep practicing!'
-      : 'Good effort! Every round makes you stronger! 💪';
+      : 'Good effort! Every round makes you stronger! 💪',
+    `You got ${firstTry} out of ${QUESTIONS_PER_ROUND} on the first try!` +
+      (roundCents > 0 ? ` You earned ${roundCents} ${roundCents === 1 ? 'cent' : 'cents'}!` : ''));
   $('statFirstTry').textContent = `${firstTry} / ${QUESTIONS_PER_ROUND}`;
   $('statEarned').textContent = formatDelta(roundCents);
   $('statBank').textContent = formatMoney(state.totalCents);
@@ -2135,10 +2151,10 @@ function goHome() {
   renderBank();
   renderGems();
   renderMedals();
-  $('startBubble').textContent = pick([
+  say('startBubble', pick([
     'Woof! Pick your biggest number, and let\'s practice!',
     'Welcome back! Which number should we practice?',
-  ]);
+  ]));
   showScreen('startScreen');
 }
 
@@ -2260,9 +2276,9 @@ function renderCloset() {
 
 function showCloset() {
   tryingOn = null;
-  $('closetBubble').textContent = state.gems
+  say('closetBubble', state.gems
     ? pick([`Woof! I have ${state.gems} 💎. Tap something for me to try on!`, 'Ooh, what should I wear today? Tap to try it on!'])
-    : 'Get questions right on the first try to earn me some 💎!';
+    : 'Get questions right on the first try to earn me some 💎!');
   renderCloset();
   showScreen('closetScreen');
 }
@@ -2275,10 +2291,10 @@ function onItemTap(id) {
     tryingOn = owns(id) || tryingOn === id ? null : id;
     if (owns(id) || tryingOn) playToy($('pomCloset'), id);
     else sfx.hint();
-    $('closetBubble').textContent = owns(id) ? item.say
+    say('closetBubble', owns(id) ? item.say
       : !tryingOn ? 'Okay! Let\'s pick something else.'
       : short > 0 ? `I want to play with the ${item.name}! We need ${short} more 💎. Let's practice!`
-      : `Can I have the ${item.name} for ${item.price} 💎? Pleeease?`;
+      : `Can I have the ${item.name} for ${item.price} 💎? Pleeease?`);
     renderCloset();
     return;
   }
@@ -2287,22 +2303,22 @@ function onItemTap(id) {
     if (state.worn[item.slot] === id && item.slot !== 'fur') {
       delete state.worn[item.slot];
       sfx.del();
-      $('closetBubble').textContent = `Off goes the ${item.name}!`;
+      say('closetBubble', `Off goes the ${item.name}!`);
     } else {
       state.worn[item.slot] = id;
       sfx.select(CLOSET.indexOf(item));
-      $('closetBubble').textContent = pick([`I love my ${item.name}! 🐾`, `How do I look? ✨`, `${item.name} time!`]);
+      say('closetBubble', pick([`I love my ${item.name}! 🐾`, `How do I look? ✨`, `${item.name} time!`]));
     }
     saveState();
   } else {
     tryingOn = tryingOn === id ? null : id;
     sfx.hint();
     const short = item.price - state.gems;
-    $('closetBubble').textContent = !tryingOn
+    say('closetBubble', !tryingOn
       ? 'Okay! Let\'s pick something else.'
       : short > 0
         ? `I love the ${item.name}! We need ${short} more 💎. Let's practice!`
-        : `Ooh, the ${item.name}! Can I have it for ${item.price} 💎?`;
+        : `Ooh, the ${item.name}! Can I have it for ${item.price} 💎?`);
   }
   animatePom($('pomCloset'), 'bounce');
   renderCloset();
@@ -2324,7 +2340,7 @@ function buyItem() {
   setTimeout(sfx.milestone, 250);
   confetti(70);
   banner(`${item.ico || '🎨'} New ${item.name}!`);
-  $('closetBubble').textContent = `Thank you! I love my new ${item.name}! 🐾`;
+  say('closetBubble', `Thank you! I love my new ${item.name}! 🐾`);
 }
 
 // ===== CASH OUT =====
@@ -2384,7 +2400,7 @@ function onPayTap() {
 function renderMute() {
   document.querySelectorAll('#muteBtn, #barMuteBtn').forEach(btn => {
     btn.textContent = state.muted ? '🔇' : '🔊';
-    btn.setAttribute('aria-label', state.muted ? 'Unmute sounds' : 'Mute sounds');
+    btn.setAttribute('aria-label', state.muted ? 'Unmute sounds and voice' : 'Mute sounds and voice');
   });
 }
 
@@ -2407,6 +2423,7 @@ function init() {
   renderGems();
   dressAllPoms();
   renderMute();
+  Speech.setMuted(state.muted);
 
   document.addEventListener('pointerdown', resumeAudio, { passive: true });
 
@@ -2414,6 +2431,7 @@ function init() {
     state.muted = !state.muted;
     saveState();
     renderMute();
+    Speech.setMuted(state.muted);
     if (!state.muted) sfx.coin();
   }));
 
@@ -2439,7 +2457,7 @@ function init() {
     const btn = e.target.closest('.toy-btn');
     if (!btn) return;
     playToy($('pomStart'), btn.dataset.id);
-    $('startBubble').textContent = ITEMS[btn.dataset.id].say;
+    say('startBubble', ITEMS[btn.dataset.id].say);
   });
   $('closetItems').addEventListener('click', e => {
     const item = e.target.closest('.item');
@@ -2448,7 +2466,7 @@ function init() {
   $('payBtn').addEventListener('click', onPayTap);
   $('hintBtn').addEventListener('click', () => {
     sfx.hint();
-    $('gameBubble').textContent = `Look! ${game.a} ${game.a === 1 ? 'row' : 'rows'} with ${game.b} in each row. How many in all?`;
+    say('gameBubble', `Look! ${game.a} ${game.a === 1 ? 'row' : 'rows'} with ${game.b} in each row. How many in all?`);
     showGrid(false);
   });
 

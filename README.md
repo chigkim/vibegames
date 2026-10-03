@@ -9,8 +9,8 @@ Small browser games for young children, made to play on phones and tablets (espe
 | `rise.html` | Phaser + Tone.js + ZzFX | Rope-swinging arcade climber |
 | `flappy-birdie.html` | Phaser + Tone.js + ZzFX | Multi-level flappy bird |
 | `hero-rescue.html` | Phaser + Tone.js + ZzFX + NippleJS | Vehicle driving and rescue missions |
-| `ms-menna-math.html` | Plain JavaScript | Math quiz with spoken feedback |
-| `multiplication-ms-menna.html` | Plain JavaScript + ZzFX | Multiplication practice |
+| `ms-menna-math.html` | Plain JavaScript + Speech | Math quiz with spoken feedback |
+| `multiplication-ms-menna.html` | Plain JavaScript + ZzFX + Speech | Multiplication practice |
 
 Each game is one self-contained HTML file with its CSS and JavaScript inline. The libraries it uses are stored in `libs/`:
 
@@ -20,6 +20,8 @@ Each game is one self-contained HTML file with its CSS and JavaScript inline. Th
 | `tone-15.1.22.js` | Synthesized music and sound effects |
 | `zzfx-1.4.0.micro.min.js` | Tiny arcade-style sound effects |
 | `nipplejs-1.0.4.min.js` | On-screen joystick for touch controls |
+| `easy-speech-2.4.0.js` | Fixes browser bugs in the built-in text-to-speech voices |
+| `speech.js` | Ms. Menna's shared voice, built on EasySpeech. Load `easy-speech-2.4.0.js` first, then call `Speech.speak(text)`, `Speech.stop()` and `Speech.setMuted(on)`. It reads math symbols as words and skips emoji. |
 
 ## Running locally
 
@@ -37,7 +39,7 @@ The games are tested with [Playwright](https://playwright.dev) in headless Chrom
 
 - `tests/games.spec.js` runs the same smoke tests on every game: it loads without errors, starts and plays for a moment, draws on its canvas (Phaser games), and shows the same version number as its card on `index.html`. Add an entry to its `GAMES` list when you add a game.
 - `tests/rise.spec.js` has extra checks for Rise (screens, HUD, mute button, saved guide setting).
-- `tests/multiplication.spec.js` checks the Multiplication pay table, that right and wrong answers change the piggy bank by the right amount, that cashing out records the payout and survives a reload, the piggy bank fill levels, Ms. Menna's streak tricks, stickers and picker medals, that missed facts come back in the same round, that Pom's Closet gems are earned, spent, and saved without touching the piggy bank, and that Pom plays with the toys she owns. The coins are exchanged for real money, so keep these passing.
+- `tests/multiplication.spec.js` checks the Multiplication pay table, that right and wrong answers change the piggy bank by the right amount, that cashing out records the payout and survives a reload, the piggy bank fill levels, Ms. Menna's streak tricks, stickers and picker medals, that missed facts come back in the same round, that Pom's Closet gems are earned, spent, and saved without touching the piggy bank, that Pom plays with the toys she owns, and that Ms. Menna reads her speech bubbles out loud, stops when the child starts typing, and stays quiet when muted. The coins are exchanged for real money, so keep these passing.
 
 ### Requirements
 

@@ -399,6 +399,42 @@ test('the IndexedDB copy brings back progress if localStorage and the cookie are
   expect(await page.evaluate(() => state.gems)).toBe(42);
 });
 
+test('treats are bought with gems, kept in the jar, and used up when Pom eats them', async ({ page }) => {
+  await page.evaluate(() => { state.gems = 10; saveState(); renderGems(); });
+  await expect(page.locator('#treatJar')).toBeHidden();
+  await page.locator('#closetBtn').click();
+  await page.locator('.closet-tab[data-slot="treat"]').click();
+  await expect(page.locator('#closetItems .item')).toHaveCount(8);
+
+  // Tapping picks the treat; the Buy button spends the gems. The same treat can be bought again.
+  await page.locator('.item[data-id="cake"]').click();
+  await expect(page.locator('#buyBtn')).toHaveText('Need 5 more 💎');
+  await expect(page.locator('#buyBtn')).toBeDisabled();
+  await page.locator('.item[data-id="cookie"]').click();
+  await page.locator('#buyBtn').click();
+  await page.locator('#buyBtn').click();
+  await expect(page.locator('#pomCloset .gem-badge')).toHaveText('💎 4');
+  await expect(page.locator('.item[data-id="cookie"] .have')).toHaveText('2 in the jar');
+  await page.locator('.item[data-id="donut"]').click();
+  await expect(page.locator('#buyBtn')).toHaveText('Need 1 more 💎');
+  expect(await page.evaluate(() => { buyTreat(); return state.gems; })).toBe(4);
+
+  await page.locator('#closetBackBtn').click();
+  await expect(page.locator('#treatJar .toy-btn')).toHaveCount(1);
+  await expect(page.locator('#treatJar .count')).toHaveText('2');
+
+  // Feeding uses one up, and the jar survives a reload
+  await page.locator('#treatJar .toy-btn[data-id="cookie"]').click();
+  await expect(page.locator('#pomStart')).toHaveClass(/eating/);
+  await expect(page.locator('#startBubble')).toContainText('Cookie');
+  await expect(page.locator('#treatJar .count')).toHaveText('1');
+  await page.reload();
+  expect(await page.evaluate(() => ({ treats: state.treats, gems: state.gems }))).toEqual({ treats: { cookie: 1 }, gems: 4 });
+  await page.locator('#treatJar .toy-btn').click();
+  await expect(page.locator('#treatJar')).toBeHidden();
+  expect(await page.evaluate(() => state.treats)).toEqual({});
+});
+
 test('Pom buys toys, plays with them, and uses them in streak tricks', async ({ page }) => {
   await page.evaluate(() => { state.gems = 20; state.totalCents = 90; saveState(); });
   await page.reload();

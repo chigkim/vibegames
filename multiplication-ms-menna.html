@@ -302,6 +302,7 @@
   /* Pom's toys on the start screen */
   .toy-shelf { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 2px 0 12px; }
   .toy-shelf[hidden] { display: none; }
+  .shelves { display: flex; flex-wrap: wrap; justify-content: center; column-gap: 14px; }
   .toy-btn {
     width: clamp(44px, 9vmin, 56px);
     height: clamp(44px, 9vmin, 56px);
@@ -315,6 +316,71 @@
     touch-action: manipulation;
   }
   .toy-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #EEC89A; }
+
+  /* Pom's treat jar: each treat shows how many are left */
+  .treat-jar .toy-btn { position: relative; border-color: #FFB3C7; box-shadow: 0 3px 0 #F2A7BA; }
+  .treat-jar .count {
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    min-width: 22px;
+    padding: 1px 5px;
+    border-radius: 11px;
+    background: #FF7EB6;
+    color: white;
+    font-family: 'Baloo 2', cursive;
+    font-weight: 800;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+  .item .have { display: block; font-size: 0.8rem; color: #C2477F; font-weight: 700; }
+
+  /* Feeding: the treat flies to Pom's mouth, she munches, then crumbs fall and hearts rise. */
+  .treat-fx {
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    top: 50%;
+    pointer-events: none;
+    line-height: 1;
+    font-size: calc(var(--s) * clamp(1.7rem, 5vmin, 2.4rem));
+    transform: translate(-50%, -50%);
+    animation: treatEat 1.5s ease-in-out forwards;
+  }
+  @keyframes treatEat {
+    0% { transform: translate(calc(-50% + 70px * var(--s)), calc(-50% + 50px * var(--s))) scale(0.4); opacity: 0; }
+    20% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+    40% { transform: translate(-50%, -50%) scale(0.85); clip-path: inset(0 0 0 0); }
+    60% { transform: translate(-50%, -50%) scale(0.8); clip-path: inset(0 30% 0 0); }
+    80% { transform: translate(-50%, -50%) scale(0.6); clip-path: inset(0 65% 0 0); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0.3); clip-path: inset(0 100% 0 0); opacity: 0; }
+  }
+  .crumb-fx, .heart-fx { position: absolute; z-index: 2; pointer-events: none; opacity: 0; }
+  .crumb-fx {
+    left: 50%;
+    top: 52%;
+    width: calc(var(--s) * 6px);
+    height: calc(var(--s) * 6px);
+    border-radius: 2px;
+    background: #C98B4E;
+    animation: crumbFall 0.8s ease-in forwards;
+  }
+  @keyframes crumbFall {
+    0% { transform: translate(0, 0); opacity: 1; }
+    100% { transform: translate(var(--dx), calc(60px * var(--s))) rotate(200deg); opacity: 0; }
+  }
+  .heart-fx { top: 40%; font-size: calc(var(--s) * 1.4rem); animation: heartRise 1.2s ease-out forwards; }
+  @keyframes heartRise {
+    0% { transform: translateY(0) scale(0.4); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: translateY(calc(-50px * var(--s))) scale(1.2); opacity: 0; }
+  }
+  .pom-container.eating > svg { animation: pomMunch 0.3s ease-in-out 5 0.3s; }
+  @keyframes pomMunch { 50% { transform: translateY(calc(3px * var(--s))) scale(1.04, 0.96); } }
+  .pom-container.eating .pom-mouth-o { animation: mouthOpen 0.3s step-end 5 0.3s; }
+  .pom-container.eating .pom-mouth-happy { animation: mouthShut 0.3s step-end 5 0.3s; }
+  @keyframes mouthOpen { 0% { opacity: 1; } 50% { opacity: 0; } }
+  @keyframes mouthShut { 0% { opacity: 0; } 50% { opacity: 1; } }
 
   .pom-mouth-happy, .pom-mouth-o { transition: opacity 0.2s; }
   .pom-container.surprised .pom-mouth-happy { opacity: 0; }
@@ -892,10 +958,10 @@
 
   /* ===== POM'S CLOSET ===== */
   .closet-pom { width: clamp(150px, 26vmin, 220px); height: clamp(150px, 26vmin, 220px); margin: 4px auto 18px; }
-  .closet-tabs { display: flex; gap: 6px; justify-content: center; margin-bottom: 12px; }
+  .closet-tabs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 12px; }
+  @media (max-width: 560px) { .closet-tabs { grid-template-columns: repeat(4, 1fr); } }
   .closet-tab {
-    flex: 1;
-    max-width: 110px;
+    min-width: 0;
     padding: 6px 2px;
     border-radius: 16px;
     border: 3px solid #E4DBFF;
@@ -1099,9 +1165,12 @@
   <div class="card">
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart"></div>
-    <div class="toy-shelf" id="toyShelf" hidden></div>
+    <div class="shelves">
+      <div class="toy-shelf" id="toyShelf" hidden></div>
+      <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
+    </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v13 - Updated 2026-10-03 15:42 EDT</p>
+    <p class="version">v14 - Updated 2026-10-03 15:49 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1302,7 +1371,22 @@ const CLOSET_SLOTS = [
   { id: 'back', ico: '🦸', name: 'Back' },
   { id: 'fur', ico: '🎨', name: 'Fur' },
   { id: 'toy', ico: '🧸', name: 'Toys' },
+  { id: 'treat', ico: '🍪', name: 'Treats' },
 ];
+
+// Treats are used up when Pom eats one, so they can be bought again and again.
+const TREATS = [
+  { id: 'bone', name: 'Dog Bone', ico: '🦴', price: 2 },
+  { id: 'cookie', name: 'Cookie', ico: '🍪', price: 3 },
+  { id: 'apple', name: 'Apple', ico: '🍎', price: 3 },
+  { id: 'cheese', name: 'Cheese', ico: '🧀', price: 4 },
+  { id: 'donut', name: 'Donut', ico: '🍩', price: 5 },
+  { id: 'icecream', name: 'Ice Cream', ico: '🍦', price: 6 },
+  { id: 'cupcake', name: 'Cupcake', ico: '🧁', price: 8 },
+  { id: 'cake', name: 'Birthday Cake', ico: '🎂', price: 15 },
+];
+const TREAT = Object.fromEntries(TREATS.map(t => [t.id, t]));
+const MAX_TREATS = 99; // of each kind
 
 // Accessories are SVG drawn on Pom's 130×130 picture. Fur items recolor her five fur shades.
 // svg is an accessory's classic look; paint(main, dark, accent) draws it in one of the COLORS.
@@ -1453,7 +1537,7 @@ const DEFAULT_WORN = { hat: 'cap', fur: 'classic' };
 function defaultState() {
   return {
     totalCents: 0, paidCents: 0, payouts: [], weights: {}, mastery: FACT_KEYS.map(() => 0), lastMax: 0, muted: false,
-    gems: 0, owned: [], worn: { ...DEFAULT_WORN }, toys: {}, savedAt: 0,
+    gems: 0, owned: [], worn: { ...DEFAULT_WORN }, toys: {}, treats: {}, savedAt: 0,
   };
 }
 
@@ -1565,6 +1649,11 @@ function loadState(extra) {
   if (saved.toys && typeof saved.toys === 'object') {
     for (const [base, id] of Object.entries(saved.toys)) {
       if (ITEMS[id] && ITEMS[id].slot === 'toy' && ITEMS[id].base === base && state.owned.includes(id)) state.toys[base] = id;
+    }
+  }
+  if (saved.treats && typeof saved.treats === 'object') {
+    for (const [id, n] of Object.entries(saved.treats)) {
+      if (TREAT[id] && Number.isInteger(n) && n > 0) state.treats[id] = Math.min(n, MAX_TREATS);
     }
   }
   if (saved.worn && typeof saved.worn === 'object') {
@@ -1716,6 +1805,11 @@ const sfx = {
       [784, 1047, 1319].forEach((f, i) => tone(f, { at: 0.9 + i * 0.07, dur: 0.6, vol: 0.22 }));
     },
   },
+  // crunchy chomps, then a happy "mmm" chime
+  munch() {
+    for (let i = 0; i < 5; i++) tone(i % 2 ? 247 : 220, { at: 0.3 + i * 0.3, voice: 'soft', dur: 0.12, vol: 0.22, glide: 0.85 });
+    [659, 784, 1047].forEach((f, i) => tone(f, { at: 1.85 + i * 0.1, dur: 0.7, vol: 0.2 }));
+  },
   roundEnd() {
     [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, { at: i * 0.14, dur: 0.9, vol: 0.24 }));
     [262, 523, 659, 784].forEach(f => tone(f, { at: 0.75, dur: 2, vol: 0.15 }));
@@ -1761,8 +1855,8 @@ function playToy(el, id) {
   const toy = ITEMS[id];
   const kind = toy.base;
   clearTimeout(el.toyTimer);
-  el.querySelectorAll('.toy-fx').forEach(t => t.remove());
-  el.classList.remove('bounce', 'shake', 'surprised', ...TRICKS.map(t => t.cls), ...TOY_CLASSES);
+  el.querySelectorAll('.toy-fx, .treat-fx, .crumb-fx, .heart-fx').forEach(t => t.remove());
+  el.classList.remove('bounce', 'shake', 'surprised', 'eating', ...TRICKS.map(t => t.cls), ...TOY_CLASSES);
   void el.offsetWidth;
   el.classList.add('play-' + kind);
   const count = kind === 'bubbles' ? 5 : 1;
@@ -1782,6 +1876,35 @@ function playToy(el, id) {
     el.classList.remove('play-' + kind);
     el.querySelectorAll('.toy-fx').forEach(t => t.remove());
   }, 1500);
+}
+
+// Pom eats a treat: it flies to her mouth and gets smaller with each chomp, then crumbs fall and hearts float up.
+function feedPom(el, id) {
+  const treat = TREAT[id];
+  clearTimeout(el.toyTimer);
+  el.querySelectorAll('.toy-fx, .treat-fx, .crumb-fx, .heart-fx').forEach(t => t.remove());
+  el.classList.remove('bounce', 'shake', 'surprised', 'eating', ...TRICKS.map(t => t.cls), ...TOY_CLASSES);
+  void el.offsetWidth;
+  el.classList.add('eating');
+  const add = (cls, html, style) => {
+    const fx = document.createElement('span');
+    fx.className = cls;
+    fx.innerHTML = html;
+    Object.assign(fx.style, style);
+    el.appendChild(fx);
+  };
+  add('treat-fx', treat.ico, {});
+  for (let i = 0; i < 8; i++) {
+    add('crumb-fx', '', { '--dx': `${(i - 3.5) * 9}px`, animationDelay: `${0.5 + i * 0.12}s` });
+  }
+  for (let i = 0; i < 5; i++) {
+    add('heart-fx', ['❤️', '💖', '💕'][i % 3], { left: `${18 + i * 16}%`, animationDelay: `${1.6 + i * 0.12}s` });
+  }
+  sfx.munch();
+  el.toyTimer = setTimeout(() => {
+    el.classList.remove('eating');
+    el.querySelectorAll('.treat-fx, .crumb-fx, .heart-fx').forEach(t => t.remove());
+  }, 3000);
 }
 
 // Ms. Menna does a trick for 3 or more first-try answers in a row: spin, backflip, dance,
@@ -2429,6 +2552,7 @@ function showStickers() {
 function renderGems() {
   document.querySelectorAll('.gem-badge').forEach(el => { el.textContent = '💎 ' + state.gems; });
   renderToyShelf();
+  renderTreatJar();
   // Glows when Pom can afford something new.
   $('closetBtn').classList.toggle('glow', Object.values(ITEMS).some(item => !owns(item.id) && item.price <= state.gems));
 }
@@ -2481,6 +2605,25 @@ function toyFace(toy, cls) {
   const fancy = toy.color && toy.color.fancy ? ' tint-' + toy.color.code : '';
   const style = toy.color && toy.color.tint ? ` style="filter:${toy.color.tint}"` : '';
   return `<span class="${cls}${fancy}"${style}>${toy.ico}</span>`;
+}
+
+function renderTreatJar() {
+  const treats = TREATS.filter(t => state.treats[t.id] > 0);
+  $('treatJar').hidden = !treats.length;
+  $('treatJar').innerHTML = treats.map(t =>
+    `<button class="toy-btn" data-id="${t.id}" aria-label="Give Pom a ${t.name}, ${state.treats[t.id]} left">` +
+    `${t.ico}<span class="count">${state.treats[t.id]}</span></button>`).join('');
+}
+
+function giveTreat(id) {
+  if (!(state.treats[id] > 0)) return;
+  state.treats[id]--;
+  if (!state.treats[id]) delete state.treats[id];
+  saveState();
+  renderTreatJar();
+  const name = TREAT[id].name;
+  say('startBubble', pick([`Yum! Thank you for the ${name}! 💖`, `Yummy, ${name}! You're the best! 🐾`, `Nom nom nom! I love ${name}! 💕`]));
+  feedPom($('pomStart'), id);
 }
 
 function renderToyShelf() {
@@ -2543,6 +2686,10 @@ function renderColors() {
 function renderCloset() {
   $('closetTabs').innerHTML = CLOSET_SLOTS.map(s =>
     `<button class="closet-tab${s.id === closetTab ? ' on' : ''}" data-slot="${s.id}"><span class="ico">${s.ico}</span>${s.name}</button>`).join('');
+  if (closetTab === 'treat') {
+    renderTreats();
+    return;
+  }
   $('closetItems').innerHTML = CLOSET.filter(item => item.slot === closetTab).map(item => {
     let cls, price;
     if (item.fur) {
@@ -2571,9 +2718,58 @@ function renderCloset() {
   dressAllPoms();
 }
 
+// The Treats tab: tap a treat to pick it, then buy it with the Buy button. It goes into the treat jar.
+let treatPick = null;
+
+function renderTreats() {
+  $('closetItems').innerHTML = TREATS.map(t => {
+    const have = state.treats[t.id] || 0;
+    const cls = (t.id === treatPick ? ' trying' : '') + (t.price > state.gems ? ' too-much' : '');
+    return `<button class="item${cls}" data-id="${t.id}"><span class="ico">${t.ico}</span><span class="name">${t.name}</span>` +
+      `<span class="price">💎 ${t.price}</span>${have ? `<span class="have">${have} in the jar</span>` : ''}</button>`;
+  }).join('');
+  $('colorRow').hidden = true;
+  const buy = $('buyBtn');
+  buy.hidden = !treatPick;
+  if (treatPick) {
+    const t = TREAT[treatPick];
+    buy.disabled = t.price > state.gems || (state.treats[t.id] || 0) >= MAX_TREATS;
+    buy.textContent = t.price > state.gems ? `Need ${t.price - state.gems} more 💎` : `Buy ${t.name} for ${t.price} 💎`;
+  }
+  renderGems();
+  dressAllPoms();
+}
+
+function onTreatTap(id) {
+  const t = TREAT[id];
+  treatPick = treatPick === id ? null : id;
+  sfx.tap(TREATS.indexOf(t));
+  const short = t.price - state.gems;
+  say('closetBubble', !treatPick ? 'Okay! Let\'s pick something else.'
+    : short > 0 ? `Ooh, a ${t.name}! We need ${short} more 💎. Let's practice!`
+    : `A ${t.name}! Can I have one for ${t.price} 💎? Pleeease?`);
+  animatePom($('pomCloset'), 'bounce');
+  renderCloset();
+}
+
+function buyTreat() {
+  const t = treatPick && TREAT[treatPick];
+  if (!t || t.price > state.gems || (state.treats[t.id] || 0) >= MAX_TREATS) return;
+  state.gems -= t.price;
+  state.treats[t.id] = (state.treats[t.id] || 0) + 1;
+  saveState();
+  renderCloset();
+  retrigger($('pomCloset').querySelector('.gem-badge'), 'drop');
+  animatePom($('pomCloset'), 'bounce');
+  sfx.gem();
+  setTimeout(sfx.sticker, 150);
+  say('closetBubble', `Yay! The ${t.name} is in my treat jar! Give it to me on the start screen! 🐾`);
+}
+
 function showCloset() {
   tryingOn = null;
   closetPick = null;
+  treatPick = null;
   say('closetBubble', state.gems
     ? pick([`Woof! I have ${state.gems} 💎. Tap something for me to try on!`, 'Ooh, what should I wear today? Tap to try it on!'])
     : 'Get questions right on the first try to earn me some 💎!');
@@ -2799,11 +2995,12 @@ function init() {
   $('cashBackBtn').addEventListener('click', goHome);
   $('closetBtn').addEventListener('click', showCloset);
   $('closetBackBtn').addEventListener('click', () => { tryingOn = null; dressAllPoms(); goHome(); });
-  $('buyBtn').addEventListener('click', buyItem);
+  $('buyBtn').addEventListener('click', () => (closetTab === 'treat' ? buyTreat() : buyItem()));
   $('closetTabs').addEventListener('click', e => {
     const tab = e.target.closest('.closet-tab');
     if (!tab) return;
     closetTab = tab.dataset.slot;
+    treatPick = null;
     sfx.tap(CLOSET_SLOTS.findIndex(s => s.id === closetTab));
     renderCloset();
   });
@@ -2813,9 +3010,13 @@ function init() {
     playToy($('pomStart'), btn.dataset.id);
     say('startBubble', ITEMS[btn.dataset.id].say);
   });
+  $('treatJar').addEventListener('click', e => {
+    const btn = e.target.closest('.toy-btn');
+    if (btn) giveTreat(btn.dataset.id);
+  });
   $('closetItems').addEventListener('click', e => {
     const item = e.target.closest('.item');
-    if (item) onItemTap(item.dataset.id);
+    if (item) (closetTab === 'treat' ? onTreatTap : onItemTap)(item.dataset.id);
   });
   $('colorRow').addEventListener('click', e => {
     const btn = e.target.closest('.color-btn');

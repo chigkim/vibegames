@@ -130,6 +130,38 @@
 
   .pom-container svg { width: 100%; height: 100%; filter: drop-shadow(0 6px 16px rgba(139,94,60,0.22)); }
 
+  /* Fur colors come from the closet; these are Ms. Menna's own. */
+  .pom-container { --fur1: #E8A85A; --fur2: #F0B870; --fur3: #F5C27A; --fur4: #D4924A; --fur5: #C0824A; }
+  .pom-container .f1 { fill: var(--fur1); }
+  .pom-container .f2 { fill: var(--fur2); }
+  .pom-container .f3 { fill: var(--fur3); }
+  .pom-container .f4 { fill: var(--fur4); }
+  .pom-container .f5 { fill: var(--fur5); }
+
+  /* Pom keeps the gems: a little pouch under her paws. */
+  .gem-badge {
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    background: linear-gradient(135deg, #EDE6FF, #D9CCFF);
+    border: 2px solid #A994F5;
+    border-radius: 50px;
+    padding: 0 10px;
+    font-family: 'Baloo 2', cursive;
+    font-weight: 800;
+    font-size: clamp(0.85rem, 2vmin, 1.1rem);
+    color: #4B3A8C;
+    box-shadow: 0 3px 0 #A994F5;
+    pointer-events: none;
+  }
+  #pomStart { margin-bottom: 16px; }
+  .pom-container.small .gem-badge { font-size: 0.8rem; padding: 0 7px; bottom: -10px; }
+  .gem-badge.pulse { animation: bankPulse 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+  .gem-badge.drop { animation: bankDrop 0.45s ease; }
+  .fly-gem { position: absolute; font-size: 1.6rem; line-height: 1; }
+
   .pom-container.bounce { animation: pomBounce 0.6s cubic-bezier(0.34,1.56,0.64,1); }
   @keyframes pomBounce {
     0% { transform: scale(1); }
@@ -372,6 +404,9 @@
   .btn-primary { background: linear-gradient(135deg, var(--orange), var(--soft-orange)); color: white; width: 100%; }
   .btn-secondary { background: linear-gradient(135deg, var(--sky), #7EC8E3); color: var(--dark-brown); width: 100%; margin-top: 12px; }
   .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn-closet { background: linear-gradient(135deg, #D9CCFF, #B9A4FF); color: #3B2A7A; width: 100%; margin-top: 12px; }
+  .btn-closet.glow { animation: closetGlow 1.4s ease-in-out infinite; }
+  @keyframes closetGlow { 50% { box-shadow: 0 5px 0 rgba(0,0,0,0.15), 0 0 20px rgba(169,148,245,0.95); } }
 
   /* ===== GAME TOP BAR ===== */
   .top-bar {
@@ -750,6 +785,57 @@
   .sticker-help { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin-bottom: 4px; }
   .new-stickers { font-weight: 800; color: var(--dark-brown); margin: -6px 0 14px; }
 
+  /* ===== POM'S CLOSET ===== */
+  .closet-pom { width: clamp(150px, 26vmin, 220px); height: clamp(150px, 26vmin, 220px); margin: 4px auto 18px; }
+  .closet-tabs { display: flex; gap: 6px; justify-content: center; margin-bottom: 12px; }
+  .closet-tab {
+    flex: 1;
+    max-width: 110px;
+    padding: 6px 2px;
+    border-radius: 16px;
+    border: 3px solid #E4DBFF;
+    background: white;
+    font-family: 'Baloo 2', cursive;
+    font-weight: 800;
+    font-size: clamp(0.75rem, 2vmin, 1rem);
+    color: var(--dark-brown);
+    cursor: pointer;
+    line-height: 1.1;
+  }
+  .closet-tab .ico { display: block; font-size: 1.5em; }
+  .closet-tab.on { border-color: #A994F5; background: #F1ECFF; }
+  .closet-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(clamp(88px, 18vmin, 120px), 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .item {
+    position: relative;
+    border-radius: 18px;
+    border: 3px solid var(--peach);
+    background: white;
+    padding: 8px 4px 6px;
+    font-family: 'Baloo 2', cursive;
+    font-weight: 800;
+    color: var(--dark-brown);
+    cursor: pointer;
+    box-shadow: 0 4px 0 #EEC89A;
+    line-height: 1.15;
+    touch-action: manipulation;
+  }
+  .item:active { transform: translateY(3px); box-shadow: 0 1px 0 #EEC89A; }
+  .item .ico { display: block; font-size: clamp(1.8rem, 5vmin, 2.4rem); line-height: 1.2; }
+  .item .swatch { display: block; width: 1.6em; height: 1.6em; margin: 0.15em auto; border-radius: 50%; border: 2px solid rgba(0,0,0,0.15); font-size: clamp(1.1rem, 3vmin, 1.5rem); }
+  .item .name { display: block; font-size: 0.9rem; }
+  .item .price { display: block; font-size: 0.85rem; color: #4B3A8C; }
+  .item.too-much .price { color: var(--brown); opacity: 0.55; }
+  .item.owned .price { color: var(--dark-green); }
+  .item.wearing { border-color: var(--green); background: #EFFFF1; box-shadow: 0 4px 0 var(--dark-green); }
+  .item.trying { border-color: #A994F5; background: #F1ECFF; box-shadow: 0 0 0 3px #D9CCFF, 0 4px 0 #A994F5; }
+  .btn-buy { background: linear-gradient(135deg, #A994F5, #7B5BE0); color: white; width: 100%; }
+  .closet-help { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin-top: 10px; }
+
   /* ===== CASH OUT ===== */
   .pay-rates { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin: 0 0 14px; }
   .pay-rates span { white-space: nowrap; }
@@ -820,23 +906,24 @@
 
 <template id="pomTemplate">
   <svg viewBox="0 0 130 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <ellipse cx="65" cy="85" rx="38" ry="30" fill="#E8A85A"/>
-    <ellipse cx="40" cy="88" rx="14" ry="12" fill="#F0B870"/>
-    <ellipse cx="90" cy="88" rx="14" ry="12" fill="#F0B870"/>
-    <ellipse cx="65" cy="100" rx="20" ry="12" fill="#F0B870"/>
-    <ellipse cx="100" cy="68" rx="14" ry="10" fill="#E8A85A" transform="rotate(-30 100 68)"/>
-    <ellipse cx="108" cy="62" rx="10" ry="7" fill="#F0B870" transform="rotate(-30 108 62)"/>
-    <ellipse cx="65" cy="70" rx="22" ry="14" fill="#F5C27A"/>
-    <ellipse cx="65" cy="52" rx="26" ry="24" fill="#E8A85A"/>
-    <ellipse cx="36" cy="52" rx="12" ry="16" fill="#F0B870"/>
-    <ellipse cx="94" cy="52" rx="12" ry="16" fill="#F0B870"/>
-    <ellipse cx="38" cy="44" rx="9" ry="12" fill="#F5C27A"/>
-    <ellipse cx="92" cy="44" rx="9" ry="12" fill="#F5C27A"/>
-    <ellipse cx="46" cy="31" rx="10" ry="12" fill="#D4924A"/>
-    <ellipse cx="84" cy="31" rx="10" ry="12" fill="#D4924A"/>
-    <ellipse cx="46" cy="32" rx="6" ry="8" fill="#E8A85A"/>
-    <ellipse cx="84" cy="32" rx="6" ry="8" fill="#E8A85A"/>
-    <ellipse cx="65" cy="56" rx="18" ry="16" fill="#F5C27A"/>
+    <g class="acc acc-back"></g>
+    <ellipse cx="65" cy="85" rx="38" ry="30" class="f1" fill="#E8A85A"/>
+    <ellipse cx="40" cy="88" rx="14" ry="12" class="f2" fill="#F0B870"/>
+    <ellipse cx="90" cy="88" rx="14" ry="12" class="f2" fill="#F0B870"/>
+    <ellipse cx="65" cy="100" rx="20" ry="12" class="f2" fill="#F0B870"/>
+    <ellipse cx="100" cy="68" rx="14" ry="10" class="f1" fill="#E8A85A" transform="rotate(-30 100 68)"/>
+    <ellipse cx="108" cy="62" rx="10" ry="7" class="f2" fill="#F0B870" transform="rotate(-30 108 62)"/>
+    <ellipse cx="65" cy="70" rx="22" ry="14" class="f3" fill="#F5C27A"/>
+    <ellipse cx="65" cy="52" rx="26" ry="24" class="f1" fill="#E8A85A"/>
+    <ellipse cx="36" cy="52" rx="12" ry="16" class="f2" fill="#F0B870"/>
+    <ellipse cx="94" cy="52" rx="12" ry="16" class="f2" fill="#F0B870"/>
+    <ellipse cx="38" cy="44" rx="9" ry="12" class="f3" fill="#F5C27A"/>
+    <ellipse cx="92" cy="44" rx="9" ry="12" class="f3" fill="#F5C27A"/>
+    <ellipse cx="46" cy="31" rx="10" ry="12" class="f4" fill="#D4924A"/>
+    <ellipse cx="84" cy="31" rx="10" ry="12" class="f4" fill="#D4924A"/>
+    <ellipse cx="46" cy="32" rx="6" ry="8" class="f1" fill="#E8A85A"/>
+    <ellipse cx="84" cy="32" rx="6" ry="8" class="f1" fill="#E8A85A"/>
+    <ellipse cx="65" cy="56" rx="18" ry="16" class="f3" fill="#F5C27A"/>
     <circle cx="57" cy="50" r="5" fill="#3D2B1F"/>
     <circle cx="73" cy="50" r="5" fill="#3D2B1F"/>
     <circle cx="59" cy="48" r="2" fill="white"/>
@@ -847,14 +934,13 @@
     <ellipse class="pom-mouth-o" cx="65" cy="64" rx="2.5" ry="3" fill="#3D2B1F"/>
     <circle cx="51" cy="57" r="5" fill="#FFB3C6" opacity="0.5"/>
     <circle cx="79" cy="57" r="5" fill="#FFB3C6" opacity="0.5"/>
-    <rect x="48" y="32" width="34" height="5" rx="2" fill="#3D2B1F"/>
-    <polygon points="65,22 48,32 82,32" fill="#3D2B1F"/>
-    <line x1="82" y1="32" x2="88" y2="40" stroke="#FFD166" stroke-width="2.5"/>
-    <circle cx="88" cy="42" r="3" fill="#FFD166"/>
-    <rect x="50" y="108" width="12" height="16" rx="6" fill="#D4924A"/>
-    <rect x="68" y="108" width="12" height="16" rx="6" fill="#D4924A"/>
-    <ellipse cx="56" cy="124" rx="8" ry="4" fill="#C0824A"/>
-    <ellipse cx="74" cy="124" rx="8" ry="4" fill="#C0824A"/>
+    <g class="acc acc-face"></g>
+    <g class="acc acc-neck"></g>
+    <g class="acc acc-hat"></g>
+    <rect x="50" y="108" width="12" height="16" rx="6" class="f4" fill="#D4924A"/>
+    <rect x="68" y="108" width="12" height="16" rx="6" class="f4" fill="#D4924A"/>
+    <ellipse cx="56" cy="124" rx="8" ry="4" class="f5" fill="#C0824A"/>
+    <ellipse cx="74" cy="124" rx="8" ry="4" class="f5" fill="#C0824A"/>
     <line x1="30" y1="90" x2="18" y2="65" stroke="#8B5E3C" stroke-width="3" stroke-linecap="round"/>
     <text x="13" y="66" font-family="Baloo 2, sans-serif" font-weight="800" font-size="14" fill="#FF8C42">×</text>
   </svg>
@@ -865,7 +951,7 @@
   <div class="card">
     <div class="pom-container" id="pomStart"></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v5 - Updated 2026-10-02 21:41 EDT</p>
+    <p class="version">v6 - Updated 2026-10-03 03:49 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -880,6 +966,7 @@
     <p class="medal-key">🥉 ⅓ of stickers · 🥈 ⅔ · 🥇 all of them</p>
 
     <button class="btn btn-primary" id="startBtn" disabled>Let's Go! 🚀</button>
+    <button class="btn btn-closet" id="closetBtn">🎀 Pom's Closet</button>
     <div class="btn-row">
       <button class="btn btn-secondary" id="stickersBtn">⭐ Stickers</button>
       <button class="btn btn-secondary" id="cashoutBtn">💵 Cash Out</button>
@@ -953,6 +1040,7 @@
       <div class="stat"><b id="statFirstTry">0 / 10</b>right on first try</div>
       <div class="stat"><b id="statEarned">+0¢</b>this round</div>
       <div class="stat"><b id="statBank">$0.00</b>piggy bank</div>
+      <div class="stat"><b id="statGems">+0 💎</b>gems for Pom</div>
     </div>
     <div class="new-stickers" id="newStickers"></div>
     <div class="practice-list" id="practiceList"></div>
@@ -969,6 +1057,20 @@
     <div class="sticker-grid" id="stickerGrid"></div>
     <p class="sticker-help">Get a fact right on the first try 3 times to earn its sticker.<br>Each dot is one time. 3 × 7 and 7 × 3 share a sticker!</p>
     <button class="btn btn-secondary" id="stickerBackBtn">← Back</button>
+  </div>
+</div>
+
+<!-- ===== POM'S CLOSET SCREEN ===== -->
+<div class="screen" id="closetScreen">
+  <div class="card">
+    <h1>Pom's Closet 🎀</h1>
+    <div class="speech-bubble below" id="closetBubble" aria-live="polite"></div>
+    <div class="pom-container closet-pom" id="pomCloset"></div>
+    <div class="closet-tabs" id="closetTabs"></div>
+    <div class="closet-items" id="closetItems"></div>
+    <button class="btn btn-buy" id="buyBtn" hidden></button>
+    <p class="closet-help">Pom earns 💎 when you get a question right on the first try.<br>New stickers and great rounds earn bonus gems!</p>
+    <button class="btn btn-secondary" id="closetBackBtn">← Back</button>
   </div>
 </div>
 
@@ -1023,10 +1125,87 @@ const STICKER_AT = 3; // first-try right answers needed for a sticker
 const STICKERS = ['⭐', '🐾', '🌈', '🦋', '🍓', '🌸', '🐶', '🍩', '🎈', '🦄', '🍭', '🌟', '💎'];
 const stickerFor = key => STICKERS[(FACT_INDEX[key] * 7) % STICKERS.length];
 
+// ===== POM'S CLOSET =====
+// Gems are play money for Pom's outfits. They never touch the real-money piggy bank.
+const GEMS_PER_ANSWER = 1; // each first-try right answer
+const GEMS_PER_STICKER = 2;
+const GEMS_FOR_STARS = [0, 0, 1, 3]; // round bonus by stars
+
+const CLOSET_SLOTS = [
+  { id: 'hat', ico: '🎩', name: 'Hats' },
+  { id: 'face', ico: '👓', name: 'Glasses' },
+  { id: 'neck', ico: '🎀', name: 'Neck' },
+  { id: 'back', ico: '🦸', name: 'Back' },
+  { id: 'fur', ico: '🎨', name: 'Fur' },
+];
+
+// Accessories are SVG drawn on Pom's 130×130 picture. Fur items recolor her five fur shades.
+const CLOSET = [
+  { id: 'cap', slot: 'hat', name: 'Teacher Cap', ico: '🎓', price: 0, svg:
+    '<rect x="48" y="32" width="34" height="5" rx="2" fill="#3D2B1F"/><polygon points="65,22 48,32 82,32" fill="#3D2B1F"/>' +
+    '<line x1="82" y1="32" x2="88" y2="40" stroke="#FFD166" stroke-width="2.5"/><circle cx="88" cy="42" r="3" fill="#FFD166"/>' },
+  { id: 'party', slot: 'hat', name: 'Party Hat', ico: '🥳', price: 5, svg:
+    '<polygon points="65,3 53,31 77,31" fill="#6FC3F2"/><path d="M57.5 21 L72.5 21 M60.5 13 L69.5 13" stroke="#FFD166" stroke-width="3.5"/>' +
+    '<circle cx="65" cy="4" r="4" fill="#FF6FA8"/>' },
+  { id: 'bow', slot: 'hat', name: 'Hair Bow', ico: '🎀', price: 8, svg:
+    '<path d="M80 24 L69 16 Q66 24 69 32 Z M80 24 L91 16 Q94 24 91 32 Z" fill="#FF6FA8" stroke="#E0457F" stroke-width="1.5" stroke-linejoin="round"/>' +
+    '<circle cx="80" cy="24" r="4" fill="#E0457F"/>' },
+  { id: 'chef', slot: 'hat', name: 'Chef Hat', ico: '👨‍🍳', price: 15, svg:
+    '<g fill="#fff" stroke="#E5DCD2" stroke-width="1.5"><circle cx="55" cy="17" r="8"/><circle cx="75" cy="17" r="8"/>' +
+    '<circle cx="65" cy="12" r="10"/><rect x="52" y="20" width="26" height="12" rx="3"/></g>' },
+  { id: 'cowboy', slot: 'hat', name: 'Cowboy Hat', ico: '🤠', price: 20, svg:
+    '<path d="M50 28 Q49 12 57 12 Q65 16 73 12 Q81 12 80 28 Z" fill="#B5784A"/><rect x="50" y="22" width="30" height="5" fill="#5C3D1E"/>' +
+    '<path d="M36 28 Q65 40 94 28 Q90 25 80 27 L50 27 Q40 25 36 28 Z" fill="#A0673A"/>' },
+  { id: 'wizard', slot: 'hat', name: 'Wizard Hat', ico: '🧙', price: 30, svg:
+    '<path d="M52 29 L69 3 Q71 0 72 4 L78 29 Z" fill="#7B5BE0"/><ellipse cx="65" cy="30" rx="24" ry="4.5" fill="#5B3FB0"/>' +
+    '<text x="59" y="25" font-size="9" fill="#FFD166">★</text><text x="67" y="15" font-size="6" fill="#FFD166">★</text>' },
+  { id: 'crown', slot: 'hat', name: 'Crown', ico: '👑', price: 45, svg:
+    '<path d="M48 30 L48 14 L56 22 L65 9 L74 22 L82 14 L82 30 Z" fill="#FFD166" stroke="#E0A800" stroke-width="2" stroke-linejoin="round"/>' +
+    '<circle cx="65" cy="24" r="3" fill="#FF6B6B"/><circle cx="55" cy="26" r="2" fill="#6FC3F2"/><circle cx="75" cy="26" r="2" fill="#6FC3F2"/>' },
+  { id: 'specs', slot: 'face', name: 'Smart Glasses', ico: '👓', price: 10, svg:
+    '<g stroke="#3D2B1F" stroke-width="2"><circle cx="57" cy="50" r="7" fill="rgba(255,255,255,0.25)"/>' +
+    '<circle cx="73" cy="50" r="7" fill="rgba(255,255,255,0.25)"/><path d="M64 49 Q65 47 66 49" fill="none"/></g>' },
+  { id: 'shades', slot: 'face', name: 'Sunglasses', ico: '🕶️', price: 15, svg:
+    '<rect x="49" y="44" width="15" height="11" rx="4" fill="#222"/><rect x="66" y="44" width="15" height="11" rx="4" fill="#222"/>' +
+    '<rect x="63" y="47" width="4" height="2" fill="#222"/><path d="M52 47 L56 47 M69 47 L73 47" stroke="#fff" stroke-width="1.5" opacity="0.6"/>' },
+  { id: 'hearts', slot: 'face', name: 'Heart Glasses', ico: '😍', price: 20, svg:
+    '<path d="M57 57 C46 50 49 41 57 46 C65 41 68 50 57 57 Z M73 57 C62 50 65 41 73 46 C81 41 84 50 73 57 Z" fill="#FF4F8B" opacity="0.92"/>' +
+    '<path d="M63 48 L67 48" stroke="#E0457F" stroke-width="2"/>' },
+  { id: 'bandana', slot: 'neck', name: 'Bandana', ico: '🟥', price: 6, svg:
+    '<path d="M44 67 Q65 77 86 67 L65 88 Z" fill="#E94B4B"/>' +
+    '<g fill="#fff"><circle cx="58" cy="75" r="1.5"/><circle cx="72" cy="75" r="1.5"/><circle cx="65" cy="81" r="1.5"/></g>' },
+  { id: 'bowtie', slot: 'neck', name: 'Bow Tie', ico: '🎀', price: 10, svg:
+    '<path d="M65 72 L54 66 L54 78 Z M65 72 L76 66 L76 78 Z" fill="#3E8FC9" stroke="#2A6FA0" stroke-width="1.5" stroke-linejoin="round"/>' +
+    '<circle cx="65" cy="72" r="3" fill="#2A6FA0"/>' },
+  { id: 'scarf', slot: 'neck', name: 'Cozy Scarf', ico: '🧣', price: 12, svg:
+    '<rect x="72" y="72" width="8" height="22" rx="3" fill="#52B060"/><path d="M44 66 Q65 78 86 66 L86 73 Q65 85 44 73 Z" fill="#6BCB77"/>' +
+    '<path d="M72 88 L80 88" stroke="#FFD166" stroke-width="2"/>' },
+  { id: 'medal', slot: 'neck', name: 'Gold Medal', ico: '🏅', price: 35, svg:
+    '<path d="M54 66 L65 82 L76 66" stroke="#3E8FC9" stroke-width="4" fill="none"/>' +
+    '<circle cx="65" cy="86" r="7" fill="#FFD166" stroke="#E0A800" stroke-width="2"/>' +
+    '<text x="65" y="89.5" font-size="9" text-anchor="middle" fill="#E0A800">★</text>' },
+  { id: 'wings', slot: 'back', name: 'Fairy Wings', ico: '🧚', price: 40, svg:
+    '<g fill="#C9B8FF" stroke="#A994F5" stroke-width="1.5" opacity="0.9">' +
+    '<ellipse cx="30" cy="64" rx="18" ry="11" transform="rotate(-30 30 64)"/><ellipse cx="32" cy="84" rx="12" ry="7" transform="rotate(20 32 84)"/>' +
+    '<ellipse cx="100" cy="64" rx="18" ry="11" transform="rotate(30 100 64)"/><ellipse cx="98" cy="84" rx="12" ry="7" transform="rotate(-20 98 84)"/></g>' },
+  { id: 'cape', slot: 'back', name: 'Super Cape', ico: '🦸', price: 50, svg:
+    '<path d="M45 66 Q26 100 30 120 L100 120 Q104 100 85 66 Z" fill="#E94B4B" stroke="#C43A3A" stroke-width="2"/>' },
+  { id: 'classic', slot: 'fur', name: 'Classic', price: 0, fur: ['#E8A85A', '#F0B870', '#F5C27A', '#D4924A', '#C0824A'] },
+  { id: 'cream', slot: 'fur', name: 'Cream', price: 25, fur: ['#EADBC0', '#F3E8D4', '#FAF3E6', '#D9C5A3', '#C9B38E'] },
+  { id: 'choc', slot: 'fur', name: 'Chocolate', price: 25, fur: ['#8B5A35', '#9C6A42', '#B07D52', '#6E4527', '#5E3A20'] },
+  { id: 'pink', slot: 'fur', name: 'Cotton Candy', price: 40, fur: ['#F4A3C4', '#F7B7D2', '#FBCDE1', '#E888B0', '#D9739E'] },
+  { id: 'blue', slot: 'fur', name: 'Blueberry', price: 40, fur: ['#8FBCEB', '#A5CBF0', '#BEDAF5', '#729FD6', '#5F8BC2'] },
+];
+const ITEMS = Object.fromEntries(CLOSET.map(item => [item.id, item]));
+const DEFAULT_WORN = { hat: 'cap', fur: 'classic' };
+
 // ===== PERSISTENCE =====
 // Saved in localStorage with a cookie mirror, so progress survives if either one is cleared.
 function defaultState() {
-  return { totalCents: 0, paidCents: 0, payouts: [], weights: {}, mastery: FACT_KEYS.map(() => 0), lastMax: 0, muted: false, savedAt: 0 };
+  return {
+    totalCents: 0, paidCents: 0, payouts: [], weights: {}, mastery: FACT_KEYS.map(() => 0), lastMax: 0, muted: false,
+    gems: 0, owned: [], worn: { ...DEFAULT_WORN }, savedAt: 0,
+  };
 }
 
 function readCookie() {
@@ -1061,6 +1240,16 @@ function loadState() {
   }
   if (Number.isInteger(saved.lastMax) && saved.lastMax >= 1 && saved.lastMax <= MAX_NUMBER) state.lastMax = saved.lastMax;
   state.muted = !!saved.muted;
+  if (Number.isFinite(saved.gems)) state.gems = Math.max(0, Math.round(saved.gems));
+  if (typeof saved.owned === 'string') {
+    state.owned = [...new Set(saved.owned.split(','))].filter(id => ITEMS[id] && ITEMS[id].price > 0);
+  }
+  if (saved.worn && typeof saved.worn === 'object') {
+    state.worn = { fur: 'classic' };
+    for (const [slot, id] of Object.entries(saved.worn)) {
+      if (ITEMS[id] && ITEMS[id].slot === slot && (ITEMS[id].price === 0 || state.owned.includes(id))) state.worn[slot] = id;
+    }
+  }
   state.savedAt = saved.savedAt || 0;
   return state;
 }
@@ -1072,7 +1261,7 @@ function saveState() {
     if (w > 1.01) weights[key] = Math.round(w * 100) / 100;
   }
   state.weights = weights;
-  const json = JSON.stringify({ ...state, mastery: state.mastery.join('') });
+  const json = JSON.stringify({ ...state, mastery: state.mastery.join(''), owned: state.owned.join(',') });
   try { localStorage.setItem(STORE_KEY, json); } catch { /* storage may be unavailable in private mode */ }
   const secure = location.protocol === 'https:' ? '; Secure' : '';
   document.cookie = `${COOKIE_NAME}=${encodeURIComponent(json)}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax${secure}`;
@@ -1174,6 +1363,10 @@ const sfx = {
   },
   sticker() {
     [784, 1047, 1319, 1568].forEach((f, i) => tone(f, { at: i * 0.07, dur: 0.7, vol: 0.2 }));
+  },
+  gem() {
+    tone(1319, { dur: 0.4, vol: 0.16 });
+    tone(1568, { at: 0.07, dur: 0.6, vol: 0.16 });
   },
   roundEnd() {
     [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, { at: i * 0.14, dur: 0.9, vol: 0.24 }));
@@ -1436,6 +1629,7 @@ function startRound(max) {
     index: 0,
     firstTry: 0,
     roundCents: 0,
+    roundGems: 0,
     missed: [],
     asked: new Set(),
     prevKey: null,
@@ -1584,6 +1778,11 @@ function onCorrect(answer) {
   const display = $('answerDisplay');
   flyText('+' + cents + '¢', display, 'plus', -120);
   flyCoins(display, $('gameBank'), cents);
+  const gems = (game.attempts === 0 ? GEMS_PER_ANSWER : 0) + (newSticker ? GEMS_PER_STICKER : 0);
+  if (gems) {
+    game.roundGems += gems;
+    addGems(gems, display, $('pomGame'));
+  }
   game.roundCents += changeBank(cents);
   later(() => pigReact($('gameBank'), 'pulse'), 650);
   renderRoundEarned();
@@ -1742,6 +1941,14 @@ function showSummary() {
   $('statFirstTry').textContent = `${firstTry} / ${QUESTIONS_PER_ROUND}`;
   $('statEarned').textContent = formatDelta(roundCents);
   $('statBank').textContent = formatMoney(state.totalCents);
+  const bonus = GEMS_FOR_STARS[stars];
+  if (bonus) {
+    game.roundGems += bonus;
+    state.gems += bonus;
+    saveState();
+    renderGems();
+  }
+  $('statGems').textContent = `+${game.roundGems} 💎`;
   $('newStickers').textContent = game.newStickers.length
     ? 'New stickers: ' + game.newStickers.map(f => `${stickerFor(factKey(f.a, f.b))} ${f.a} × ${f.b}`).join('  ')
     : '';
@@ -1766,6 +1973,7 @@ function goHome() {
   clearTimers();
   game = null;
   renderBank();
+  renderGems();
   renderMedals();
   $('startBubble').textContent = pick([
     'Woof! Pick your biggest number, and let\'s practice!',
@@ -1799,6 +2007,143 @@ function showStickers() {
   $('stickerCount').textContent = `${got} of ${FACT_KEYS.length} stickers${got === FACT_KEYS.length ? ' — all of them! 🏆' : ''}`;
   stickersSeen = new Set(FACT_KEYS.filter(k => state.mastery[FACT_INDEX[k]] >= STICKER_AT));
   showScreen('stickerScreen');
+}
+
+// ===== GEMS =====
+function renderGems() {
+  document.querySelectorAll('.gem-badge').forEach(el => { el.textContent = '💎 ' + state.gems; });
+  // Glows when Pom can afford something new.
+  $('closetBtn').classList.toggle('glow', CLOSET.some(item => !owns(item.id) && item.price <= state.gems));
+}
+
+// Gems fly from the answer into Pom's pouch.
+function addGems(count, fromEl, pomEl) {
+  state.gems += count;
+  saveState();
+  const badge = pomEl.querySelector('.gem-badge');
+  const a = centerOf(fromEl);
+  const b = centerOf(badge);
+  for (let i = 0; i < count; i++) {
+    const gem = document.createElement('div');
+    gem.className = 'fly-gem';
+    gem.textContent = '💎';
+    gem.style.left = (a.x - 12) + 'px';
+    gem.style.top = (a.y - 12) + 'px';
+    fxLayer.appendChild(gem);
+    gem.animate([
+      { transform: 'translate(0,0) scale(0.4)', opacity: 0 },
+      { transform: `translate(${(Math.random() - 0.5) * 80}px, -50px) scale(1.2)`, opacity: 1, offset: 0.35 },
+      { transform: `translate(${b.x - a.x}px, ${b.y - a.y}px) scale(0.6)`, opacity: 0.9 },
+    ], { duration: 800 + i * 90, easing: 'cubic-bezier(.5,0,.6,1)' }).onfinish = () => gem.remove();
+  }
+  setTimeout(() => {
+    renderGems();
+    retrigger(badge, 'pulse');
+    sfx.gem();
+  }, 800);
+}
+
+// ===== POM'S CLOSET =====
+const owns = id => ITEMS[id].price === 0 || state.owned.includes(id);
+let closetTab = 'hat';
+let tryingOn = null; // an item Pom is trying on before buying it
+
+function dressPom(el, worn) {
+  for (const slot of ['hat', 'face', 'neck', 'back']) {
+    el.querySelector('.acc-' + slot).innerHTML = worn[slot] ? ITEMS[worn[slot]].svg : '';
+  }
+  ITEMS[worn.fur || 'classic'].fur.forEach((color, i) => el.style.setProperty('--fur' + (i + 1), color));
+}
+
+function dressAllPoms() {
+  const outfit = tryingOn ? { ...state.worn, [ITEMS[tryingOn].slot]: tryingOn } : state.worn;
+  dressPom($('pomStart'), state.worn);
+  dressPom($('pomGame'), state.worn);
+  dressPom($('pomCloset'), outfit);
+}
+
+function itemPicture(item) {
+  return item.fur
+    ? `<span class="swatch" style="background:linear-gradient(135deg, ${item.fur[2]}, ${item.fur[0]} 60%, ${item.fur[3]})"></span>`
+    : `<span class="ico">${item.ico}</span>`;
+}
+
+function renderCloset() {
+  $('closetTabs').innerHTML = CLOSET_SLOTS.map(s =>
+    `<button class="closet-tab${s.id === closetTab ? ' on' : ''}" data-slot="${s.id}"><span class="ico">${s.ico}</span>${s.name}</button>`).join('');
+  $('closetItems').innerHTML = CLOSET.filter(item => item.slot === closetTab).map(item => {
+    const mine = owns(item.id);
+    const wearing = state.worn[item.slot] === item.id;
+    const cls = wearing ? ' owned wearing' : mine ? ' owned' : item.id === tryingOn ? ' trying' : item.price > state.gems ? ' too-much' : '';
+    const price = wearing ? 'Wearing ✓' : mine ? 'Yours!' : `💎 ${item.price}`;
+    return `<button class="item${cls}" data-id="${item.id}">${itemPicture(item)}<span class="name">${item.name}</span><span class="price">${price}</span></button>`;
+  }).join('');
+
+  const buy = $('buyBtn');
+  buy.hidden = !tryingOn;
+  if (tryingOn) {
+    const item = ITEMS[tryingOn];
+    buy.disabled = item.price > state.gems;
+    buy.textContent = buy.disabled ? `Need ${item.price - state.gems} more 💎` : `Buy ${item.name} for ${item.price} 💎`;
+  }
+  renderGems();
+  dressAllPoms();
+}
+
+function showCloset() {
+  tryingOn = null;
+  $('closetBubble').textContent = state.gems
+    ? pick([`Woof! I have ${state.gems} 💎. Tap something for me to try on!`, 'Ooh, what should I wear today? Tap to try it on!'])
+    : 'Get questions right on the first try to earn me some 💎!';
+  renderCloset();
+  showScreen('closetScreen');
+}
+
+// Tapping something Pom owns puts it on or takes it off. Anything else she tries on first.
+function onItemTap(id) {
+  const item = ITEMS[id];
+  if (owns(id)) {
+    tryingOn = null;
+    if (state.worn[item.slot] === id && item.slot !== 'fur') {
+      delete state.worn[item.slot];
+      sfx.del();
+      $('closetBubble').textContent = `Off goes the ${item.name}!`;
+    } else {
+      state.worn[item.slot] = id;
+      sfx.select(CLOSET.indexOf(item));
+      $('closetBubble').textContent = pick([`I love my ${item.name}! 🐾`, `How do I look? ✨`, `${item.name} time!`]);
+    }
+    saveState();
+  } else {
+    tryingOn = tryingOn === id ? null : id;
+    sfx.hint();
+    const short = item.price - state.gems;
+    $('closetBubble').textContent = !tryingOn
+      ? 'Okay! Let\'s pick something else.'
+      : short > 0
+        ? `I love the ${item.name}! We need ${short} more 💎. Let's practice!`
+        : `Ooh, the ${item.name}! Can I have it for ${item.price} 💎?`;
+  }
+  animatePom($('pomCloset'), 'bounce');
+  renderCloset();
+}
+
+function buyItem() {
+  const item = tryingOn && ITEMS[tryingOn];
+  if (!item || item.price > state.gems) return;
+  state.gems -= item.price;
+  state.owned.push(item.id);
+  state.worn[item.slot] = item.id;
+  tryingOn = null;
+  saveState();
+  renderCloset();
+  retrigger($('pomCloset').querySelector('.gem-badge'), 'drop');
+  animatePom($('pomCloset'), 'bounce');
+  sfx.sticker();
+  setTimeout(sfx.milestone, 250);
+  confetti(70);
+  banner(`${item.ico || '🎨'} New ${item.name}!`);
+  $('closetBubble').textContent = `Thank you! I love my new ${item.name}! 🐾`;
 }
 
 // ===== CASH OUT =====
@@ -1863,8 +2208,11 @@ function renderMute() {
 }
 
 function init() {
-  document.querySelectorAll('#pomStart, #pomGame').forEach(el => {
+  document.querySelectorAll('#pomStart, #pomGame, #pomCloset').forEach(el => {
     el.appendChild($('pomTemplate').content.cloneNode(true));
+    const badge = document.createElement('span');
+    badge.className = 'gem-badge';
+    el.appendChild(badge);
   });
   // Each pig needs its own clipPath id, or a pig on a hidden screen breaks the others.
   document.querySelectorAll('.bank .pig').forEach((el, i) => {
@@ -1875,6 +2223,8 @@ function init() {
   buildFloaters();
   buildPicker();
   renderBank();
+  renderGems();
+  dressAllPoms();
   renderMute();
 
   document.addEventListener('pointerdown', resumeAudio, { passive: true });
@@ -1894,6 +2244,20 @@ function init() {
   $('stickersBtn').addEventListener('click', showStickers);
   $('stickerBackBtn').addEventListener('click', goHome);
   $('cashBackBtn').addEventListener('click', goHome);
+  $('closetBtn').addEventListener('click', showCloset);
+  $('closetBackBtn').addEventListener('click', () => { tryingOn = null; dressAllPoms(); goHome(); });
+  $('buyBtn').addEventListener('click', buyItem);
+  $('closetTabs').addEventListener('click', e => {
+    const tab = e.target.closest('.closet-tab');
+    if (!tab) return;
+    closetTab = tab.dataset.slot;
+    sfx.tap(CLOSET_SLOTS.findIndex(s => s.id === closetTab));
+    renderCloset();
+  });
+  $('closetItems').addEventListener('click', e => {
+    const item = e.target.closest('.item');
+    if (item) onItemTap(item.dataset.id);
+  });
   $('payBtn').addEventListener('click', onPayTap);
   $('hintBtn').addEventListener('click', () => {
     sfx.hint();

@@ -162,3 +162,68 @@ test('a missed fact comes back later in the same round', async ({ page }) => {
   expect(seen.slice(2).some(q => q.a * q.b === missed.a * missed.b &&
     Math.min(q.a, q.b) === Math.min(missed.a, missed.b))).toBe(true);
 });
+
+test('first-try answers earn Pom gems without changing the money', async ({ page }) => {
+  await page.locator('#picker .pick-btn').nth(11).click();
+  await page.locator('#startBtn').click();
+  const { a, b } = await answer(page, true);
+  const cents = await page.evaluate(([x, y]) => centsFor(x, y), [a, b]);
+  await expect(page.locator('#pomGame .gem-badge')).toHaveText('💎 1');
+  await expect(page.locator('#gameBankAmount')).toHaveText('$' + (cents / 100).toFixed(2));
+
+  await page.waitForTimeout(2000);
+  await answer(page, false); // wrong answers cost cents, never gems
+  await page.waitForTimeout(800);
+  expect(await page.evaluate(() => state.gems)).toBe(1);
+});
+
+test("Pom's Closet buys, wears, and saves outfits with gems only", async ({ page }) => {
+  await page.evaluate(() => { state.gems = 12; state.totalCents = 250; saveState(); });
+  await page.reload();
+  await expect(page.locator('#pomStart .gem-badge')).toHaveText('💎 12');
+  await expect(page.locator('#closetBtn')).toHaveClass(/glow/);
+  await page.locator('#closetBtn').click();
+  await expect(page.locator('#closetScreen')).toHaveClass(/active/);
+
+  // Too expensive: try it on, but can't buy
+  await page.locator('.item[data-id="crown"]').click();
+  await expect(page.locator('#buyBtn')).toBeDisabled();
+  await expect(page.locator('#buyBtn')).toHaveText('Need 33 more 💎');
+
+  await page.locator('.item[data-id="party"]').click();
+  await expect(page.locator('#pomCloset .acc-hat polygon')).toHaveCount(1);
+  await page.locator('#buyBtn').click();
+  await expect(page.locator('#pomCloset .gem-badge')).toHaveText('💎 7');
+  await expect(page.locator('.item[data-id="party"]')).toHaveClass(/wearing/);
+
+  await page.locator('.closet-tab[data-slot="fur"]').click();
+  await page.locator('.item[data-id="choc"]').click();
+  await expect(page.locator('#buyBtn')).toBeDisabled();
+
+  // Taking off the hat stays off after reload; money is untouched
+  await page.locator('.closet-tab[data-slot="hat"]').click();
+  await page.locator('.item[data-id="party"]').click();
+  await expect(page.locator('#pomCloset .acc-hat > *')).toHaveCount(0);
+  await page.reload();
+  const saved = await page.evaluate(() => ({ gems: state.gems, owned: state.owned, worn: state.worn, cents: state.totalCents }));
+  expect(saved).toEqual({ gems: 7, owned: ['party'], worn: { fur: 'classic' }, cents: 250 });
+
+  await page.locator('#closetBtn').click();
+  await page.locator('.item[data-id="party"]').click();
+  await page.locator('#closetBackBtn').click();
+  await expect(page.locator('#pomStart .acc-hat polygon')).toHaveCount(1);
+});
+
+test('saved progress still fits in the cookie mirror', async ({ page }) => {
+  const size = await page.evaluate(() => {
+    FACT_KEYS.forEach(k => { state.weights[k] = 11.55; });
+    state.mastery = state.mastery.map(() => 3);
+    state.payouts = Array.from({ length: MAX_PAYOUTS_KEPT }, () => ({ t: Date.now(), c: 12345 }));
+    state.owned = CLOSET.filter(i => i.price > 0).map(i => i.id);
+    state.worn = { hat: 'crown', face: 'hearts', neck: 'medal', back: 'cape', fur: 'pink' };
+    state.gems = 99999;
+    saveState();
+    return encodeURIComponent(localStorage.getItem(STORE_KEY)).length + COOKIE_NAME.length + 1;
+  });
+  expect(size).toBeLessThan(4096);
+});

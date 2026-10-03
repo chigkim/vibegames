@@ -69,6 +69,20 @@ test.describe('Multiplication with Ms. Menna', () => {
     expect(last.text).not.toMatch(/[×🐾]/u);
   });
 
+  test('reads the speech bubble but skips gameplay instructions', async ({ page }) => {
+    // Each new line cuts off the last one, so say them one at a time.
+    const sayAndHear = async (bubble, text, extra) => {
+      await page.evaluate(([b, t, x]) => { window.__speech.spoken.length = 0; say(b, t, x); }, [bubble, text, extra]);
+      await page.waitForTimeout(150);
+      return spoken(page);
+    };
+    expect(await sayAndHear('startBubble', 'Woof! Pick your number!')).toEqual(['Woof!']);
+    expect(await sayAndHear('startBubble', 'Tap my things to play! 🐾')).toEqual([]);
+    expect(await sayAndHear('gameBubble', 'Let\'s multiply! Type your answer.', '6 times 7?')).toEqual(['Let\'s multiply! 6 times 7?']);
+    expect(await sayAndHear('startBubble', 'Yay! My new Bed! 🐾')).toEqual(['Yay! My new Bed!']);
+    await expect(page.locator('#startBubble')).toHaveText('Yay! My new Bed! 🐾');
+  });
+
   test('stops talking when the child starts typing', async ({ page }) => {
     await page.locator('#picker .pick-btn[data-n="12"]').click();
     await page.locator('#startBtn').click();

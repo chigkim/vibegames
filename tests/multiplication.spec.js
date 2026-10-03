@@ -296,7 +296,8 @@ test("Pom's Closet buys, wears, and saves outfits with gems only", async ({ page
   await page.evaluate(() => { state.gems = 12; state.totalCents = 250; saveState(); });
   await page.reload();
   await expect(page.locator('#pomStart .gem-badge')).toHaveText('💎 12');
-  await expect(page.locator('#closetBtn')).toHaveClass(/glow/);
+  await expect(page.locator('#houseBtn')).toHaveClass(/glow/);
+  await page.locator('#houseBtn').click();
   await page.locator('#closetBtn').click();
   await expect(page.locator('#closetScreen')).toHaveClass(/active/);
 
@@ -335,10 +336,12 @@ test("Pom's Closet buys, wears, and saves outfits with gems only", async ({ page
   const saved = await page.evaluate(() => ({ gems: state.gems, owned: state.owned, worn: state.worn, cents: state.totalCents }));
   expect(saved).toEqual({ gems: 7, owned: ['party'], worn: { fur: 'classic' }, cents: 250 });
 
+  await page.locator('#houseBtn').click();
   await page.locator('#closetBtn').click();
   await page.locator('.item[data-id="party"]').click();
   await page.locator('.color-btn[data-id="party"]').click();
   await page.locator('#closetBackBtn').click();
+  await page.locator('#houseBackBtn').click();
   await expect(page.locator('#pomStart .acc-hat polygon')).toHaveCount(1);
 });
 
@@ -366,6 +369,7 @@ test('closet colors save compactly, and v12 saves keep their items', async ({ pa
     .toEqual({ owned: ['party', 'ball', 'choc'], worn: { hat: 'party', fur: 'choc' }, gems: 30 });
 
   // Buy a rainbow Party Hat and a blue ball
+  await page.locator('#houseBtn').click();
   await page.locator('#closetBtn').click();
   await page.locator('.item[data-id="party"]').click();
   await page.locator('.color-btn[data-id="party.w"]').click();
@@ -402,6 +406,7 @@ test('the IndexedDB copy brings back progress if localStorage and the cookie are
 test('treats are bought with gems, kept in the jar, and used up when Pom eats them', async ({ page }) => {
   await page.evaluate(() => { state.gems = 10; saveState(); renderGems(); });
   await expect(page.locator('#treatJar')).toBeHidden();
+  await page.locator('#houseBtn').click();
   await page.locator('#closetBtn').click();
   await page.locator('.closet-tab[data-slot="treat"]').click();
   await expect(page.locator('#closetItems .item')).toHaveCount(8);
@@ -420,6 +425,7 @@ test('treats are bought with gems, kept in the jar, and used up when Pom eats th
   expect(await page.evaluate(() => { buyTreat(); return state.gems; })).toBe(4);
 
   await page.locator('#closetBackBtn').click();
+  await page.locator('#houseBackBtn').click();
   await expect(page.locator('#treatJar .toy-btn')).toHaveCount(1);
   await expect(page.locator('#treatJar .count')).toHaveText('2');
 
@@ -440,6 +446,7 @@ test('Pom buys toys, plays with them, and uses them in streak tricks', async ({ 
   await page.reload();
   await expect(page.locator('#toyShelf')).toBeHidden();
 
+  await page.locator('#houseBtn').click();
   await page.locator('#closetBtn').click();
   await page.locator('.closet-tab[data-slot="toy"]').click();
   await page.locator('.item[data-id="ball"]').click();
@@ -451,6 +458,7 @@ test('Pom buys toys, plays with them, and uses them in streak tricks', async ({ 
   await expect(page.locator('.item[data-id="ball"] .price')).toHaveText('🎨 1 of 11');
   await expect(page.locator('.color-btn[data-id="ball"] .price')).toHaveText('Playing ✓');
   await page.locator('#closetBackBtn').click();
+  await page.locator('#houseBackBtn').click();
 
   // Toys sit on the shelf and are never worn
   await expect(page.locator('#toyShelf .toy-btn')).toHaveCount(1);
@@ -467,4 +475,48 @@ test('Pom buys toys, plays with them, and uses them in streak tricks', async ({ 
   expect(say).toContain('Fetch');
   await expect(page.locator('#pomGame')).toHaveClass(/play-ball/);
   expect(await page.evaluate(() => doTrick(7).cls)).toBe('trick-spin');
+});
+
+test("Pom's House opens rooms with stickers and buys furniture colors with gems", async ({ page }) => {
+  await page.evaluate(() => { state.gems = 30; state.totalCents = 120; for (let i = 0; i < 30; i++) state.mastery[i] = STICKER_AT; saveState(); });
+  await page.reload();
+  await page.locator('#houseBtn').click();
+  await expect(page.locator('#houseScreen')).toHaveClass(/active/);
+
+  // 30 stickers open the Kitchen but not the Playroom
+  await expect(page.locator('.room-tab[data-room="kitchen"]')).not.toHaveClass(/locked/);
+  await expect(page.locator('.room-tab[data-room="playroom"]')).toHaveClass(/locked/);
+  await page.locator('.room-tab[data-room="playroom"]').click();
+  await expect(page.locator('#houseBubble')).toHaveText('40 more ⭐ to open it!');
+
+  // The closet is free; an empty spot shows its colors, and a color is shown in place before buying
+  await expect(page.locator('#houseRoom .spot[data-id="wardrobe"]')).not.toHaveClass(/empty/);
+  await expect(page.locator('#houseRoom .spot[data-id="bed"]')).toHaveClass(/empty/);
+  await page.locator('#furnItems .item[data-id="bed"]').click();
+  await expect(page.locator('#furnColors .color-btn')).toHaveCount(11);
+  await page.locator('#furnColors .color-btn[data-id="bed"]').click();
+  await expect(page.locator('#houseRoom .spot[data-id="bed"]')).toHaveClass(/trying/);
+  await page.locator('#furnBuyBtn').click();
+  await expect(page.locator('.house-head .gem-badge')).toHaveText('💎 20');
+
+  // A second color, then swap back to the first for free; a color is never bought twice
+  const second = await page.evaluate(() => FURN.bed.colors[1].id);
+  await page.locator(`#furnColors .color-btn[data-id="${second}"]`).click();
+  await page.locator('#furnBuyBtn').click();
+  const afterTwo = await page.evaluate(() => state.gems);
+  await page.locator('#furnColors .color-btn[data-id="bed"]').click();
+  await expect(page.locator('#furnColors .color-btn[data-id="bed"] .price')).toHaveText('In my house ✓');
+  expect(await page.evaluate(() => { houseTrying = 'bed'; buyFurniture(); return state.gems; })).toBe(afterTwo);
+
+  // Saved, and the piggy bank is untouched
+  await page.reload();
+  const saved = await page.evaluate(() => ({ furn: state.furniture, home: state.home, gems: state.gems, cents: state.totalCents }));
+  expect(saved).toEqual({ furn: ['bed', second], home: { bed: 'bed' }, gems: afterTwo, cents: 120 });
+
+  // The closet opens from the house and goes back to it
+  await page.locator('#houseBtn').click();
+  await page.locator('#closetBtn').click();
+  await expect(page.locator('#closetScreen')).toHaveClass(/active/);
+  await page.locator('#closetBackBtn').click();
+  await expect(page.locator('#houseScreen')).toHaveClass(/active/);
 });

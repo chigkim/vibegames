@@ -1268,7 +1268,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v19 - Updated 2026-10-04 04:06 EDT</p>
+    <p class="version">v20 - Updated 2026-10-04 00:35 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2262,8 +2262,10 @@ const hasSticker = (a, b) => masteryOf(a, b) >= STICKER_AT;
 const isSleepy = i => state.mastery[i] >= STICKER_AT &&
   (state.levels[i] === SLEEPY_NOW || (state.days[i] > 0 && today() >= state.days[i] + REVIEW_DAYS[state.levels[i]]));
 const sleepyCount = () => FACT_KEYS.filter((_, i) => isSleepy(i)).length;
-// Facts children miss most: products over 40, and the 6, 7 and 8 tables.
-const isHard = (a, b) => a > 0 && b > 0 && (a * b > 40 || [6, 7, 8].includes(a) || [6, 7, 8].includes(b));
+// Facts children miss most: products over 40, and the ×4 to ×9 tables (except ×5).
+// A table fact is easy when the other number is 0, 1 or 2.
+const HARD_TABLES = [4, 6, 7, 8, 9];
+const isHard = (a, b) => a * b > 40 || (Math.min(a, b) >= 3 && (HARD_TABLES.includes(a) || HARD_TABLES.includes(b)));
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
@@ -2573,16 +2575,15 @@ function selectMax(n, withSound) {
 
 // ===== LEARNING PATH =====
 // Easy tables first, then families that build on each other (×2, ×4, ×8 by doubling; ×3, ×6, ×9), and ×7 last. A table is done when 80% of its facts have stickers,
-// so the path follows her stickers and needs nothing new in the save.
-const PATH = [[2], [10], [5], [0, 1], [4], [8], [3], [6], [9], [7], [11], [12], [13], [14], [15], [16], [17], [18], [19]];
+// so the path follows her stickers and needs nothing new in the save. The path ends at ×12, like school; the number buttons still go to 19.
+const PATH = [[2], [10], [5], [0, 1], [4], [8], [3], [6], [9], [7], [11], [12]];
 const PATH_DONE_AT = 0.8;
 const PATH_NEW_AT = [1, 4, 7]; // questions that teach a fact without a sticker yet; the rest are review
-const PATH_NEW_AT_EASY = [2, 6]; // after a round with fewer than 6 first-try answers, until a round with 8 or more
+const PATH_NEW_AT_EASY = [2, 6]; // after a round with fewer than 7 first-try answers, until a round with 8 or more
 
-// Tables up to 12 go to ×12. Bigger tables go up to themselves, so the last one covers the whole chart.
 function pathFacts(step) {
   const keys = new Set();
-  for (const n of PATH[step]) for (let k = 0; k <= Math.max(12, n); k++) keys.add(factKey(n, k));
+  for (const n of PATH[step]) for (let k = 0; k <= 12; k++) keys.add(factKey(n, k));
   return [...keys];
 }
 
@@ -2619,6 +2620,11 @@ function pathPools() {
       if (known.includes(key) || learning.includes(key)) continue;
       (state.mastery[FACT_INDEX[key]] >= STICKER_AT ? known : learning).push(key);
     }
+  }
+  // Stickers past ×12 from the number buttons or older paths still get their review visits.
+  for (const key of FACT_KEYS) {
+    const i = FACT_INDEX[key];
+    if (key.split('x').some(n => +n > 12) && state.mastery[i] >= STICKER_AT && isSleepy(i)) known.push(key);
   }
   return { known, learning };
 }
@@ -3132,7 +3138,7 @@ function showSummary() {
     renderGems();
   }
   // A hard round makes the next path rounds teach 2 new facts instead of 3, until a strong round.
-  if (game.path) state.easyPath = firstTry < 6 || (firstTry < 8 && state.easyPath);
+  if (game.path) state.easyPath = firstTry < 7 || (firstTry < 8 && state.easyPath);
   if (bonus || game.path) saveState();
   $('statGems').textContent = `+${game.roundGems} 💎`;
   const list = facts => facts.map(f => `${stickerFor(factKey(f.a, f.b))} ${f.a} × ${f.b}`).join('  ');

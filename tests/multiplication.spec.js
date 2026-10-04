@@ -871,12 +871,12 @@ test('sleepy and hard facts come up more often', async ({ page }) => {
     set('2x3', 30, 4);
     set('2x4', 0, 0);
     game = { max: 9, asked: new Set(), prevKey: null };
-    const n = { '2x3': 0, '2x4': 0, '7x8': 0, '3x4': 0 };
+    const n = { '2x3': 0, '2x4': 0, '7x8': 0, '3x5': 0 };
     for (let i = 0; i < 6000; i++) { const q = pickQuestion(); const k = factKey(q.a, q.b); if (k in n) n[k]++; }
     return n;
   });
   expect(counts['2x3']).toBeGreaterThan(counts['2x4'] * 2); // sleepy vs. awake
-  expect(counts['7x8']).toBeGreaterThan(counts['3x4'] * 1.2); // hard vs. easy
+  expect(counts['7x8']).toBeGreaterThan(counts['3x5'] * 1.2); // hard vs. easy
 });
 
 test('once the 0 stickers are earned, rounds no longer need a 0 fact', async ({ page }) => {
@@ -909,8 +909,47 @@ test('after a hard round the path teaches 2 new facts instead of 3', async ({ pa
   expect(await page.evaluate(() => state.easyPath)).toBe(true); // 7 is not strong enough to go back
   await page.locator('#againBtn').click();
   await page.evaluate(() => { game.firstTry = 9; game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
+  expect(await page.evaluate(() => state.easyPath)).toBe(false);
+  await page.locator('#againBtn').click();
+  await page.evaluate(() => { game.firstTry = 6; game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
+  expect(await page.evaluate(() => state.easyPath)).toBe(true); // 6 of 10 is now a hard round
+  await page.locator('#againBtn').click();
+  await page.evaluate(() => { game.firstTry = 9; game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
   await page.reload();
   expect(await page.evaluate(() => state.easyPath)).toBe(false);
+});
+
+test('×4 and ×9 facts count as hard, but not with 0, 1 or 2', async ({ page }) => {
+  const hard = await page.evaluate(() => [[4, 3], [9, 5], [3, 9], [7, 3], [4, 2], [9, 1], [0, 9], [3, 5], [5, 10]].map(([a, b]) => isHard(a, b)));
+  expect(hard).toEqual([true, true, true, true, false, false, false, false, true]);
+});
+
+test('the learning path ends at ×12, then mixed review still visits sleepy ×13 to ×19 stickers', async ({ page }) => {
+  const res = await page.evaluate(() => {
+    for (let a = 0; a <= 12; a++) for (let b = 0; b <= 12; b++) { const i = FACT_INDEX[factKey(a, b)]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
+    const s = FACT_INDEX[factKey(15, 6)];
+    state.mastery[s] = STICKER_AT; state.days[s] = today() - 30; state.levels[s] = 4; // sleepy
+    const awake = FACT_INDEX[factKey(17, 3)];
+    state.mastery[awake] = STICKER_AT; state.days[awake] = today(); state.levels[awake] = 0;
+    saveState();
+    renderPath();
+    let sleepy = 0, big = 0;
+    for (let r = 0; r < 20; r++) {
+      startRound(MAX_NUMBER, true);
+      for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
+        const k = factKey(game.a, game.b);
+        if (k === factKey(15, 6)) sleepy++;
+        else if (game.a > 12 || game.b > 12) big++;
+        if (i < QUESTIONS_PER_ROUND - 1) { game.index++; nextQuestion(); }
+      }
+    }
+    goHome();
+    return { step: pathStep(), steps: PATH.length, sleepy, big };
+  });
+  expect(res.step).toBe(res.steps);
+  await expect(page.locator('#pathNow')).toHaveText('All tables done! Mixed review 🏆');
+  expect(res.sleepy).toBeGreaterThan(0);
+  expect(res.big).toBe(0); // awake stickers past ×12 stay on the number buttons
 });
 
 test('older stickers get spread-out first visits, and review dates survive a reload', async ({ page }) => {

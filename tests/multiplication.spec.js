@@ -442,17 +442,26 @@ test("Ms. Menna's Closet buys, wears, and saves outfits with gems only", async (
 });
 
 test('saved progress still fits in the cookie mirror', async ({ page }) => {
-  const size = await page.evaluate(() => {
+  const cookie = await page.evaluate(() => {
     FACT_KEYS.forEach(k => { state.weights[k] = 11.55; });
     state.mastery = state.mastery.map(() => 3);
+    state.days = state.days.map(() => today());
+    state.levels = state.levels.map(() => SLEEPY_NOW);
     state.payouts = Array.from({ length: MAX_PAYOUTS_KEPT }, () => ({ t: Date.now(), c: 12345 }));
     state.owned = Object.values(ITEMS).filter(i => i.price > 0).map(i => i.id);
     state.worn = { hat: 'crown.s', face: 'hearts', neck: 'medal', back: 'cape', fur: 'pink' };
     state.gems = 99999;
+    state.furniture = FURNITURE.flatMap(f => Object.values(FURN).filter(p => p.base === f.id && p.price > 0).map(p => p.id));
     saveState();
-    return encodeURIComponent(localStorage.getItem(STORE_KEY)).length + COOKIE_NAME.length + 1;
+    // A full save can be too big for a cookie. Then the cookie drops only the payout list, which IndexedDB still has.
+    const raw = document.cookie.match(new RegExp('(?:^|; )' + COOKIE_NAME + '=([^;]*)'));
+    const local = JSON.parse(localStorage.getItem(STORE_KEY));
+    const saved = raw && readCookie();
+    return { size: raw ? raw[0].length : 0, same: !!saved && saved.review === local.review && saved.mastery === local.mastery && saved.gems === local.gems };
   });
-  expect(size).toBeLessThan(4096);
+  expect(cookie.size).toBeGreaterThan(0);
+  expect(cookie.size).toBeLessThan(4096);
+  expect(cookie.same).toBe(true);
 });
 
 test('closet colors save compactly, and v12 saves keep their items', async ({ page }) => {
@@ -790,4 +799,130 @@ test('strategy hints build hard facts from easier ones', async ({ page }) => {
   await expect(page.locator('#arrayGrid .cell')).toHaveCount(40);
   await expect(page.locator('#arrayGrid .cell.away')).toHaveCount(4, { timeout: 8000 });
   await expect(page.locator('#gameBubble')).toHaveText('40 − 4 = 36!', { timeout: 5000 });
+});
+
+// v19: stickers are learned on 2 days, then come back sleepy for review visits.
+const setFact = (page, key, mastery, daysAgo, level = 0) => page.evaluate(([k, m, ago, lv]) => {
+  const i = FACT_INDEX[k];
+  state.mastery[i] = m;
+  state.days[i] = today() - ago;
+  state.levels[i] = lv;
+  saveState();
+}, [key, mastery, daysAgo, level]);
+
+async function askFact(page, a, b) {
+  await page.evaluate(([x, y]) => { game.a = x; game.b = y; $('factorA').textContent = x; $('factorB').textContent = y; }, [a, b]);
+}
+
+test('the last sticker dot has to come on another day', async ({ page }) => {
+  await page.locator('#picker .pick-btn[data-n="12"]').click();
+  await page.locator('#startBtn').click();
+  await setFact(page, '6x7', 2, 0); // second dot was today
+  await askFact(page, 6, 7);
+  await answer(page, true);
+  await expect(page.locator('#gameBubble')).toContainText('tomorrow');
+  expect(await page.evaluate(() => state.mastery[FACT_INDEX['6x7']])).toBe(2);
+
+  await page.waitForTimeout(1900);
+  await setFact(page, '6x7', 2, 1); // second dot was yesterday
+  await askFact(page, 6, 7);
+  await answer(page, true);
+  await expect(page.locator('.banner')).toContainText('New sticker: 6 × 7');
+  expect(await page.evaluate(() => [state.mastery[FACT_INDEX['6x7']], state.levels[FACT_INDEX['6x7']], state.days[FACT_INDEX['6x7']] === today()]))
+    .toEqual([3, 0, true]);
+});
+
+test('a sticker gets sleepy when its visit is due, and a right answer wakes it', async ({ page }) => {
+  await setFact(page, '3x4', 3, 0);   // earned today: not sleepy
+  await setFact(page, '3x5', 3, 1);   // first visit after 1 day: sleepy
+  await setFact(page, '3x6', 3, 5, 2); // level 2 waits 7 days: not yet
+  expect(await page.evaluate(() => ['3x4', '3x5', '3x6'].map(k => isSleepy(FACT_INDEX[k])))).toEqual([false, true, false]);
+  await page.reload();
+  await expect(page.locator('#pathNow')).toContainText('1 sleepy 💤');
+  await page.locator('#stickersBtn').click();
+  await expect(page.locator('#stickerGrid > .sleepy')).toHaveCount(2); // 3 × 5 and 5 × 3
+  await expect(page.locator('#stickerCount')).toHaveText('3 of 210 stickers · 1 sleepy 💤');
+  await page.locator('#stickerBackBtn').click();
+
+  await page.locator('#picker .pick-btn[data-n="12"]').click();
+  await page.locator('#startBtn').click();
+  await askFact(page, 5, 3);
+  await answer(page, true);
+  await expect(page.locator('.banner')).toContainText('5 × 3 woke up!');
+  expect(await page.evaluate(() => [isSleepy(FACT_INDEX['3x5']), state.levels[FACT_INDEX['3x5']], state.mastery[FACT_INDEX['3x5']]]))
+    .toEqual([false, 1, 3]);
+
+  // A miss keeps the sticker but makes it sleepy, and a right answer later in the same round doesn't wake it
+  await page.waitForTimeout(1900);
+  await askFact(page, 3, 4);
+  await answer(page, false);
+  expect(await page.evaluate(() => [isSleepy(FACT_INDEX['3x4']), state.mastery[FACT_INDEX['3x4']]])).toEqual([true, 3]);
+  await page.waitForTimeout(800);
+  await answer(page, true);
+  await page.waitForTimeout(1900);
+  await askFact(page, 3, 4);
+  await answer(page, true);
+  expect(await page.evaluate(() => isSleepy(FACT_INDEX['3x4']))).toBe(true);
+});
+
+test('sleepy and hard facts come up more often', async ({ page }) => {
+  const counts = await page.evaluate(() => {
+    const set = (k, ago, level) => { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today() - ago; state.levels[i] = level; };
+    set('2x3', 30, 4);
+    set('2x4', 0, 0);
+    game = { max: 9, asked: new Set(), prevKey: null };
+    const n = { '2x3': 0, '2x4': 0, '7x8': 0, '3x4': 0 };
+    for (let i = 0; i < 6000; i++) { const q = pickQuestion(); const k = factKey(q.a, q.b); if (k in n) n[k]++; }
+    return n;
+  });
+  expect(counts['2x3']).toBeGreaterThan(counts['2x4'] * 2); // sleepy vs. awake
+  expect(counts['7x8']).toBeGreaterThan(counts['3x4'] * 1.2); // hard vs. easy
+});
+
+test('once the 0 stickers are earned, rounds no longer need a 0 fact', async ({ page }) => {
+  const zeros = await page.evaluate(() => {
+    for (let n = 0; n <= 5; n++) { const i = FACT_INDEX[factKey(0, n)]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
+    let total = 0;
+    for (let r = 0; r < 30; r++) {
+      startRound(5);
+      for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
+        if (game.a === 0 || game.b === 0) total++;
+        if (i < QUESTIONS_PER_ROUND - 1) { game.index++; nextQuestion(); }
+      }
+    }
+    const needed = game.zeroNeeded;
+    goHome();
+    return { total, needed };
+  });
+  expect(zeros.needed).toBe(false);
+  expect(zeros.total).toBeLessThan(30); // now and then, not every round
+});
+
+test('after a hard round the path teaches 2 new facts instead of 3', async ({ page }) => {
+  await page.locator('#pathBtn').click();
+  expect(await page.evaluate(() => game.newAt.length)).toBe(3);
+  await page.evaluate(() => { game.firstTry = 4; game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
+  expect(await page.evaluate(() => state.easyPath)).toBe(true);
+  await page.locator('#againBtn').click();
+  expect(await page.evaluate(() => game.newAt.length)).toBe(2);
+  await page.evaluate(() => { game.firstTry = 7; game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
+  expect(await page.evaluate(() => state.easyPath)).toBe(true); // 7 is not strong enough to go back
+  await page.locator('#againBtn').click();
+  await page.evaluate(() => { game.firstTry = 9; game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
+  await page.reload();
+  expect(await page.evaluate(() => state.easyPath)).toBe(false);
+});
+
+test('older stickers get spread-out first visits, and review dates survive a reload', async ({ page }) => {
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+    save.mastery = '3'.repeat(210); save.savedAt = Date.now(); delete save.review;
+    localStorage.setItem(STORE_KEY, JSON.stringify(save));
+  });
+  await page.reload();
+  const r = await page.evaluate(() => ({ sleepy: sleepyCount(), levels: new Set(state.levels).size, spread: new Set(state.days).size }));
+  expect(r).toEqual({ sleepy: 0, levels: 1, spread: 7 });
+  await page.evaluate(() => { state.days[5] = today() - 40; state.levels[5] = 3; state.levels[6] = SLEEPY_NOW; saveState(); });
+  await page.reload();
+  expect(await page.evaluate(() => [state.days[5] === today() - 40, state.levels[5], isSleepy(6), sleepyCount()])).toEqual([true, 3, true, 2]);
 });

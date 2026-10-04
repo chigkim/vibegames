@@ -961,10 +961,13 @@
   .sticker-grid > .head { font-family: 'Baloo 2', cursive; font-weight: 800; color: var(--dark-brown); border: none; font-size: clamp(0.5rem, 2vmin, 0.95rem); }
   .sticker-grid > .corner { background: none; border: none; color: var(--orange); font-weight: 800; }
   .sticker-grid > .got { background: #FFF6D6; border-color: var(--gold); }
+  .sticker-grid > .sleepy { background: #EEF0F6; border-color: #B8BED0; position: relative; }
+  .sticker-grid > .sleepy > span { filter: grayscale(0.7); opacity: 0.55; }
+  .sticker-grid > .sleepy::after { content: '💤'; position: absolute; right: 1px; top: 1px; font-size: 0.5em; }
   .sticker-grid > .new { animation: starPop 0.6s cubic-bezier(0.34,1.56,0.64,1) both; }
   .sticker-grid .dots { font-size: 0.5em; color: var(--orange); letter-spacing: -1px; }
   .sticker-help { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin-bottom: 4px; }
-  .new-stickers { font-weight: 800; color: var(--dark-brown); margin: -6px 0 14px; }
+  .new-stickers { font-weight: 800; color: var(--dark-brown); margin: -6px 0 14px; white-space: pre-line; }
 
   /* ===== POM'S CLOSET ===== */
   .closet-pom { width: clamp(150px, 26vmin, 220px); height: clamp(150px, 26vmin, 220px); margin: 4px auto 18px; }
@@ -1265,7 +1268,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v18 - Updated 2026-10-03 23:38 EDT</p>
+    <p class="version">v19 - Updated 2026-10-04 04:06 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1378,7 +1381,7 @@
     <h1>Sticker Chart ⭐</h1>
     <p class="sticker-count" id="stickerCount">0 of 91 stickers</p>
     <div class="sticker-grid" id="stickerGrid"></div>
-    <p class="sticker-help">Get a fact right on the first try 3 times to earn its sticker.<br>Each dot is one time. 3 × 7 and 7 × 3 share a sticker!</p>
+    <p class="sticker-help">Get a fact right on the first try 3 times to earn its sticker. The last time has to be on another day.<br>Each dot is one time. 3 × 7 and 7 × 3 share a sticker!<br>💤 Sleepy stickers want a visit. Get one right to wake it up!</p>
     <button class="btn btn-secondary" id="stickerBackBtn">← Back</button>
   </div>
 </div>
@@ -1484,6 +1487,15 @@ for (let b = 0; b <= MAX_NUMBER; b++) FACT_KEYS.push(`0x${b}`); // added in v12,
 const ZERO_COLOR = '#EDE6DE'; // sticker chart heading for 0
 const FACT_INDEX = Object.fromEntries(FACT_KEYS.map((k, i) => [k, i]));
 const STICKER_AT = 3; // first-try right answers needed for a sticker
+// The last dot of a sticker must come on a different day from the dot before it, so every sticker is learned on 2 days.
+// A sticker then wants a visit after 1, 3, 7, 14 and 30 days. Once a visit is due it is sleepy 💤 until she gets it right again.
+const REVIEW_DAYS = [1, 3, 7, 14, 30];
+const SLEEPY_NOW = REVIEW_DAYS.length; // a sticker she just missed: sleepy right away, then starts again at 1 day
+const DAY0 = 20454; // 2026-01-01, so a day number fits in 2 characters of the save until 2036
+function today() {
+  const d = new Date();
+  return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 864e5) - DAY0;
+}
 const STICKERS = ['⭐', '🐾', '🌈', '🦋', '🍓', '🌸', '🐶', '🍩', '🎈', '🦄', '🍭', '🌟', '💎'];
 const stickerFor = key => STICKERS[(FACT_INDEX[key] * 7) % STICKERS.length];
 
@@ -1491,6 +1503,7 @@ const stickerFor = key => STICKERS[(FACT_INDEX[key] * 7) % STICKERS.length];
 // Gems are play money for Pom's outfits. They never touch the real-money piggy bank.
 const GEMS_PER_ANSWER = 1; // each first-try right answer
 const GEMS_PER_STICKER = 2;
+const GEMS_PER_WAKE = 1; // waking a sleepy sticker
 const GEMS_FOR_STARS = [0, 0, 1, 3]; // round bonus by stars
 
 const CLOSET_SLOTS = [
@@ -1836,6 +1849,7 @@ function defaultState() {
   return {
     totalCents: 0, paidCents: 0, payouts: [], weights: {}, mastery: FACT_KEYS.map(() => 0), lastMax: 0, muted: false,
     gems: 0, owned: [], worn: { ...DEFAULT_WORN }, toys: {}, treats: {}, furniture: [], home: {}, room: 'bedroom', savedAt: 0,
+    days: FACT_KEYS.map(() => 0), levels: FACT_KEYS.map(() => 0), easyPath: false,
   };
 }
 
@@ -1948,6 +1962,24 @@ function parseSave(saved) {
   if (typeof saved.mastery === 'string') {
     for (let i = 0; i < FACT_KEYS.length; i++) state.mastery[i] = Math.min(STICKER_AT, +saved.mastery[i] || 0);
   }
+  if (typeof saved.review === 'string') {
+    for (let i = 0; i < FACT_KEYS.length; i++) {
+      const s = saved.review.slice(i * 3, i * 3 + 3).padEnd(3, '0');
+      const hi = WEIGHT_CHARS.indexOf(s[0]);
+      const lo = WEIGHT_CHARS.indexOf(s[1]);
+      if (hi >= 0 && lo >= 0) state.days[i] = hi * 62 + lo;
+      if (+s[2] <= SLEEPY_NOW) state.levels[i] = +s[2];
+    }
+  }
+  // Stickers from before v19 have no visit dates. Their first visit comes in 1 to 7 days, spread out so they don't all get sleepy at once.
+  const day = today();
+  state.mastery.forEach((m, i) => {
+    if (m >= STICKER_AT && !state.days[i]) {
+      state.days[i] = day - (i % 7);
+      state.levels[i] = 2;
+    }
+  });
+  state.easyPath = !!saved.easyPath;
   if (Number.isFinite(saved.paidCents)) state.paidCents = Math.max(0, Math.round(saved.paidCents));
   if (Array.isArray(saved.payouts)) {
     state.payouts = saved.payouts
@@ -1995,6 +2027,14 @@ function encodeWeights() {
   return steps.map(s => WEIGHT_CHARS[s]).join('').replace(/0+$/, '');
 }
 
+// Three characters per fact: the day of its last dot or visit (0 is never), then its review level.
+function encodeReview() {
+  return FACT_KEYS.map((_, i) => {
+    const d = Math.max(0, Math.min(62 * 62 - 1, state.days[i]));
+    return WEIGHT_CHARS[Math.floor(d / 62)] + WEIGHT_CHARS[d % 62] + state.levels[i];
+  }).join('').replace(/0+$/, '');
+}
+
 // Another tab saved since this tab last loaded or saved: an iPad tab that was frozen, or both saving at once.
 // Keep that tab's changes and add this tab's on top, so a payout or purchase made there is never undone here.
 function mergeNewer(stored) {
@@ -2017,6 +2057,7 @@ function mergeNewer(stored) {
   }
   // Stickers stay. A fact this tab did not touch keeps the other tab's dots and weight.
   state.mastery = state.mastery.map((m, i) => (stored.mastery[i] === STICKER_AT ? STICKER_AT : m === base.mastery[i] ? stored.mastery[i] : m));
+  for (const list of ['days', 'levels']) state[list] = state[list].map((v, i) => (v === base[list][i] ? stored[list][i] : v));
   for (const key of new Set([...Object.keys(stored.weights), ...Object.keys(state.weights)])) {
     if ((state.weights[key] || 1) !== (base.weights[key] || 1)) continue;
     if (stored.weights[key]) state.weights[key] = stored.weights[key];
@@ -2049,6 +2090,7 @@ function saveState() {
   state.weights = weights;
   const json = JSON.stringify({
     ...state, mastery: state.mastery.join(''), owned: encodeOwned(), weights: encodeWeights(),
+    days: undefined, levels: undefined, review: encodeReview(),
     furniture: encodeOwned(FURNITURE, state.furniture), home: Object.values(state.home).join(','),
   });
   try { localStorage.setItem(STORE_KEY, json); } catch { /* storage may be unavailable in private mode */ }
@@ -2217,6 +2259,11 @@ const weightOf = (a, b) => state.weights[factKey(a, b)] || 1;
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const masteryOf = (a, b) => state.mastery[FACT_INDEX[factKey(a, b)]];
 const hasSticker = (a, b) => masteryOf(a, b) >= STICKER_AT;
+const isSleepy = i => state.mastery[i] >= STICKER_AT &&
+  (state.levels[i] === SLEEPY_NOW || (state.days[i] > 0 && today() >= state.days[i] + REVIEW_DAYS[state.levels[i]]));
+const sleepyCount = () => FACT_KEYS.filter((_, i) => isSleepy(i)).length;
+// Facts children miss most: products over 40, and the 6, 7 and 8 tables.
+const isHard = (a, b) => a > 0 && b > 0 && (a * b > 40 || [6, 7, 8].includes(a) || [6, 7, 8].includes(b));
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
@@ -2530,6 +2577,7 @@ function selectMax(n, withSound) {
 const PATH = [[2], [10], [5], [0, 1], [4], [8], [3], [6], [9], [7], [11], [12], [13], [14], [15], [16], [17], [18], [19]];
 const PATH_DONE_AT = 0.8;
 const PATH_NEW_AT = [1, 4, 7]; // questions that teach a fact without a sticker yet; the rest are review
+const PATH_NEW_AT_EASY = [2, 6]; // after a round with fewer than 6 first-try answers, until a round with 8 or more
 
 // Tables up to 12 go to ×12. Bigger tables go up to themselves, so the last one covers the whole chart.
 function pathFacts(step) {
@@ -2557,7 +2605,8 @@ function renderPath() {
   }
   const facts = PATH_FACTS[step];
   const got = facts.filter(k => state.mastery[FACT_INDEX[k]] >= STICKER_AT).length;
-  $('pathNow').textContent = `Learning ${pathName(step)} · ${got} of ${facts.length} stickers`;
+  const sleepy = sleepyCount();
+  $('pathNow').textContent = `Learning ${pathName(step)} · ${got} of ${facts.length} stickers${sleepy ? ` · ${sleepy} sleepy 💤` : ''}`;
 }
 
 // Facts from every table up to her current one, split into ones she knows and ones she is learning.
@@ -2597,6 +2646,8 @@ function startRound(max, path = false) {
     streak: 0,
     retries: [], // facts missed this round, asked again a few questions later
     newStickers: [],
+    woken: [],
+    newAt: state.easyPath ? PATH_NEW_AT_EASY : PATH_NEW_AT,
     a: 0,
     b: 0,
     attempts: 0,
@@ -2605,8 +2656,11 @@ function startRound(max, path = false) {
     timers: [],
     countTimers: [], // the picture's row-by-row count, cleared when it restarts or the answer is right
     hadZero: false,
-    zeroAt: Math.floor(Math.random() * QUESTIONS_PER_ROUND), // every round asks a 0 fact by this question
+    zeroAt: Math.floor(Math.random() * QUESTIONS_PER_ROUND), // the round asks a 0 fact by this question
   };
+  // A 0 fact comes every round until she has its sticker. After that only when it is sleepy, or now and then.
+  const keys = path ? Object.values(pathPools()).flat() : FACT_KEYS.filter(k => k.split('x').every(n => +n <= max));
+  game.zeroNeeded = keys.some(k => k.startsWith('0x') && (state.mastery[FACT_INDEX[k]] < STICKER_AT || isSleepy(FACT_INDEX[k])));
   showScreen('gameScreen');
   renderBank();
   nextQuestion();
@@ -2639,7 +2693,12 @@ function pickQuestion(zeroOnly) {
       const key = factKey(a, b);
       if (key === game.prevKey || (zeroOnly && a && b)) continue;
       let w = weightOf(a, b);
-      if (a === 0 || b === 0) w *= 0.5; // keeps the easy 0 facts from filling a round of small numbers
+      const i = FACT_INDEX[key];
+      const sleepy = isSleepy(i);
+      // Keeps the easy 0 facts from filling a round of small numbers. A 0 sticker she knows comes back only now and then.
+      if (a === 0 || b === 0) w *= state.mastery[i] >= STICKER_AT && !sleepy ? 0.1 : 0.5;
+      if (sleepy) w *= 3;
+      else if (isHard(a, b)) w *= 1.5;
       if (game.asked.has(key)) w *= 0.25;
       options.push({ a, b, w });
       total += w;
@@ -2657,7 +2716,7 @@ function pickQuestion(zeroOnly) {
 function pickPathQuestion(zeroOnly) {
   const { known, learning } = pathPools();
   let pool = known.length >= 6 ? known : [...known, ...learning];
-  const newSlot = PATH_NEW_AT.includes(game.index);
+  const newSlot = game.newAt.includes(game.index);
   if (zeroOnly) {
     const zeros = learning.filter(k => k.startsWith('0x'));
     pool = newSlot && zeros.length ? zeros : [...known, ...learning].filter(k => k.startsWith('0x'));
@@ -2670,6 +2729,8 @@ function pickPathQuestion(zeroOnly) {
     if (a === 0 && !zeroOnly) w *= 0.5;
     if (game.asked.has(key)) w *= 0.25;
     w *= 1 + state.mastery[FACT_INDEX[key]]; // finish the facts that are nearly stickers first
+    if (isSleepy(FACT_INDEX[key])) w *= 4; // review visits first
+    else if (isHard(a, b)) w *= 2;
     return Math.random() < 0.5 ? { a, b, w } : { a: b, b: a, w };
   });
   let r = Math.random() * options.reduce((sum, o) => sum + o.w, 0);
@@ -2686,7 +2747,7 @@ function nextQuestion() {
     showSummary();
     return;
   }
-  const needZero = !game.hadZero && game.index >= game.zeroAt;
+  const needZero = game.zeroNeeded && !game.hadZero && game.index >= game.zeroAt;
   const lastOne = game.index === QUESTIONS_PER_ROUND - 1;
   const due = needZero && lastOne ? -1 : game.retries.findIndex(r => r.at <= game.index && r.key !== game.prevKey);
   const retry = due >= 0 ? game.retries.splice(due, 1)[0] : null;
@@ -2767,16 +2828,34 @@ function onCorrect(answer) {
   $('hintBtn').classList.remove('show');
   const key = factKey(game.a, game.b);
   let newSticker = false;
+  let woke = false;
+  let tomorrow = false; // the sticker dot has to wait for another day
   if (game.attempts === 0) {
     game.firstTry++;
     game.streak++;
     const w = weightOf(game.a, game.b);
     state.weights[key] = 1 + (w - 1) * 0.6;
     const i = FACT_INDEX[key];
-    if (state.mastery[i] < STICKER_AT) {
-      state.mastery[i]++;
-      newSticker = state.mastery[i] === STICKER_AT;
-      if (newSticker) game.newStickers.push({ a: game.a, b: game.b });
+    const day = today();
+    // A fact missed earlier this round was just shown, so getting it now earns no dot and wakes nothing.
+    if (game.missed.some(m => factKey(m.a, m.b) === key)) {
+      // practice only
+    } else if (state.mastery[i] < STICKER_AT) {
+      if (state.mastery[i] === STICKER_AT - 1 && state.days[i] === day) tomorrow = true;
+      else {
+        state.mastery[i]++;
+        state.days[i] = day;
+        newSticker = state.mastery[i] === STICKER_AT;
+        if (newSticker) {
+          state.levels[i] = 0;
+          game.newStickers.push({ a: game.a, b: game.b });
+        }
+      }
+    } else if (isSleepy(i)) {
+      woke = true;
+      state.levels[i] = state.levels[i] === SLEEPY_NOW ? 0 : Math.min(state.levels[i] + 1, REVIEW_DAYS.length - 1);
+      state.days[i] = day;
+      game.woken.push({ a: game.a, b: game.b });
     }
   }
   const cents = game.hinted ? HINT_CENTS : centsFor(game.a, game.b);
@@ -2785,7 +2864,7 @@ function onCorrect(answer) {
   const display = $('answerDisplay');
   flyText('+' + cents + '¢', display, 'plus', -120);
   flyCoins(display, $('gameBank'), cents);
-  const gems = (game.attempts === 0 ? GEMS_PER_ANSWER : 0) + (newSticker ? GEMS_PER_STICKER : 0);
+  const gems = (game.attempts === 0 ? GEMS_PER_ANSWER : 0) + (newSticker ? GEMS_PER_STICKER : 0) + (woke ? GEMS_PER_WAKE : 0);
   if (gems) {
     game.roundGems += gems;
     addGems(gems, display, $('pomGame'));
@@ -2802,19 +2881,28 @@ function onCorrect(answer) {
       banner(`${stickerFor(key)} New sticker: ${game.a} × ${game.b}!`);
       sfx.sticker();
     }, 500);
+  } else if (woke) {
+    later(() => {
+      banner(`${stickerFor(key)} ${game.a} × ${game.b} woke up!`);
+      sfx.sticker();
+    }, 500);
   }
 
   $('feedback').className = 'feedback good';
   $('feedback').textContent = `${game.a} × ${game.b} = ${answer} ✓`;
   say('gameBubble', trick
     ? trick.say(game.streak)
+    : woke
+    ? pick(['Wake up, sticker! ☀️', 'Good morning, sticker! ⭐'])
+    : tomorrow
+    ? 'Two dots today! Get it right tomorrow for the sticker! 🌙'
     : game.attempts === 0
     ? pick(['Pawsome! 🐾', 'Woof woof! Correct!', 'You got it! ⭐', 'Super smart!', `Yay! +${cents}¢ for you!`, 'Wag wag! That\'s right!'])
     : pick(['You figured it out! 🐾', 'Yes! You kept trying!', 'That\'s it! 🐾']));
 
   game.index++;
   $('progressFill').style.width = (game.index / QUESTIONS_PER_ROUND * 100) + '%';
-  later(nextQuestion, trick || newSticker ? 1700 : game.attempts === 0 ? 1300 : 1900);
+  later(nextQuestion, trick || newSticker || woke || tomorrow ? 1700 : game.attempts === 0 ? 1300 : 1900);
 }
 
 function onWrong(answer) {
@@ -2827,6 +2915,7 @@ function onWrong(answer) {
     // Not yet learned: lose one dot towards the sticker. Stickers she has earned stay.
     const i = FACT_INDEX[key];
     if (state.mastery[i] < STICKER_AT) state.mastery[i] = Math.max(0, state.mastery[i] - 1);
+    else state.levels[i] = SLEEPY_NOW; // the sticker stays, but it is sleepy until she gets it in a later round
     if (!game.retries.some(r => r.key === key)) game.retries.push({ a: game.a, b: game.b, key, at: game.index + 3 });
   }
 
@@ -3023,7 +3112,11 @@ function showSummary() {
   $('summaryTitle').textContent = stars === 3 ? 'Amazing!' : stars === 2 ? 'Great job!' : 'Nice work!';
   $('finalStars').innerHTML = [1, 2, 3].map(i =>
     `<span class="${i <= stars ? '' : 'dim'}" style="animation-delay:${0.2 + i * 0.2}s">⭐</span>`).join('');
-  say('summaryBubble', stars === 3
+  // She woke the last sleepy sticker, so the review for today is done. More play is still fine.
+  const allAwake = game.woken.length > 0 && sleepyCount() === 0;
+  say('summaryBubble', allAwake
+    ? 'You woke up every sleepy sticker! Come back tomorrow to check on them! 🐾'
+    : stars === 3
     ? 'You\'re a superstar! 🐾'
     : stars === 2
       ? 'Great job! 🐾'
@@ -3036,13 +3129,17 @@ function showSummary() {
   if (bonus) {
     game.roundGems += bonus;
     state.gems += bonus;
-    saveState();
     renderGems();
   }
+  // A hard round makes the next path rounds teach 2 new facts instead of 3, until a strong round.
+  if (game.path) state.easyPath = firstTry < 6 || (firstTry < 8 && state.easyPath);
+  if (bonus || game.path) saveState();
   $('statGems').textContent = `+${game.roundGems} 💎`;
-  $('newStickers').textContent = game.newStickers.length
-    ? 'New stickers: ' + game.newStickers.map(f => `${stickerFor(factKey(f.a, f.b))} ${f.a} × ${f.b}`).join('  ')
-    : '';
+  const list = facts => facts.map(f => `${stickerFor(factKey(f.a, f.b))} ${f.a} × ${f.b}`).join('  ');
+  $('newStickers').textContent = [
+    game.newStickers.length ? 'New stickers: ' + list(game.newStickers) : '',
+    game.woken.length ? 'Woke up: ' + list(game.woken) : '',
+  ].filter(Boolean).join('\n');
   const step = game.path ? pathStep() : 0;
   $('pathUp').textContent = step > game.step
     ? (step === PATH.length ? '🐾 You learned all the tables! 🏆' : `🐾 You learned ${pathName(game.step)}! Next up: ${pathName(step)}`)
@@ -3093,7 +3190,8 @@ function showStickers() {
       const m = masteryOf(a, b);
       if (m >= STICKER_AT) {
         const isNew = stickersSeen && !stickersSeen.has(key);
-        cells.push(`<div class="got${isNew ? ' new' : ''}" title="${a} × ${b} = ${a * b}">${stickerFor(key)}</div>`);
+        if (isSleepy(FACT_INDEX[key])) cells.push(`<div class="got sleepy" title="${a} × ${b}, sleepy"><span>${stickerFor(key)}</span></div>`);
+        else cells.push(`<div class="got${isNew ? ' new' : ''}" title="${a} × ${b} = ${a * b}">${stickerFor(key)}</div>`);
       } else {
         cells.push(`<div title="${a} × ${b}">${m ? `<span class="dots">${'●'.repeat(m)}</span>` : ''}</div>`);
       }
@@ -3101,7 +3199,8 @@ function showStickers() {
   }
   grid.innerHTML = cells.join('');
   const got = state.mastery.filter(m => m >= STICKER_AT).length;
-  $('stickerCount').textContent = `${got} of ${FACT_KEYS.length} stickers${got === FACT_KEYS.length ? ' — all of them! 🏆' : ''}`;
+  const sleepy = sleepyCount();
+  $('stickerCount').textContent = `${got} of ${FACT_KEYS.length} stickers${got === FACT_KEYS.length ? ' — all of them! 🏆' : ''}${sleepy ? ` · ${sleepy} sleepy 💤` : ''}`;
   stickersSeen = new Set(FACT_KEYS.filter(k => state.mastery[FACT_INDEX[k]] >= STICKER_AT));
   showScreen('stickerScreen');
 }

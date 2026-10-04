@@ -571,6 +571,9 @@
   .btn-primary { background: linear-gradient(135deg, var(--orange), var(--soft-orange)); color: white; width: 100%; }
   .btn-secondary { background: linear-gradient(135deg, var(--sky), #7EC8E3); color: var(--dark-brown); width: 100%; margin-top: 12px; }
   .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn-path { background: linear-gradient(135deg, #B8F0B0, #7FD98C); color: var(--dark-brown); width: 100%; margin: 0 0 18px; }
+  .btn-path .label { display: block; }
+  .btn-path .path-now { display: block; font-size: 0.65em; font-weight: 700; }
   .btn-closet { background: linear-gradient(135deg, #D9CCFF, #B9A4FF); color: #3B2A7A; width: 100%; margin-top: 12px; }
   .btn-closet.glow { animation: closetGlow 1.4s ease-in-out infinite; }
   @keyframes closetGlow { 50% { box-shadow: 0 5px 0 rgba(0,0,0,0.15), 0 0 20px rgba(169,148,245,0.95); } }
@@ -1257,7 +1260,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v16 - Updated 2026-10-03 17:26 EDT</p>
+    <p class="version">v17 - Updated 2026-10-04 03:25 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1266,15 +1269,20 @@
       Woof! Let's practice! 🐾
     </div>
 
-    <p class="pick-title">Pick your biggest number</p>
+    <button class="btn btn-path" id="pathBtn">
+      <span class="label">🐾 Learn with Ms. Menna</span>
+      <span class="path-now" id="pathNow"></span>
+    </button>
+
+    <p class="pick-title">Or pick your biggest number</p>
     <p class="pick-sub" id="pickSub">Choose a number from 3 to 19</p>
     <div class="picker" id="picker"></div>
     <p class="medal-key">🥉 ⅓ of stickers · 🥈 ⅔ · 🥇 all of them</p>
 
     <button class="btn btn-primary" id="startBtn" disabled>Let's Go! 🚀</button>
-    <button class="btn btn-house" id="houseBtn" aria-label="Visit Pom's House">
+    <button class="btn btn-house" id="houseBtn" aria-label="Visit Ms. Menna's House">
       <div class="room house-peek peek" id="housePeek"></div>
-      <span class="label">🏠 Pom's House</span>
+      <span class="label">🏠 Ms. Menna's House</span>
     </button>
     <div class="btn-row">
       <button class="btn btn-secondary" id="stickersBtn">⭐ Stickers</button>
@@ -1349,9 +1357,10 @@
       <div class="stat"><b id="statFirstTry">0 / 10</b>right on first try</div>
       <div class="stat"><b id="statEarned">+0¢</b>this round</div>
       <div class="stat"><b id="statBank">$0.00</b>piggy bank</div>
-      <div class="stat"><b id="statGems">+0 💎</b>gems for Pom</div>
+      <div class="stat"><b id="statGems">+0 💎</b>gems for Ms. Menna</div>
     </div>
     <div class="new-stickers" id="newStickers"></div>
+    <div class="new-stickers" id="pathUp"></div>
     <div class="practice-list" id="practiceList"></div>
     <button class="btn btn-primary" id="againBtn">Play Again! 🔁</button>
     <button class="btn btn-secondary" id="homeBtn">Pick a Different Number</button>
@@ -1372,14 +1381,14 @@
 <!-- ===== POM'S CLOSET SCREEN ===== -->
 <div class="screen" id="closetScreen">
   <div class="card">
-    <h1>Pom's Closet 🎀</h1>
+    <h1>Ms. Menna's Closet 🎀</h1>
     <div class="speech-bubble below" id="closetBubble" aria-live="polite"></div>
     <div class="pom-container closet-pom" id="pomCloset"></div>
     <div class="closet-tabs" id="closetTabs"></div>
     <div class="closet-items" id="closetItems"></div>
     <div class="color-row" id="colorRow" hidden></div>
     <button class="btn btn-buy" id="buyBtn" hidden></button>
-    <p class="closet-help">Pom earns 💎 when you get a question right on the first try.<br>New stickers and great rounds earn bonus gems!</p>
+    <p class="closet-help">Ms. Menna earns 💎 when you get a question right on the first try.<br>New stickers and great rounds earn bonus gems!</p>
     <button class="btn btn-secondary" id="closetBackBtn">← Back to the House</button>
   </div>
 </div>
@@ -1387,7 +1396,7 @@
 <!-- ===== POM'S HOUSE SCREEN ===== -->
 <div class="screen" id="houseScreen">
   <div class="card">
-    <div class="house-head"><h1>Pom's House 🏠</h1><span class="gem-badge"></span></div>
+    <div class="house-head"><h1>Ms. Menna's House 🏠</h1><span class="gem-badge"></span></div>
     <div class="room-tabs" id="roomTabs"></div>
     <div class="speech-bubble below" id="houseBubble" aria-live="polite"></div>
     <div class="room" id="houseRoom"></div>
@@ -1397,7 +1406,7 @@
     <div class="closet-items furn-items" id="furnItems"></div>
     <div class="color-row" id="furnColors" hidden></div>
     <button class="btn btn-buy" id="furnBuyBtn" hidden></button>
-    <p class="closet-help">Tap the room to walk Pom around. Tap furniture to play!<br>New stickers open new rooms, and 💎 buy furniture.</p>
+    <p class="closet-help">Tap the room to walk Ms. Menna around. Tap furniture to play!<br>New stickers open new rooms, and 💎 buy furniture.</p>
     <button class="btn btn-secondary" id="houseBackBtn">← Back</button>
   </div>
 </div>
@@ -2492,6 +2501,7 @@ function renderMedals() {
     el.textContent = medal;
     btn.setAttribute('aria-label', `${btn.dataset.n}, ${{ '🥇': 'gold', '🥈': 'silver', '🥉': 'bronze' }[medal]} medal`);
   });
+  renderPath();
 }
 
 function selectMax(n, withSound) {
@@ -2510,14 +2520,69 @@ function selectMax(n, withSound) {
   }
 }
 
+// ===== LEARNING PATH =====
+// Easy tables first, then the ones that build on them. A table is done when 80% of its facts have stickers,
+// so the path follows her stickers and needs nothing new in the save.
+const PATH = [[2], [5], [10], [0, 1], [4], [3], [9], [6], [8], [7], [11], [12], [13], [14], [15], [16], [17], [18], [19]];
+const PATH_DONE_AT = 0.8;
+const PATH_NEW_AT = [1, 4, 7]; // questions that teach a fact without a sticker yet; the rest are review
+
+// Tables up to 12 go to ×12. Bigger tables go up to themselves, so the last one covers the whole chart.
+function pathFacts(step) {
+  const keys = new Set();
+  for (const n of PATH[step]) for (let k = 0; k <= Math.max(12, n); k++) keys.add(factKey(n, k));
+  return [...keys];
+}
+
+const PATH_FACTS = PATH.map((_, i) => pathFacts(i));
+const pathShare = step => PATH_FACTS[step].filter(k => state.mastery[FACT_INDEX[k]] >= STICKER_AT).length / PATH_FACTS[step].length;
+
+// The first table she hasn't learned yet, or PATH.length when every table is done.
+function pathStep() {
+  const i = PATH.findIndex((_, step) => pathShare(step) < PATH_DONE_AT);
+  return i < 0 ? PATH.length : i;
+}
+
+const pathName = step => PATH[step].map(n => '×' + n).join(' & ');
+
+function renderPath() {
+  const step = pathStep();
+  if (step === PATH.length) {
+    $('pathNow').textContent = 'All tables done! Mixed review 🏆';
+    return;
+  }
+  const facts = PATH_FACTS[step];
+  const got = facts.filter(k => state.mastery[FACT_INDEX[k]] >= STICKER_AT).length;
+  $('pathNow').textContent = `Learning ${pathName(step)} · ${got} of ${facts.length} stickers`;
+}
+
+// Facts from every table up to her current one, split into ones she knows and ones she is learning.
+function pathPools() {
+  const top = Math.min(game.step, PATH.length - 1);
+  const known = [];
+  const learning = [];
+  for (let s = 0; s <= top; s++) {
+    for (const key of PATH_FACTS[s]) {
+      if (known.includes(key) || learning.includes(key)) continue;
+      (state.mastery[FACT_INDEX[key]] >= STICKER_AT ? known : learning).push(key);
+    }
+  }
+  return { known, learning };
+}
+
 // ===== GAME =====
 let game = null;
 
-function startRound(max) {
-  state.lastMax = max;
-  saveState();
+// With path set, questions come from the learning path instead of everything up to max.
+function startRound(max, path = false) {
+  if (!path) {
+    state.lastMax = max;
+    saveState();
+  }
   game = {
     max,
+    path,
+    step: path ? pathStep() : 0,
     index: 0,
     firstTry: 0,
     roundCents: 0,
@@ -2561,6 +2626,7 @@ function later(fn, ms) {
 
 // Facts missed more often have higher weights, so they come up more often.
 function pickQuestion(zeroOnly) {
+  if (game.path) return pickPathQuestion(zeroOnly);
   const N = game.max;
   const options = [];
   let total = 0;
@@ -2576,6 +2642,33 @@ function pickQuestion(zeroOnly) {
     }
   }
   let r = Math.random() * total;
+  for (const o of options) {
+    r -= o.w;
+    if (r <= 0) return o;
+  }
+  return options[options.length - 1];
+}
+
+// Mostly facts she knows, with a few she is learning mixed in, so most answers are wins.
+function pickPathQuestion(zeroOnly) {
+  const { known, learning } = pathPools();
+  let pool = known.length >= 6 ? known : [...known, ...learning];
+  const newSlot = PATH_NEW_AT.includes(game.index);
+  if (zeroOnly) {
+    const zeros = learning.filter(k => k.startsWith('0x'));
+    pool = newSlot && zeros.length ? zeros : [...known, ...learning].filter(k => k.startsWith('0x'));
+  } else if (newSlot && learning.length) pool = learning;
+  const fresh = pool.filter(k => k !== game.prevKey);
+  if (fresh.length) pool = fresh;
+  const options = pool.map(key => {
+    const [a, b] = key.split('x').map(Number);
+    let w = state.weights[key] || 1;
+    if (a === 0 && !zeroOnly) w *= 0.5;
+    if (game.asked.has(key)) w *= 0.25;
+    w *= 1 + state.mastery[FACT_INDEX[key]]; // finish the facts that are nearly stickers first
+    return Math.random() < 0.5 ? { a, b, w } : { a: b, b: a, w };
+  });
+  let r = Math.random() * options.reduce((sum, o) => sum + o.w, 0);
   for (const o of options) {
     r -= o.w;
     if (r <= 0) return o;
@@ -2879,6 +2972,11 @@ function showSummary() {
   $('newStickers').textContent = game.newStickers.length
     ? 'New stickers: ' + game.newStickers.map(f => `${stickerFor(factKey(f.a, f.b))} ${f.a} × ${f.b}`).join('  ')
     : '';
+  const step = game.path ? pathStep() : 0;
+  $('pathUp').textContent = step > game.step
+    ? (step === PATH.length ? '🐾 You learned all the tables! 🏆' : `🐾 You learned ${pathName(game.step)}! Next up: ${pathName(step)}`)
+    : '';
+  $('homeBtn').textContent = game.path ? '← Home' : 'Pick a Different Number';
 
   const unique = [];
   const seen = new Set();
@@ -3003,7 +3101,7 @@ function renderTreatJar() {
   const treats = TREATS.filter(t => state.treats[t.id] > 0);
   $('treatJar').hidden = !treats.length;
   $('treatJar').innerHTML = treats.map(t =>
-    `<button class="toy-btn" data-id="${t.id}" aria-label="Give Pom a ${t.name}, ${state.treats[t.id]} left">` +
+    `<button class="toy-btn" data-id="${t.id}" aria-label="Give Ms. Menna a ${t.name}, ${state.treats[t.id]} left">` +
     `${t.ico}<span class="count">${state.treats[t.id]}</span></button>`).join('');
 }
 
@@ -3750,7 +3848,8 @@ function init() {
   }
 
   $('startBtn').addEventListener('click', () => { if (selectedMax) { sfx.hint(); startRound(selectedMax); } });
-  $('againBtn').addEventListener('click', () => startRound(game.max));
+  $('againBtn').addEventListener('click', () => startRound(game.max, game.path));
+  $('pathBtn').addEventListener('click', () => { sfx.hint(); startRound(MAX_NUMBER, true); });
   $('homeBtn').addEventListener('click', goHome);
   $('quitBtn').addEventListener('click', goHome);
   $('cashoutBtn').addEventListener('click', showCashout);

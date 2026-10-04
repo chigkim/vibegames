@@ -374,7 +374,7 @@ test('a missed fact comes back later in the same round', async ({ page }) => {
     Math.min(q.a, q.b) === Math.min(missed.a, missed.b))).toBe(true);
 });
 
-test('first-try answers earn Pom gems without changing the money', async ({ page }) => {
+test('first-try answers earn Ms. Menna gems without changing the money', async ({ page }) => {
   await page.locator('#picker .pick-btn[data-n="12"]').click();
   await page.locator('#startBtn').click();
   const { a, b } = await answer(page, true);
@@ -388,7 +388,7 @@ test('first-try answers earn Pom gems without changing the money', async ({ page
   expect(await page.evaluate(() => state.gems)).toBe(1);
 });
 
-test("Pom's Closet buys, wears, and saves outfits with gems only", async ({ page }) => {
+test("Ms. Menna's Closet buys, wears, and saves outfits with gems only", async ({ page }) => {
   await page.evaluate(() => { state.gems = 12; state.totalCents = 250; saveState(); });
   await page.reload();
   await expect(page.locator('#pomStart .gem-badge')).toHaveText('💎 12');
@@ -520,7 +520,7 @@ test('a cookie copy without payouts does not erase the payout list in IndexedDB'
   expect(await page.evaluate(() => state.totalCents)).toBe(321);
 });
 
-test('the house Pom stays inside the house before it is opened', async ({ page }) => {
+test('the house Ms. Menna stays inside the house before it is opened', async ({ page }) => {
   // Even with the Bedroom locked on a new save, she must never land on the body.
   expect(await page.evaluate(() => houseWalker.el.parentElement.id)).toBe('houseRoom');
   await expect(page.locator('#pomHouse')).toBeHidden();
@@ -530,7 +530,7 @@ test('the house Pom stays inside the house before it is opened', async ({ page }
   await expect(page.locator('#pomHouse')).toBeHidden();
 });
 
-test('treats are bought with gems, kept in the jar, and used up when Pom eats them', async ({ page }) => {
+test('treats are bought with gems, kept in the jar, and used up when Ms. Menna eats them', async ({ page }) => {
   await page.evaluate(() => { state.gems = 10; saveState(); renderGems(); });
   await expect(page.locator('#treatJar')).toBeHidden();
   await page.locator('#houseBtn').click();
@@ -568,7 +568,7 @@ test('treats are bought with gems, kept in the jar, and used up when Pom eats th
   expect(await page.evaluate(() => state.treats)).toEqual({});
 });
 
-test('Pom buys toys, plays with them, and uses them in streak tricks', async ({ page }) => {
+test('Ms. Menna buys toys, plays with them, and uses them in streak tricks', async ({ page }) => {
   await page.evaluate(() => { state.gems = 20; state.totalCents = 90; saveState(); });
   await page.reload();
   await expect(page.locator('#toyShelf')).toBeHidden();
@@ -637,7 +637,7 @@ test('a v15 save keeps rooms with furniture open under the new sticker counts', 
   expect(await page.evaluate(() => roomOpen(ROOM.bedroom))).toBe(false);
 });
 
-test("Pom's House opens rooms with stickers and buys furniture colors with gems", async ({ page }) => {
+test("Ms. Menna's House opens rooms with stickers and buys furniture colors with gems", async ({ page }) => {
   await page.evaluate(() => { state.gems = 30; state.totalCents = 120; for (let i = 0; i < 30; i++) state.mastery[i] = STICKER_AT; saveState(); });
   await page.reload();
   await page.locator('#houseBtn').click();
@@ -679,4 +679,82 @@ test("Pom's House opens rooms with stickers and buys furniture colors with gems"
   await expect(page.locator('#closetScreen')).toHaveClass(/active/);
   await page.locator('#closetBackBtn').click();
   await expect(page.locator('#houseScreen')).toHaveClass(/active/);
+});
+
+// Learn with Ms. Menna: a learning path on its own button, next to the number buttons.
+const giveStickers = (page, facts) => page.evaluate(list => {
+  for (const [a, b] of list) state.mastery[FACT_INDEX[factKey(a, b)]] = STICKER_AT;
+  saveState();
+  renderMedals();
+}, facts);
+
+test('learning path starts at ×2 and the number buttons stay', async ({ page }) => {
+  await expect(page.locator('#picker .pick-btn')).toHaveCount(17);
+  await expect(page.locator('#pathNow')).toHaveText('Learning ×2 · 0 of 13 stickers');
+  await page.locator('#pathBtn').click();
+  await expect(page.locator('#gameScreen')).toHaveClass(/active/);
+  const off = await page.evaluate(() => {
+    let bad = 0;
+    for (let r = 0; r < 20; r++) {
+      startRound(MAX_NUMBER, true);
+      for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
+        if (game.a !== 2 && game.b !== 2) bad++;
+        if (i < QUESTIONS_PER_ROUND - 1) { game.index++; nextQuestion(); }
+      }
+    }
+    return bad;
+  });
+  expect(off).toBe(0);
+  expect(await page.evaluate(() => state.lastMax)).toBe(0); // the path doesn't change the picked number
+});
+
+test('learning path moves on at 80% and rounds are mostly known facts', async ({ page }) => {
+  await giveStickers(page, Array.from({ length: 11 }, (_, k) => [2, k])); // 11 of 13 ×2 facts
+  await expect(page.locator('#pathNow')).toHaveText('Learning ×5 · 1 of 13 stickers'); // 2 × 5 counts for ×5 too
+  const rounds = await page.evaluate(() => {
+    const out = [];
+    for (let r = 0; r < 40; r++) {
+      startRound(MAX_NUMBER, true);
+      let learning = 0;
+      for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
+        if (!hasSticker(game.a, game.b)) learning++;
+        if (![2, 5].includes(game.a) && ![2, 5].includes(game.b)) learning = 99;
+        if (i < QUESTIONS_PER_ROUND - 1) { game.index++; nextQuestion(); }
+      }
+      out.push(learning);
+    }
+    return out;
+  });
+  expect(Math.max(...rounds)).toBeLessThanOrEqual(4); // 3 new facts, and maybe a 0 fact she is learning
+  expect(Math.min(...rounds)).toBeGreaterThanOrEqual(3);
+});
+
+test('finishing a table on the path says what comes next', async ({ page }) => {
+  await giveStickers(page, Array.from({ length: 10 }, (_, k) => [2, k]));
+  await page.locator('#pathBtn').click();
+  await page.evaluate(() => {
+    state.mastery[FACT_INDEX[factKey(2, 10)]] = STICKER_AT;
+    game.index = QUESTIONS_PER_ROUND;
+    nextQuestion();
+  });
+  await expect(page.locator('#summaryScreen')).toHaveClass(/active/);
+  await expect(page.locator('#pathBtn .label')).toHaveText('🐾 Learn with Ms. Menna');
+  await expect(page.locator('#pathUp')).toHaveText('🐾 You learned ×2! Next up: ×5');
+  await expect(page.locator('#homeBtn')).toHaveText('← Home');
+  await page.locator('#againBtn').click();
+  expect(await page.evaluate(() => [game.path, game.step])).toEqual([true, 1]);
+});
+
+test("Ms. Menna's longer names fit on a 320px phone", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  const wide = el => page.locator(el).evaluate(e => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > innerWidth + 1);
+  await expect(page.locator('#houseBtn .label')).toHaveText("🏠 Ms. Menna's House");
+  for (const el of ['#houseBtn', '#pathBtn']) expect(await wide(el)).toBe(false);
+  await page.evaluate(() => { state.mastery[FACT_INDEX[factKey(2, 3)]] = STICKER_AT; saveState(); });
+  await page.locator('#houseBtn').click();
+  await expect(page.locator('#houseScreen h1')).toHaveText("Ms. Menna's House 🏠");
+  expect(await wide('#houseScreen .house-head')).toBe(false);
+  await page.locator('#closetBtn').click();
+  await expect(page.locator('#closetScreen h1')).toHaveText("Ms. Menna's Closet 🎀");
+  expect(await wide('#closetScreen h1')).toBe(false);
 });

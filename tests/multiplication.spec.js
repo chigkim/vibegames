@@ -24,7 +24,7 @@ test('easy facts pay less than hard ones', async ({ page }) => {
   expect(all.sort((x, y) => x - y)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 });
 
-test('right answer adds the shown pay, wrong answer takes 2¢', async ({ page }) => {
+test('right answer adds the shown pay, wrong answer costs nothing', async ({ page }) => {
   await page.locator('#picker .pick-btn[data-n="12"]').click(); // up to 12
   await page.locator('#startBtn').click();
 
@@ -42,7 +42,7 @@ test('right answer adds the shown pay, wrong answer takes 2¢', async ({ page })
   const b2 = Number(await page.locator('#factorB').innerText());
   await page.keyboard.type(String(a2 * b2 + 1));
   await page.keyboard.press('Enter');
-  await expect(page.locator('#gameBankAmount')).toHaveText('$' + (Math.max(0, cents - 2) / 100).toFixed(2));
+  await expect(page.locator('#gameBankAmount')).toHaveText('$' + (cents / 100).toFixed(2));
 });
 
 test('cash out pays the full balance, keeps history, and survives reload', async ({ page }) => {
@@ -147,7 +147,7 @@ test('a right answer after the picture pays 1¢ whatever the factors', async ({ 
   await page.locator('#hintBtn').click({ force: true });
   await expect(page.locator('#worth')).toHaveText('With the picture, this one pays 1¢');
   await answer(page, true);
-  await expect(page.locator('#gameBankAmount')).toHaveText('$0.49'); // 50 − 2 + 1
+  await expect(page.locator('#gameBankAmount')).toHaveText('$0.51'); // 50 + 1
 
   // Count-together picture after two misses
   await page.waitForTimeout(2200);
@@ -156,7 +156,7 @@ test('a right answer after the picture pays 1¢ whatever the factors', async ({ 
   await answer(page, false);
   await expect(page.locator('#gridArea')).toBeVisible();
   await answer(page, true);
-  await expect(page.locator('#gameBankAmount')).toHaveText('$0.46'); // 49 − 2 − 2 + 1
+  await expect(page.locator('#gameBankAmount')).toHaveText('$0.52'); // 51 + 1
 });
 
 test('0 facts come up in rounds, pay 1¢, and the picture shows no dots', async ({ page }) => {
@@ -177,7 +177,7 @@ test('0 facts come up in rounds, pay 1¢, and the picture shows no dots', async 
   await expect(page.locator('#arrayGrid .zero-note')).toContainText('0');
   await answer(page, true);
   await expect(page.locator('#feedback')).toHaveText('0 × 7 = 0 ✓');
-  await expect(page.locator('#gameBankAmount')).toHaveText('$0.01'); // 0 − 2 is floored at 0, then + 1
+  await expect(page.locator('#gameBankAmount')).toHaveText('$0.01');
 });
 
 test('a save in another tab is not undone by this tab', async ({ page, context }) => {
@@ -710,7 +710,7 @@ test('learning path starts at ×2 and the number buttons stay', async ({ page })
 
 test('learning path moves on at 80% and rounds are mostly known facts', async ({ page }) => {
   await giveStickers(page, Array.from({ length: 11 }, (_, k) => [2, k])); // 11 of 13 ×2 facts
-  await expect(page.locator('#pathNow')).toHaveText('Learning ×5 · 1 of 13 stickers'); // 2 × 5 counts for ×5 too
+  await expect(page.locator('#pathNow')).toHaveText('Learning ×10 · 1 of 13 stickers'); // 2 × 10 counts for ×10 too
   const rounds = await page.evaluate(() => {
     const out = [];
     for (let r = 0; r < 40; r++) {
@@ -718,7 +718,7 @@ test('learning path moves on at 80% and rounds are mostly known facts', async ({
       let learning = 0;
       for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
         if (!hasSticker(game.a, game.b)) learning++;
-        if (![2, 5].includes(game.a) && ![2, 5].includes(game.b)) learning = 99;
+        if (![2, 10].includes(game.a) && ![2, 10].includes(game.b)) learning = 99;
         if (i < QUESTIONS_PER_ROUND - 1) { game.index++; nextQuestion(); }
       }
       out.push(learning);
@@ -739,7 +739,7 @@ test('finishing a table on the path says what comes next', async ({ page }) => {
   });
   await expect(page.locator('#summaryScreen')).toHaveClass(/active/);
   await expect(page.locator('#pathBtn .label')).toHaveText('🐾 Learn with Ms. Menna');
-  await expect(page.locator('#pathUp')).toHaveText('🐾 You learned ×2! Next up: ×5');
+  await expect(page.locator('#pathUp')).toHaveText('🐾 You learned ×2! Next up: ×10');
   await expect(page.locator('#homeBtn')).toHaveText('← Home');
   await page.locator('#againBtn').click();
   expect(await page.evaluate(() => [game.path, game.step])).toEqual([true, 1]);
@@ -757,4 +757,37 @@ test("Ms. Menna's longer names fit on a 320px phone", async ({ page }) => {
   await page.locator('#closetBtn').click();
   await expect(page.locator('#closetScreen h1')).toHaveText("Ms. Menna's Closet 🎀");
   expect(await wide('#closetScreen h1')).toBe(false);
+});
+
+test('strategy hints build hard facts from easier ones', async ({ page }) => {
+  test.setTimeout(45000); // each split picture takes about 8 seconds to walk through
+  const plans = await page.evaluate(() => [[7, 6], [8, 9], [3, 4], [8, 8], [13, 7], [2, 7], [5, 6], [10, 4], [1, 6]]
+    .map(([a, b]) => { const { rows, cols, p, q } = hintPlan(a, b); return [rows, cols, p ?? null, q ?? null]; }));
+  expect(plans).toEqual([
+    [6, 7, 5, 1], [9, 8, 10, -1], [3, 4, 2, 1], [8, 8, 4, 4], [13, 7, 10, 3],
+    [2, 7, null, null], [6, 5, null, null], [4, 10, null, null], [1, 6, null, null],
+  ]);
+
+  await page.locator('#picker .pick-btn[data-n="12"]').click();
+  await page.locator('#startBtn').click();
+  await page.evaluate(() => { game.a = 7; game.b = 6; $('factorA').textContent = 7; $('factorB').textContent = 6; });
+  await answer(page, false);
+  await answer(page, false);
+  await expect(page.locator('#gameBubble')).toHaveText('6 is 5 and 1 more. Find 5 × 7, then add one more 7!');
+  await expect(page.locator('#gridCaption')).toContainText('5 rows + 1 row');
+  await expect(page.locator('#arrayGrid .cell')).toHaveCount(42);
+  await expect(page.locator('#arrayGrid .split-line')).toHaveCount(1);
+  await expect(page.locator('#gameBubble')).toHaveText('5 × 7 = 35!', { timeout: 5000 });
+  await expect(page.locator('#gameBubble')).toHaveText('1 × 7 = 7!', { timeout: 5000 });
+  await expect(page.locator('#gameBubble')).toHaveText('35 + 7 = 42!', { timeout: 5000 });
+
+  // 9 is drawn as 10 rows with the last one taken away
+  await answer(page, true);
+  await page.waitForTimeout(2200);
+  await page.evaluate(() => { game.a = 9; game.b = 4; $('factorA').textContent = 9; $('factorB').textContent = 4; });
+  await answer(page, false);
+  await answer(page, false);
+  await expect(page.locator('#arrayGrid .cell')).toHaveCount(40);
+  await expect(page.locator('#arrayGrid .cell.away')).toHaveCount(4, { timeout: 8000 });
+  await expect(page.locator('#gameBubble')).toHaveText('40 − 4 = 36!', { timeout: 5000 });
 });

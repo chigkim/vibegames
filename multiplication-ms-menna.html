@@ -780,6 +780,11 @@
     animation: cellIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
   }
 
+  .grid-caption .pa { color: #D9822B; }
+  .grid-caption .pb { color: #3E8FC9; }
+  .array-grid .split-line { grid-column: 1 / -1; border-top: 3px dashed var(--brown); opacity: 0.5; }
+  .array-grid .cell { transition: opacity 0.4s, transform 0.4s; }
+  .array-grid .cell.away { opacity: 0.2; }
   .array-grid .cell.lit { box-shadow: 0 0 0 3px var(--dark-green), inset 0 -3px 0 rgba(0,0,0,0.12); transform: scale(1.08); }
 
   @keyframes cellIn { from { transform: scale(0); } to { transform: scale(1); } }
@@ -1260,7 +1265,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v17 - Updated 2026-10-04 03:25 EDT</p>
+    <p class="version">v18 - Updated 2026-10-03 23:38 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1417,7 +1422,7 @@
     <h1>Cash Out 💵</h1>
     <div class="bank" id="cashBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="cashBankAmount">$0.00</span></div>
     <p class="bank-label">in the piggy bank right now</p>
-    <p class="pay-rates">Pay per right answer:<br><span>×0 or ×1 → 1¢</span> · <span>×2 or ×10 → 2¢</span> · <span>harder facts → up to 10¢</span><br><span>Right after a picture hint → 1¢</span> · <span>Wrong answer → −2¢</span></p>
+    <p class="pay-rates">Pay per right answer:<br><span>×0 or ×1 → 1¢</span> · <span>×2 or ×10 → 2¢</span> · <span>harder facts → up to 10¢</span><br><span>Right after a picture hint → 1¢</span> · <span>Wrong answers never cost money</span></p>
     <button class="btn btn-pay" id="payBtn">Pay out $0.00</button>
     <div class="pay-confirm" id="payConfirm" hidden>
       <p id="payAsk">Did you pay $0.00?</p>
@@ -1443,7 +1448,6 @@
 
 // ===== CONSTANTS =====
 const QUESTIONS_PER_ROUND = 10;
-const WRONG_CENTS = 2;
 const HINT_CENTS = 1; // Pay for a right answer after the picture was shown, whatever the factors.
 const MIN_PICK = 3; // smallest "up to" choice on the start screen
 const MAX_NUMBER = 19;
@@ -2521,9 +2525,9 @@ function selectMax(n, withSound) {
 }
 
 // ===== LEARNING PATH =====
-// Easy tables first, then the ones that build on them. A table is done when 80% of its facts have stickers,
+// Easy tables first, then families that build on each other (×2, ×4, ×8 by doubling; ×3, ×6, ×9), and ×7 last. A table is done when 80% of its facts have stickers,
 // so the path follows her stickers and needs nothing new in the save.
-const PATH = [[2], [5], [10], [0, 1], [4], [3], [9], [6], [8], [7], [11], [12], [13], [14], [15], [16], [17], [18], [19]];
+const PATH = [[2], [10], [5], [0, 1], [4], [8], [3], [6], [9], [7], [11], [12], [13], [14], [15], [16], [17], [18], [19]];
 const PATH_DONE_AT = 0.8;
 const PATH_NEW_AT = [1, 4, 7]; // questions that teach a fact without a sticker yet; the rest are review
 
@@ -2826,15 +2830,9 @@ function onWrong(answer) {
     if (!game.retries.some(r => r.key === key)) game.retries.push({ a: game.a, b: game.b, key, at: game.index + 3 });
   }
 
+  saveState();
   renderAnswer('wrong');
   sfx.wrong();
-  const changed = changeBank(-WRONG_CENTS);
-  game.roundCents += changed;
-  renderRoundEarned();
-  if (changed < 0) {
-    flyText(formatDelta(changed), $('answerDisplay'), 'minus', 60);
-    pigReact($('gameBank'), 'drop');
-  }
   animatePom($('pomGame'), 'shake');
   $('feedback').className = 'feedback bad';
   $('feedback').textContent = 'Not quite — try again!';
@@ -2847,7 +2845,8 @@ function onWrong(answer) {
     $('hintBtn').classList.add('show');
   } else {
     $('hintBtn').classList.remove('show');
-    say('gameBubble', `Let's count! ${game.a} ${game.a === 1 ? 'row' : 'rows'} of ${game.b}…`);
+    const plan = hintPlan(game.a, game.b);
+    say('gameBubble', plan.tip || `Let's count! ${plan.rows} ${plan.rows === 1 ? 'row' : 'rows'} of ${plan.cols}…`);
     showGrid(true);
   }
 
@@ -2859,9 +2858,47 @@ function onWrong(answer) {
   }, 700);
 }
 
-// ===== VISUAL GRID: a rows × b columns =====
+// ===== STRATEGY HINTS =====
+// A hard fact is built from easier ones she knows: 6 × 7 is 5 × 7 and one more 7. Teens, 11 and 12 start
+// from 10, and 9 is 10 take away one. When both factors can be split, the one earlier in SPLIT_ORDER is.
+const SPLITS = { 3: [2, 1], 4: [2, 2], 6: [5, 1], 7: [5, 2], 8: [4, 4], 9: [10, -1], 11: [10, 1], 12: [10, 2] };
+const SPLIT_ORDER = [13, 14, 15, 16, 17, 18, 19, 11, 12, 9, 3, 6, 4, 7, 8];
+const splitOf = n => (n > 12 ? [10, n - 10] : SPLITS[n]);
+
+// How the picture draws a × b: rows, dots per row, the split (p rows, then q more, or q = -1 to take one
+// away), what Ms. Menna says on the second miss (tip), and what she says when the count is done (done).
+function hintPlan(a, b) {
+  if (a === 0 || b === 0 || a === 1 || b === 1) return { rows: a, cols: b };
+  if (a === 2 || b === 2) {
+    const m = a === 2 ? b : a;
+    return { rows: 2, cols: m, tip: `Double ${m}! ${m} + ${m}…`, done: `${m} + ${m} = ${2 * m}!` };
+  }
+  // ×5 and ×10 count by 5s and 10s, so those are the dots in each row.
+  if (a === 10 || b === 10) {
+    const m = a === 10 ? b : a;
+    return { rows: m, cols: 10, tip: 'Count by 10s!', done: `${m} tens make ${10 * m}. That's ${m} with a 0 after it!` };
+  }
+  if (a === 5 || b === 5) {
+    const m = a === 5 ? b : a;
+    return { rows: m, cols: 5, tip: 'Count by 5s, like on a clock!', done: `${m} fives make ${5 * m}!` };
+  }
+  const s = SPLIT_ORDER.find(n => n === a || n === b);
+  const m = s === a ? b : a;
+  const [p, q] = splitOf(s);
+  const tip = q < 0 ? `${s} is one less than 10. Find 10 × ${m}, then take away one ${m}!`
+    : q === 1 ? `${s} is ${p} and 1 more. Find ${p} × ${m}, then add one more ${m}!`
+    : p === q ? `${s} is ${p} and ${p}. Find ${p} × ${m}, then do it again!`
+    : `${s} is ${p} and ${q}. Find ${p} × ${m}, then add ${q} × ${m}!`;
+  return { rows: s, cols: m, p, q, tip };
+}
+
+const SPLIT_COLORS = ['#FFB870', '#6FC3F2'];
+
+// ===== VISUAL GRID: rows × dots, split in two colors when the fact has a strategy =====
 function showGrid(countOut) {
-  const { a, b } = game;
+  const plan = hintPlan(game.a, game.b);
+  const { rows: a, cols: b, p, q } = plan;
+  const drawn = q < 0 ? p : a; // 9 is drawn as 10 rows, and the last one is taken away
   const area = $('gridArea');
   const grid = $('arrayGrid');
   area.classList.add('show');
@@ -2872,8 +2909,10 @@ function showGrid(countOut) {
     $('worth').textContent = `With the picture, this one pays ${HINT_CENTS}¢`;
     $('worth').className = 'worth tier-1';
   }
+  const rowsOf = n => `${n} ${n === 1 ? 'row' : 'rows'}`;
   $('gridCaption').innerHTML =
-    `<span class="r">${a} ${a === 1 ? 'row' : 'rows'}</span> of <span class="c">${b} ${b === 1 ? 'dot' : 'dots'}</span>`;
+    `<span class="r">${rowsOf(a)}</span> of <span class="c">${b} ${b === 1 ? 'dot' : 'dots'}</span>` +
+    (p ? `<br><span class="pa">${rowsOf(p)}</span> ${q < 0 ? '−' : '+'} <span class="pb">${rowsOf(Math.abs(q))}</span>` : '');
 
   // With a 0 there is nothing to draw, which is the point.
   if (a === 0 || b === 0) {
@@ -2890,7 +2929,7 @@ function showGrid(countOut) {
   const gap = b > 9 ? 3 : 5;
   const viewH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
   const maxGridH = Math.max(130, Math.min(300, viewH * 0.24));
-  const cell = Math.max(9, Math.min(34, Math.floor((avail - gap * (b + 2)) / cols), Math.floor(maxGridH / (a + 1) - gap)));
+  const cell = Math.max(9, Math.min(34, Math.floor((avail - gap * (b + 2)) / cols), Math.floor(maxGridH / (drawn + 1) - gap)));
   grid.style.setProperty('--cell', cell + 'px');
   grid.style.setProperty('--gap', gap + 'px');
   grid.style.gridTemplateColumns = `auto repeat(${b}, ${cell}px) auto`;
@@ -2906,7 +2945,13 @@ function showGrid(countOut) {
   grid.appendChild(document.createElement('span'));
 
   const rows = [];
-  for (let r = 1; r <= a; r++) {
+  const firstB = q < 0 ? p : p + 1; // the first row of the second color
+  for (let r = 1; r <= drawn; r++) {
+    if (p && r === firstB) {
+      const line = document.createElement('span');
+      line.className = 'split-line';
+      grid.appendChild(line);
+    }
     const lbl = document.createElement('span');
     lbl.className = 'row-label';
     lbl.textContent = r;
@@ -2915,16 +2960,42 @@ function showGrid(countOut) {
     for (let c = 1; c <= b; c++) {
       const cellEl = document.createElement('span');
       cellEl.className = 'cell';
-      cellEl.style.setProperty('--row-color', ROW_COLORS[(r - 1) % ROW_COLORS.length]);
+      cellEl.style.setProperty('--row-color', p ? SPLIT_COLORS[r < firstB ? 0 : 1] : ROW_COLORS[(r - 1) % ROW_COLORS.length]);
       cellEl.style.animationDelay = Math.min(0.9, (r - 1) * 0.06 + (c - 1) * 0.02) + 's';
       grid.appendChild(cellEl);
       cells.push(cellEl);
     }
     const sum = document.createElement('span');
     sum.className = 'row-sum';
-    sum.textContent = r * b;
+    // Split pictures show one total per color: 35 at the end of the first part, then +7 or −7.
+    sum.textContent = !p ? r * b : r === p ? p * b : r === drawn ? '+' + q * b : '';
     grid.appendChild(sum);
     rows.push({ cells, sum });
+  }
+
+  if (p && countOut) {
+    // Ms. Menna's tip is spoken first, so the steps wait for her to finish it.
+    const partA = rows.slice(0, p);
+    const partB = rows.slice(q < 0 ? p - 1 : p);
+    const first = p * b;
+    const answer = a * b;
+    game.countTimers.push(setTimeout(() => {
+      partA.forEach(row => row.cells.forEach(c => c.classList.add('lit')));
+      partA[partA.length - 1].sum.classList.add('show');
+      sfx.count(0);
+      say('gameBubble', `${p} × ${b} = ${first}!`);
+    }, 3500), setTimeout(() => {
+      partB.forEach(row => row.cells.forEach(c => c.classList.add(q < 0 ? 'away' : 'lit')));
+      const sum = partB[partB.length - 1].sum;
+      if (q < 0) sum.textContent = '−' + b; // the 10-row total becomes the one row taken away
+      retrigger(sum, 'show');
+      sfx.count(1);
+      say('gameBubble', q < 0 ? `Take away one ${b}!` : `${q} × ${b} = ${q * b}!`);
+    }, 6000), setTimeout(() => {
+      say('gameBubble', `${first} ${q < 0 ? '−' : '+'} ${Math.abs(q) * b} = ${answer}!`);
+    }, 8500));
+    $('numpad').scrollIntoView({ block: 'end', behavior: 'smooth' });
+    return;
   }
 
   if (countOut) {
@@ -2934,7 +3005,7 @@ function showGrid(countOut) {
       row.sum.classList.add('show');
       sfx.count(i);
       if (i === rows.length - 1) {
-        say('gameBubble', `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make ${a * b}!`);
+        say('gameBubble', plan.done || `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make ${a * b}!`);
       }
     }, 900 + i * step)));
   }
@@ -3912,7 +3983,8 @@ function init() {
   $('hintBtn').addEventListener('click', () => {
     if (!game || game.solved) return;
     sfx.hint();
-    say('gameBubble', `${game.a} ${game.a === 1 ? 'row' : 'rows'} of ${game.b}. How many?`);
+    const { rows, cols } = hintPlan(game.a, game.b);
+    say('gameBubble', `${rows} ${rows === 1 ? 'row' : 'rows'} of ${cols}. How many?`);
     showGrid(false);
   });
 

@@ -3,6 +3,11 @@
 // version badge matches the card on the home page.
 const { test, expect } = require('@playwright/test');
 
+// Speech off: with no speechSynthesis, Ms. Menna stays silent. tests/speech.spec.js uses a silent fake instead.
+test.beforeEach(async ({ context }) => {
+  await context.addInitScript(() => Object.defineProperty(window, 'speechSynthesis', { value: undefined }));
+});
+
 // Browser-level passive-listener warning — not a game bug
 const IGNORED = /preventDefault inside passive/;
 

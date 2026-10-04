@@ -518,9 +518,62 @@
     font-size: clamp(1.4rem, 3.2vmin, 2rem); line-height: 1.2; padding: clamp(16px, 2.6vmin, 24px) 20px; box-shadow: 0 6px 0 #4FAF5F, 0 0 0 4px #fff, 0 0 0 7px #7FD98C; }
   .btn-path .label { display: block; }
   .btn-path .path-now { display: block; font-size: 0.65em; font-weight: 700; }
-  /* Learn Extra is the second path, so it is smaller and has no ring. */
-  .btn-path.extra { background: linear-gradient(135deg, #D6E8FF, #A8DAFF); font-size: clamp(1.15rem, 2.6vmin, 1.6rem);
-    padding: clamp(12px, 2vmin, 18px) 20px; box-shadow: 0 5px 0 #6FA8D6; }
+
+  /* ===== NUMBER PICKER ===== */
+  /* Practice is the second choice, so it sits in a quieter box under the learning path. */
+  .practice-box { background: rgba(255,255,255,0.55); border: 2px dashed rgba(139,94,60,0.25); border-radius: 24px; padding: 12px 12px 14px; margin-bottom: 4px; }
+  .pick-title { font-family: 'Baloo 2', cursive; font-size: clamp(1.05rem, 2.2vmin, 1.35rem); font-weight: 800; color: var(--dark-brown); margin-bottom: 4px; }
+  .pick-sub { font-size: 0.85rem; font-weight: 600; color: var(--brown); margin-bottom: 12px; }
+  .picker { --pick-gap: clamp(8px, 1.6vmin, 14px); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--pick-gap); margin-bottom: 18px; }
+  .pick-btn {
+    position: relative;
+    flex: 0 0 calc((100% - 5 * var(--pick-gap)) / 6);
+    min-width: 40px; /* keeps a finger-sized target on small phones, where the row wraps to 5 */
+    max-width: 62px;
+    aspect-ratio: 1;
+    border-radius: 16px;
+    border: 3px solid rgba(0,0,0,0.06);
+    font-family: 'Baloo 2', cursive;
+    font-size: clamp(1.15rem, 3vmin, 1.7rem);
+    font-weight: 800;
+    color: var(--dark-brown);
+    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.12);
+    transition: transform 0.15s, box-shadow 0.15s;
+    touch-action: manipulation;
+  }
+  .pick-btn .medal { position: absolute; top: -9px; right: -9px; font-size: clamp(1.1rem, 2.8vmin, 1.6rem); line-height: 1;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2)); pointer-events: none; }
+  .medal-key { font-size: 0.85rem; font-weight: 700; color: var(--brown); margin: -8px 0 14px; }
+  .pick-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.12); }
+  .pick-btn.selected { border-color: var(--dark-brown); transform: scale(1.08);
+    box-shadow: 0 0 0 4px white, 0 0 0 7px var(--orange), 0 6px 0 rgba(0,0,0,0.12); animation: wiggle 0.4s ease; }
+  @keyframes wiggle { 0%,100% { transform: scale(1.08) rotate(0); } 30% { transform: scale(1.12) rotate(-6deg); } 60% { transform: scale(1.12) rotate(5deg); } }
+  .practice-box .btn-primary { font-size: clamp(1rem, 2.2vmin, 1.35rem); padding: clamp(9px, 1.5vmin, 13px) 24px; }
+
+  /* ===== DIVISION SWITCH, INVITATION AND FIRST LESSON ===== */
+  .divide-toggle { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 48px; margin: 12px 0 0;
+    font-family: 'Baloo 2', cursive; font-size: clamp(1.1rem, 2.4vmin, 1.4rem); font-weight: 800; color: var(--dark-brown); cursor: pointer;
+    -webkit-tap-highlight-color: transparent; }
+  .divide-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .divide-toggle .switch { position: relative; flex: none; width: 58px; height: 32px; border-radius: 16px; background: #D8CFC6; transition: background 0.2s; }
+  .divide-toggle .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.2s; }
+  .divide-toggle input:checked + .switch { background: #7FD98C; }
+  .divide-toggle input:checked + .switch::after { transform: translateX(26px); }
+  .divide-toggle input:focus-visible + .switch { outline: 3px solid var(--orange); outline-offset: 2px; }
+  .divide-invite { background: #FFF4D6; border: 3px solid #FFD166; border-radius: 22px; padding: 14px; margin-bottom: 18px; }
+  .divide-invite p { font-weight: 800; color: var(--dark-brown); margin-bottom: 12px; }
+  .divide-invite .btn-row .btn { margin-top: 0; }
+  .share-eq { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 10px 0 14px;
+    font-family: 'Baloo 2', cursive; font-size: clamp(2rem, 6vmin, 3rem); font-weight: 800; color: var(--dark-brown); }
+  .share-eq .ans { min-width: 1.4em; color: var(--orange); }
+  .share-dots { display: flex; flex-direction: column; align-items: center; gap: 10px; min-height: 150px; margin-bottom: 18px; }
+  .share-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .share-row .dot { width: clamp(22px, 5vmin, 32px); height: clamp(22px, 5vmin, 32px); border-radius: 50%; background: var(--row-color, #FFB870);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,0.12); animation: pop 0.35s cubic-bezier(0.34,1.56,0.64,1) backwards; }
+  .share-row .count { min-width: 1.6em; font-weight: 800; color: var(--dark-brown); opacity: 0; transition: opacity 0.3s; }
+  .share-row .count.show { opacity: 1; }
   .btn-closet { background: linear-gradient(135deg, #D9CCFF, #B9A4FF); color: #3B2A7A; width: 100%; margin-top: 12px; }
   .btn-closet.glow { animation: closetGlow 1.4s ease-in-out infinite; }
   @keyframes closetGlow { 50% { box-shadow: 0 5px 0 rgba(0,0,0,0.15), 0 0 20px rgba(169,148,245,0.95); } }
@@ -1220,7 +1273,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v22 - Updated 2026-10-04 06:02 EDT</p>
+    <p class="version">v23 - Updated 2026-10-04 02:47 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1233,10 +1286,18 @@
       <span class="label">🐾 Learn with Ms. Menna</span>
       <span class="path-now" id="pathNow"></span>
     </button>
-    <button class="btn btn-path extra" id="extraBtn">
-      <span class="label">🚀 Learn Extra (11 to 20)</span>
-      <span class="path-now" id="extraNow"></span>
-    </button>
+    <div class="practice-box">
+      <p class="pick-title">Or practice up to a number</p>
+      <p class="pick-sub" id="pickSub">Choose a number from 3 to 20</p>
+      <div class="picker" id="picker"></div>
+      <p class="medal-key">🥉 ⅓ of stickers · 🥈 ⅔ · 🥇 all of them</p>
+      <button class="btn btn-primary" id="startBtn" disabled>Let's Go! 🚀</button>
+    </div>
+    <label class="divide-toggle">
+      <input type="checkbox" id="divideToggle">
+      <span class="switch" aria-hidden="true"></span>
+      <span>➗ Include division</span>
+    </label>
     <button class="btn btn-house" id="houseBtn" aria-label="Visit Ms. Menna's House">
       <div class="room house-peek peek" id="housePeek"></div>
       <span class="label">🏠 Ms. Menna's House</span>
@@ -1318,9 +1379,27 @@
     </div>
     <div class="new-stickers" id="newStickers"></div>
     <div class="new-stickers" id="pathUp"></div>
+    <div class="divide-invite" id="divideInvite" hidden>
+      <p>Want to learn dividing next? ➗</p>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="inviteYesBtn">Yes! ➗</button>
+        <button class="btn btn-secondary" id="inviteNoBtn">Not yet</button>
+      </div>
+    </div>
     <div class="practice-list" id="practiceList"></div>
     <button class="btn btn-primary" id="againBtn">Play Again! 🔁</button>
     <button class="btn btn-secondary" id="homeBtn">← Home</button>
+  </div>
+</div>
+
+<!-- ===== FIRST DIVISION LESSON ===== -->
+<div class="screen" id="divideScreen">
+  <div class="card">
+    <h1>Let's learn dividing! ➗</h1>
+    <div class="speech-bubble below" id="divideBubble" aria-live="polite"></div>
+    <div class="share-eq"><span>12</span><span>÷</span><span>3</span><span>=</span><span class="ans" id="shareAnswer">?</span></div>
+    <div class="share-dots" id="shareDots"></div>
+    <button class="btn btn-primary" id="divideGoBtn">Let's go! 🚀</button>
   </div>
 </div>
 
@@ -1407,6 +1486,7 @@
 const QUESTIONS_PER_ROUND = 10;
 const HINT_CENTS = 1; // Pay for a right answer after the picture was shown, whatever the factors.
 const MAX_NUMBER = 20;
+const MIN_PICK = 3; // the smallest number on the practice picker
 const OLD_MAX_NUMBER = 13; // v11 and earlier stopped at 13; their facts keep the first places in FACT_KEYS
 const MAX_PAYOUTS_KEPT = 30;
 const PAY_CONFIRM_DELAY = 1000; // ms before "Yes, paid" can be tapped
@@ -1421,16 +1501,19 @@ const PICK_COLORS = ['#FFB3C6', '#FFD6B0', '#FFE08A', '#C8F0B0', '#A8DAFF', '#C9
 const ROW_COLORS = ['#FF9FBF', '#FFB870', '#FFD84D', '#8FDB7A', '#6FC3F2', '#A994F5', '#FF9E80',
   '#5FD6B8', '#F59BE0', '#8FB8F5', '#F2C94C', '#B79CF2', '#FF8A8A'];
 
-// Pay per right answer, 1¢ to 10¢. Easy facts pay less so picking small numbers isn't the best way to earn.
+// Pay per right answer, the same on the path and in practice. Facts up to 10 pay 1¢ to 5¢, by how hard children find them:
+// ×0 and ×1, then ×2, ×5 and ×10, then the rest by the size of the answer, since answers over 40 are missed most.
+// Facts with a number from 11 to 20 pay 6¢ to 10¢, so picking big numbers pays more only because they are harder.
 function centsFor(a, b) {
   const small = Math.min(a, b);
   const big = Math.max(a, b);
   if (small <= 1) return 1;
-  if (small === 2 || a === 10 || b === 10) return 2;
+  if (small === 2 || a === 10 || b === 10 || (big <= 9 && (a === 5 || b === 5))) return 2;
+  if (big <= 9) return a * b <= 20 ? 3 : a * b <= 40 ? 4 : 5;
   if (small >= 14) return 10;
-  if (big >= 14) return small <= 5 ? 8 : 9;
-  if (small <= 5) return big <= 5 ? 3 : big <= 9 ? 4 : 5;
-  return big <= 9 ? 6 : 7;
+  if (small >= 11) return big <= 13 ? 8 : 9;
+  if (big <= 13) return small <= 5 ? 6 : 7;
+  return small <= 5 ? 7 : 8;
 }
 
 // Every fact once (3×7 and 7×3 are the same), in a fixed order so progress saves as one short string.
@@ -1811,6 +1894,10 @@ function defaultState() {
     totalCents: 0, paidCents: 0, payouts: [], weights: {}, mastery: FACT_KEYS.map(() => 0), muted: false,
     gems: 0, owned: [], worn: { ...DEFAULT_WORN }, toys: {}, treats: {}, furniture: [], home: {}, room: 'bedroom', savedAt: 0,
     days: FACT_KEYS.map(() => 0), levels: FACT_KEYS.map(() => 0), easyPath: false,
+    lastMax: 0, // the number she picked last for practice
+    divOn: false, divIntro: false, // division is on, and she has seen the first division lesson
+    divAsked: 0, // the day she last said "Not yet" to learning dividing
+    divPics: 0, // new division questions left that show their picture right away
   };
 }
 
@@ -1951,6 +2038,16 @@ function parseSave(saved) {
     }
   });
   state.easyPath = !!saved.easyPath;
+  if (Number.isInteger(saved.lastMax) && saved.lastMax >= MIN_PICK && saved.lastMax <= MAX_NUMBER) state.lastMax = saved.lastMax;
+  if (typeof saved.divOn === 'boolean') {
+    state.divOn = saved.divOn;
+    state.divIntro = !!saved.divIntro;
+  } else {
+    // v22 asked division by itself. A child who has started it keeps it on.
+    state.divOn = state.divIntro = DIVIDE_KEYS.some(k => state.mastery[FACT_INDEX[k]] > 0);
+  }
+  if (Number.isInteger(saved.divAsked) && saved.divAsked > 0) state.divAsked = saved.divAsked;
+  if (Number.isInteger(saved.divPics) && saved.divPics > 0) state.divPics = Math.min(saved.divPics, 5);
   if (Number.isFinite(saved.paidCents)) state.paidCents = Math.max(0, Math.round(saved.paidCents));
   if (Array.isArray(saved.payouts)) {
     state.payouts = saved.payouts
@@ -2033,6 +2130,7 @@ function mergeNewer(stored) {
     if (stored.weights[key]) state.weights[key] = stored.weights[key];
     else delete state.weights[key];
   }
+  state.divIntro = state.divIntro || stored.divIntro;
   // Choices like the outfit, toys, furniture spots and the room go to this tab, the one saving now.
   // A payout row is lost only if the newest copy is the cookie without the list; paidCents is still right.
 }
@@ -2489,85 +2587,229 @@ function changeBank(delta) {
   return changed;
 }
 
-// ===== LEARNING PATHS =====
-// Learn with Ms. Menna: easy tables first, then families that build on each other (×2, ×4, ×8 by doubling; ×3, ×6, ×9),
-// and ×7 last, each up to × 10. Learn Extra: ×11 to ×20, where each table goes up to itself, so ×13 is 13 × 0 to 13 × 13.
-// A table is done when 80% of its facts have stickers, so the paths follow her stickers and need nothing new in the save.
-const PATHS = {
-  main: [[2], [10], [5], [0, 1], [4], [8], [3], [6], [9], [7]],
-  extra: [[11], [12], [13], [14], [15], [16], [17], [18], [19], [20]],
-};
+// ===== LEARNING PATH =====
+// Easy tables first, then families that build on each other (×2, ×4, ×8 by doubling; ×3, ×6, ×9), and ×7 last, each up to × 10.
+// A table is done when 80% of its facts have stickers, so the path follows her stickers and needs nothing new in the save.
+// With division on, every other question teaches division once she knows all the times tables, in the same order: ÷2, ÷10, ÷5, ÷1…
+const PATH = [[2], [10], [5], [0, 1], [4], [8], [3], [6], [9], [7]];
 const PATH_DONE_AT = 0.8;
 const PATH_NEW_AT = [1, 4, 7]; // questions that teach a fact without a sticker yet; the rest are review
 const PATH_NEW_AT_EASY = [2, 6]; // after a round with fewer than 7 first-try answers, until a round with 8 or more
-const DIVIDE_AT = [3, 5, 9]; // division questions, once she has learned a table
+const DIVIDE_AT = [3, 5, 9]; // division questions, once division is on and she has learned a table
+const GUIDED_DIVIDE_AT = [1, 3, 5, 7, 9]; // division questions while the path teaches division
+const GUIDED_NEW_AT = [1, 5, 9]; // division questions that teach a fact without a sticker yet
+const GUIDED_NEW_AT_EASY = [3, 7];
+const GUIDED_TIMES_NEW_AT = [4]; // a times fact still without a sticker, while the path teaches division
+const INVITE_EVERY = 3; // days between invitations to learn dividing after "Not yet"
+const AUTO_PICTURES = { lesson: 3, table: 2 }; // new division questions that show their picture right away
 
-const PATH_FACTS = {};
-const DIVIDE_FACTS = {};
-for (const [path, steps] of Object.entries(PATHS)) {
-  PATH_FACTS[path] = steps.map(step => {
-    const keys = new Set();
-    for (const n of step) for (let k = 0; k <= (path === 'main' ? 10 : n); k++) keys.add(factKey(n, k));
-    return [...keys];
-  });
-  // Learning a table also opens its division: learning 7 × 8 opens 56 ÷ 7 and 56 ÷ 8.
-  DIVIDE_FACTS[path] = PATH_FACTS[path].map(keys => keys.filter(k => !k.startsWith('0x')).map(k => 'd' + k));
-}
-// Which path a fact belongs to: numbers up to 10 are the main path, and a number from 11 to 20 makes it Learn Extra.
-const pathOf = key => (Math.max(...factsOf(key)) <= 10 ? 'main' : 'extra');
-const PATH_KEYS = { main: FACT_KEYS.filter(k => pathOf(k) === 'main'), extra: FACT_KEYS.filter(k => pathOf(k) === 'extra') };
+const PATH_FACTS = PATH.map(step => {
+  const keys = new Set();
+  for (const n of step) for (let k = 0; k <= 10; k++) keys.add(factKey(n, k));
+  return [...keys];
+});
+// Learning a table also opens its division: learning 7 × 8 opens 56 ÷ 7 and 56 ÷ 8.
+const DIVIDE_FACTS = PATH_FACTS.map(keys => keys.filter(k => !k.startsWith('0x')).map(k => 'd' + k));
+// Facts with numbers up to 10. Bigger numbers are for practice.
+const MAIN_KEYS = FACT_KEYS.filter(k => Math.max(...factsOf(k)) <= 10);
 
-const pathShare = (path, step) => PATH_FACTS[path][step].filter(hasSticker).length / PATH_FACTS[path][step].length;
-
+const shareOf = keys => keys.filter(hasSticker).length / keys.length;
 // The first table she hasn't learned yet, or the number of tables when every table is done.
-function pathStep(path) {
-  const i = PATHS[path].findIndex((_, step) => pathShare(path, step) < PATH_DONE_AT);
-  return i < 0 ? PATHS[path].length : i;
+function stepOf(steps) {
+  const i = steps.findIndex(keys => shareOf(keys) < PATH_DONE_AT);
+  return i < 0 ? steps.length : i;
 }
+const pathStep = () => stepOf(PATH_FACTS);
+const divideStep = () => stepOf(DIVIDE_FACTS);
+// The path teaches division after all the times tables, if division is on.
+const guidedDivide = () => state.divOn && pathStep() === PATH.length && divideStep() < PATH.length;
+// Ms. Menna invites her to learn dividing when she knows every times table, and again a few days after "Not yet".
+const inviteDue = () => !state.divOn && pathStep() === PATH.length && today() - state.divAsked >= INVITE_EVERY;
 
-const pathName = (path, step) => PATHS[path][step].map(n => '×' + n).join(' & ');
+// ×0 & ×1 is ÷1 for division, since nothing is divided by 0.
+const pathName = (step, sign = '×') => PATH[step].filter(n => sign === '×' || n).map(n => sign + n).join(' & ');
 
 function renderPath() {
-  for (const [path, el] of [['main', $('pathNow')], ['extra', $('extraNow')]]) {
-    const step = pathStep(path);
-    const sleepy = sleepyCount(PATH_KEYS[path]);
-    const nap = sleepy ? ` · ${sleepy} sleepy 💤` : '';
-    if (step === PATHS[path].length) {
-      el.textContent = `All tables done! Mixed review 🏆${nap}`;
-      continue;
-    }
-    const facts = PATH_FACTS[path][step];
-    el.textContent = `Learning ${pathName(path, step)} · ${facts.filter(hasSticker).length} of ${facts.length} stickers${nap}`;
-  }
+  const sleepy = sleepyCount(MAIN_KEYS.filter(k => state.divOn || !k.startsWith('d')));
+  const nap = sleepy ? ` · ${sleepy} sleepy 💤` : '';
+  const step = pathStep();
+  const sign = step < PATH.length ? '×' : '÷';
+  const at = step < PATH.length ? step : divideStep();
+  $('pathNow').textContent = step === PATH.length && !guidedDivide()
+    ? `All tables done! Mixed review 🏆${nap}`
+    : `Learning ${pathName(at, sign)} · ${(sign === '×' ? PATH_FACTS : DIVIDE_FACTS)[at].filter(hasSticker).length} of ${(sign === '×' ? PATH_FACTS : DIVIDE_FACTS)[at].length} stickers${nap}`;
+  $('divideToggle').checked = state.divOn;
 }
 
-// Facts from every table up to her current one, split into ones she knows and ones she is learning.
-function pathPools() {
-  const steps = PATH_FACTS[game.path];
-  const top = Math.min(game.step, steps.length - 1);
+// Facts from every table up to `top`, split into ones she knows and ones she is learning.
+// Sleepy stickers from later tables, earned with the number buttons, still get their visits.
+function poolsOf(steps, top, divide) {
   const known = new Set();
   const learning = new Set();
-  for (let s = 0; s <= top; s++) for (const key of steps[s]) (hasSticker(key) ? known : learning).add(key);
-  // Sleepy stickers from later tables, earned with the number buttons before v22, still get their visits.
-  for (const key of PATH_KEYS[game.path]) if (!key.startsWith('d') && isSleepy(FACT_INDEX[key])) known.add(key);
+  for (let s = 0; s <= Math.min(top, steps.length - 1); s++) for (const key of steps[s]) (hasSticker(key) ? known : learning).add(key);
+  for (const key of MAIN_KEYS) if (key.startsWith('d') === divide && isSleepy(FACT_INDEX[key])) known.add(key);
   return { known: [...known], learning: [...learning] };
 }
 
-// Division facts of every table she has learned, and any sleepy division sticker on this path.
-function dividePool() {
-  const keys = new Set(DIVIDE_FACTS[game.path].filter((_, s) => pathShare(game.path, s) >= PATH_DONE_AT).flat());
-  for (const key of PATH_KEYS[game.path]) if (key.startsWith('d') && isSleepy(FACT_INDEX[key])) keys.add(key);
-  return [...keys];
+// Mostly facts she knows, with a few she is learning on the `newAt` questions, so most answers are wins.
+function mixOf({ known, learning }, newAt) {
+  if (newAt.includes(game.index) && learning.length) return learning;
+  return known.length >= 6 ? known : [...known, ...learning];
+}
+
+function pathPool(zeroOnly) {
+  if (!zeroOnly && game.divideAt.includes(game.index)) {
+    if (game.guided) return mixOf(poolsOf(DIVIDE_FACTS, game.divStep, true), game.divNewAt);
+    // Division of every table she has learned, and any sleepy division sticker.
+    const keys = new Set(DIVIDE_FACTS.filter((_, s) => shareOf(PATH_FACTS[s]) >= PATH_DONE_AT).flat());
+    for (const key of MAIN_KEYS) if (key.startsWith('d') && isSleepy(FACT_INDEX[key])) keys.add(key);
+    if (keys.size) return [...keys];
+  }
+  const pools = poolsOf(PATH_FACTS, game.step, false);
+  if (!zeroOnly) return mixOf(pools, game.newAt);
+  const zeros = pools.learning.filter(k => k.startsWith('0x'));
+  return game.newAt.includes(game.index) && zeros.length ? zeros : [...pools.known, ...pools.learning].filter(k => k.startsWith('0x'));
+}
+
+// Practice asks any fact with both numbers up to her number. Division leaves out 0.
+function practicePool(zeroOnly) {
+  const divide = !zeroOnly && game.divideAt.includes(game.index);
+  const keys = FACT_KEYS.filter(k => k.startsWith('d') === divide && factsOf(k).every(n => n <= game.max));
+  return zeroOnly ? keys.filter(k => k.startsWith('0x')) : keys;
+}
+
+// ===== START SCREEN =====
+let selectedMax = state.lastMax || 0;
+
+function buildPicker() {
+  const picker = $('picker');
+  for (let n = MIN_PICK; n <= MAX_NUMBER; n++) {
+    const btn = document.createElement('button');
+    btn.className = 'pick-btn';
+    btn.textContent = n;
+    btn.dataset.n = n;
+    btn.style.background = PICK_COLORS[n - 1];
+    btn.addEventListener('click', () => selectMax(n, true));
+    picker.appendChild(btn);
+  }
+  renderMedals();
+  if (selectedMax) selectMax(selectedMax, false);
+}
+
+// A number's medal shows how many times stickers she has for the facts up to that number.
+function medalFor(n) {
+  let got = 0;
+  for (let a = 0; a <= n; a++) for (let b = a; b <= n; b++) if (hasSticker(factKey(a, b))) got++;
+  const share = got / ((n + 1) * (n + 2) / 2);
+  return share >= 1 ? '🥇' : share >= 2 / 3 ? '🥈' : share >= 1 / 3 ? '🥉' : '';
+}
+
+function renderMedals() {
+  document.querySelectorAll('.pick-btn').forEach(btn => {
+    const medal = medalFor(+btn.dataset.n);
+    let el = btn.querySelector('.medal');
+    if (!medal) {
+      if (el) el.remove();
+      btn.removeAttribute('aria-label');
+      return;
+    }
+    if (!el) {
+      el = document.createElement('span');
+      el.className = 'medal';
+      btn.appendChild(el);
+    }
+    el.textContent = medal;
+    btn.setAttribute('aria-label', `${btn.dataset.n}, ${{ '🥇': 'gold', '🥈': 'silver', '🥉': 'bronze' }[medal]} medal`);
+  });
+}
+
+function selectMax(n, withSound) {
+  selectedMax = n;
+  document.querySelectorAll('.pick-btn').forEach(b => b.classList.toggle('selected', +b.dataset.n === n));
+  $('startBtn').disabled = false;
+  $('pickSub').textContent = `Questions will use numbers 0 to ${n}`;
+  if (withSound) {
+    sfx.select(n);
+    say('startBubble', pick([`Ooh, ${n}! Great choice!`, `Up to ${n}? You've got this! 🐾`, `${n} it is! Let's go!`]));
+    animatePom($('pomStart'), 'bounce');
+  }
+}
+
+function setDivide(on) {
+  state.divOn = on;
+  saveState();
+  renderPath();
+  if (on && !state.divIntro) {
+    showDivideLesson(goHome);
+    return;
+  }
+  sfx.tap(on ? 1 : 0);
+  say('startBubble', on ? 'Dividing is on! ➗' : 'Just times for now! 🐾');
+}
+
+// ===== FIRST DIVISION LESSON =====
+// 12 dots are shared into 3 equal rows, one row at a time, so she sees that 12 ÷ 3 asks how many go in each row.
+let lessonTimers = [];
+let lessonDone = null;
+
+function showDivideLesson(then) {
+  lessonDone = then;
+  state.divIntro = true;
+  state.divPics = AUTO_PICTURES.lesson;
+  saveState();
+  lessonTimers.forEach(clearTimeout);
+  const dots = $('shareDots');
+  $('shareAnswer').textContent = '?';
+  dots.innerHTML = '<div class="share-row">' + '<span class="dot"></span>'.repeat(12) + '</div>';
+  showScreen('divideScreen');
+  sfx.hint();
+  say('divideBubble', '12 ÷ 3 means: share 12 into 3 equal rows. How many in each row?');
+  const rows = [0, 1, 2].map(r => {
+    const row = document.createElement('div');
+    row.className = 'share-row';
+    row.innerHTML = `<span class="count">${r + 1}.</span>` +
+      `<span class="dot" style="--row-color:${ROW_COLORS[r * 2]}"></span>`.repeat(4) + '<span class="count">4</span>';
+    return row;
+  });
+  const at = (ms, fn) => lessonTimers.push(setTimeout(fn, ms));
+  at(4500, () => { dots.innerHTML = ''; });
+  rows.forEach((row, r) => at(4600 + r * 900, () => {
+    dots.appendChild(row);
+    row.querySelectorAll('.count').forEach(c => c.classList.add('show'));
+    sfx.count(r);
+  }));
+  at(4600 + 3 * 900 + 400, () => {
+    $('shareAnswer').textContent = '4';
+    sfx.coin();
+    say('divideBubble', '4 in each row! 12 ÷ 3 = 4, because 3 × 4 = 12! 🐾');
+  });
+}
+
+function endDivideLesson() {
+  lessonTimers.forEach(clearTimeout);
+  lessonTimers = [];
+  const then = lessonDone || goHome;
+  lessonDone = null;
+  then();
 }
 
 // ===== GAME =====
 let game = null;
 
-// path is 'main' or 'extra'.
-function startRound(path) {
+// path is 'main' for Learn with Ms. Menna, or 'practice' for every fact up to max.
+function startRound(path, max = 0) {
+  if (path === 'practice') {
+    state.lastMax = max;
+    saveState();
+  }
+  const guided = path === 'main' && guidedDivide();
+  const easy = state.easyPath;
   game = {
     path,
-    step: pathStep(path),
+    max,
+    guided,
+    step: pathStep(),
+    divStep: divideStep(),
     index: 0,
     firstTry: 0,
     roundCents: 0,
@@ -2579,7 +2821,9 @@ function startRound(path) {
     retries: [], // facts missed this round, asked again a few questions later
     newStickers: [],
     woken: [],
-    newAt: state.easyPath ? PATH_NEW_AT_EASY : PATH_NEW_AT,
+    newAt: path === 'practice' ? [] : guided ? GUIDED_TIMES_NEW_AT : easy ? PATH_NEW_AT_EASY : PATH_NEW_AT,
+    divNewAt: easy ? GUIDED_NEW_AT_EASY : GUIDED_NEW_AT,
+    divideAt: !state.divOn ? [] : guided ? GUIDED_DIVIDE_AT : DIVIDE_AT,
     a: 0,
     b: 0,
     div: false,
@@ -2592,7 +2836,7 @@ function startRound(path) {
     zeroAt: Math.floor(Math.random() * QUESTIONS_PER_ROUND), // the round asks a 0 fact by this question
   };
   // A 0 fact comes every round until she has its sticker. After that only when it is sleepy, or now and then.
-  const keys = Object.values(pathPools()).flat();
+  const keys = path === 'practice' ? practicePool(true) : Object.values(poolsOf(PATH_FACTS, game.step, false)).flat();
   game.zeroNeeded = keys.some(k => k.startsWith('0x') && (!hasSticker(k) || isSleepy(FACT_INDEX[k])));
   showScreen('gameScreen');
   renderBank();
@@ -2615,25 +2859,18 @@ function later(fn, ms) {
   game.timers.push(setTimeout(fn, ms));
 }
 
-// Mostly facts she knows, with a few she is learning mixed in, so most answers are wins.
 // Facts missed more often have higher weights, so they come up more often.
 function pickQuestion(zeroOnly) {
-  const divide = zeroOnly || !DIVIDE_AT.includes(game.index) ? [] : dividePool();
-  const { known, learning } = pathPools();
-  let pool = known.length >= 6 ? known : [...known, ...learning];
-  const newSlot = game.newAt.includes(game.index);
-  if (zeroOnly) {
-    const zeros = learning.filter(k => k.startsWith('0x'));
-    pool = newSlot && zeros.length ? zeros : [...known, ...learning].filter(k => k.startsWith('0x'));
-  } else if (divide.length) pool = divide;
-  else if (newSlot && learning.length) pool = learning;
+  const practice = game.path === 'practice';
+  let pool = practice ? practicePool(zeroOnly) : pathPool(zeroOnly);
   const fresh = pool.filter(k => k !== game.prevKey);
   if (fresh.length) pool = fresh;
   const options = pool.map(key => {
     const [a, b] = factsOf(key);
     const i = FACT_INDEX[key];
     let w = weightOf(key);
-    if (a === 0 && !zeroOnly) w *= 0.5;
+    // Keeps the easy 0 facts from filling a practice round. A 0 sticker she knows comes back only now and then.
+    if (a === 0 && !zeroOnly) w *= practice && hasSticker(key) && !isSleepy(i) ? 0.1 : 0.5;
     if (game.asked.has(key)) w *= 0.25;
     w *= 1 + state.mastery[i]; // finish the facts that are nearly stickers first
     if (isSleepy(i)) w *= 4; // review visits first
@@ -2690,6 +2927,15 @@ function nextQuestion() {
       ? pick(['Remember this one? 🐾', 'This one is back!'])
       : pick(['Next one!', 'What do you think?', 'You can do it!', 'Think carefully!', 'Ready? Go!']),
     questionText(q) + '?');
+  // Just after the first division lesson, and on each new division table, a new division fact comes with its picture.
+  if (q.div && !retry && state.divPics > 0 && !hasSticker(game.prevKey)) {
+    state.divPics--;
+    later(() => {
+      if (game.solved || $('gridArea').classList.contains('show')) return;
+      say('gameBubble', `${q.a} × ? = ${q.a * q.b}. How many in each row?`);
+      showGrid(false);
+    }, 1600);
+  }
 }
 
 function renderAnswer(status) {
@@ -3041,7 +3287,11 @@ function showSummary() {
     `<span class="${i <= stars ? '' : 'dim'}" style="animation-delay:${0.2 + i * 0.2}s">⭐</span>`).join('');
   // She woke the last sleepy sticker, so the review for today is done. More play is still fine.
   const allAwake = game.woken.length > 0 && sleepyCount() === 0;
-  say('summaryBubble', allAwake
+  const invite = game.path === 'main' && inviteDue();
+  $('divideInvite').hidden = !invite;
+  say('summaryBubble', invite
+    ? 'You learned all your times tables! 🎉 Want to learn dividing next?'
+    : allAwake
     ? 'You woke up every sleepy sticker! Come back tomorrow to check on them! 🐾'
     : stars === 3
     ? 'You\'re a superstar! 🐾'
@@ -3060,19 +3310,28 @@ function showSummary() {
   }
   // A hard round makes the next path rounds teach 2 new facts instead of 3, until a strong round.
   state.easyPath = firstTry < 7 || (firstTry < 8 && state.easyPath);
-  saveState();
   $('statGems').textContent = `+${game.roundGems} 💎`;
   const list = facts => facts.map(f => `${stickerFor(keyOf(f))} ${questionText(f)}`).join('  ');
   $('newStickers').textContent = [
     game.newStickers.length ? 'New stickers: ' + list(game.newStickers) : '',
     game.woken.length ? 'Woke up: ' + list(game.woken) : '',
   ].filter(Boolean).join('\n');
-  const step = pathStep(game.path);
-  $('pathUp').textContent = step > game.step
-    ? (step === PATHS[game.path].length
-      ? '🐾 You learned all the tables! 🏆'
-      : `🐾 You learned ${pathName(game.path, game.step)}! Next up: ${pathName(game.path, step)}`)
+  const step = pathStep();
+  const divStep = divideStep();
+  const times = game.path === 'main' && step > game.step;
+  const divide = game.guided && divStep > game.divStep;
+  $('pathUp').textContent = times
+    ? (step === PATH.length
+      ? '🐾 You learned all the times tables! 🏆'
+      : `🐾 You learned ${pathName(game.step)}! Next up: ${pathName(step)}`)
+    : divide
+    ? (divStep === PATH.length
+      ? '🐾 You learned all your dividing! 🏆'
+      : `🐾 You learned ${pathName(game.divStep, '÷')}! Next up: ${pathName(divStep, '÷')}`)
     : '';
+  // A new division table starts with a few pictures.
+  if ((times || divide) && guidedDivide()) state.divPics = Math.max(state.divPics, AUTO_PICTURES.table);
+  saveState();
 
   const unique = [];
   const seen = new Set();
@@ -3096,6 +3355,7 @@ function goHome() {
   renderBank();
   renderGems();
   renderPath();
+  renderMedals();
   renderPeek();
   say('startBubble', pick([
     'Woof! Let\'s practice!',
@@ -3874,6 +4134,7 @@ function onPayYes() {
 function renderSaved() {
   renderBank();
   renderPath();
+  renderMedals();
   renderGems();
   dressAllPoms();
   renderMute();
@@ -3913,6 +4174,7 @@ function init() {
     el.querySelector('[clip-path]').setAttribute('clip-path', `url(#pigBelly${i})`);
   });
   buildFloaters();
+  buildPicker();
   renderPath();
   renderBank();
   renderPeek();
@@ -3946,9 +4208,9 @@ function init() {
   if (window.indexedDB) {
     SaveDB.read().then(saved => {
       if (saved && ((saved.savedAt || 0) > state.savedAt || (loadedPartial && !saved.partial && saved.savedAt === state.savedAt))) reloadState(saved);
-      else if (state.savedAt) saveState(); // older saves get their IndexedDB copy and the v22 format now
+      else if (state.savedAt) saveState(); // older saves get their IndexedDB copy and the newest format now
     });
-  } else if (state.savedAt) saveState(); // older saves are written again in the v22 format
+  } else if (state.savedAt) saveState(); // older saves are written again in the newest format
   // Ask the browser never to clear Pom's save on its own.
   document.addEventListener('pointerdown', () => {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
@@ -3960,9 +4222,23 @@ function init() {
     renderSaved();
   }
 
-  $('againBtn').addEventListener('click', () => startRound(game.path));
+  $('againBtn').addEventListener('click', () => startRound(game.path, game.max));
   $('pathBtn').addEventListener('click', () => { sfx.hint(); startRound('main'); });
-  $('extraBtn').addEventListener('click', () => { sfx.hint(); startRound('extra'); });
+  $('startBtn').addEventListener('click', () => { if (selectedMax) { sfx.hint(); startRound('practice', selectedMax); } });
+  $('divideToggle').addEventListener('change', e => setDivide(e.target.checked));
+  $('divideGoBtn').addEventListener('click', () => { sfx.tap(1); endDivideLesson(); });
+  $('inviteYesBtn').addEventListener('click', () => {
+    $('divideInvite').hidden = true;
+    state.divOn = true;
+    showDivideLesson(() => startRound('main'));
+  });
+  $('inviteNoBtn').addEventListener('click', () => {
+    sfx.tap(0);
+    $('divideInvite').hidden = true;
+    state.divAsked = today();
+    saveState();
+    say('summaryBubble', 'Okay! You can turn on dividing at home anytime. 🐾');
+  });
   $('homeBtn').addEventListener('click', goHome);
   $('quitBtn').addEventListener('click', goHome);
   $('cashoutBtn').addEventListener('click', showCashout);

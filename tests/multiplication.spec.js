@@ -3,7 +3,9 @@
 // exchanged for real money, so earnings and payouts must be exact.
 const { test, expect } = require('@playwright/test');
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page, context }) => {
+  // Speech off in every tab: with no speechSynthesis, Speech.supported is false and Ms. Menna stays silent.
+  await context.addInitScript(() => Object.defineProperty(window, 'speechSynthesis', { value: undefined }));
   await page.goto('/multiplication-ms-menna.html');
   await page.evaluate(() => {
     localStorage.clear();
@@ -34,9 +36,12 @@ test('easy facts pay less than hard ones', async ({ page }) => {
   const pay = await page.evaluate(() => [
     [1, 9], [9, 1], [2, 3], [13, 2], [10, 7], [3, 10], [3, 3], [4, 12], [5, 5],
     [6, 6], [7, 8], [6, 12], [12, 13], [11, 11], [1, 19], [2, 17], [10, 19], [4, 17], [7, 15], [13, 19],
-    [16, 18], [19, 19], [0, 0], [0, 19], [13, 0],
+    [16, 18], [19, 19], [0, 0], [0, 19], [13, 0], [3, 6], [4, 9], [9, 9], [5, 9], [5, 12], [3, 16],
   ].map(([a, b]) => centsFor(a, b)));
-  expect(pay).toEqual([1, 1, 2, 2, 2, 2, 3, 5, 3, 6, 6, 7, 7, 7, 1, 2, 2, 8, 9, 9, 10, 10, 1, 1, 1]);
+  expect(pay).toEqual([1, 1, 2, 2, 2, 2, 3, 6, 2, 4, 5, 7, 8, 8, 1, 2, 2, 7, 8, 9, 10, 10, 1, 1, 1, 3, 4, 5, 2, 6, 7]);
+  // Facts up to 10, like on the path, pay 1¢ to 5¢
+  const path = await page.evaluate(() => [...new Set(FACT_KEYS.filter(k => Math.max(...factsOf(k)) <= 10).map(k => centsFor(...factsOf(k))))]);
+  expect(path.sort((x, y) => x - y)).toEqual([1, 2, 3, 4, 5]);
   // Every pay from 1¢ to 10¢ is used
   const all = await page.evaluate(() => [...new Set(FACT_KEYS.map(k => centsFor(...factsOf(k))))]);
   expect(all.sort((x, y) => x - y)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
@@ -193,7 +198,7 @@ test('every round asks at least one 0 fact', async ({ page }) => {
   const missing = await page.evaluate(() => {
     let rounds = 0;
     for (let r = 0; r < 60; r++) {
-      startRound(r % 3 ? 'main' : 'extra');
+      startRound(r % 3 ? 'main' : 'practice', 12);
       let zero = false;
       for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
         if (game.a === 0 || game.b === 0) zero = true;
@@ -341,7 +346,7 @@ test('a save from v11 (numbers up to 13) keeps every sticker, coin, gem and clos
     m78: 3, m1313: 3, m69: 2, learned: 2, w78: 5.5, w1213: 3,
   });
 
-  // Loading saved it again in the v22 format. It still starts with the v11 sticker string, so an old tab still open reads it right
+  // Loading saved it again in the newest format. It still starts with the v11 sticker string, so an old tab still open reads it right
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem(STORE_KEY)));
   expect(saved.v).toBe(22);
   expect(saved.mastery.slice(0, 91)).toBe(old);
@@ -680,7 +685,7 @@ test("Ms. Menna's House opens rooms with stickers and buys furniture colors with
   await expect(page.locator('#houseScreen')).toHaveClass(/active/);
 });
 
-// v22: Learn with Ms. Menna (0 to 10) and Learn Extra (11 to 20), with division once a table is learned.
+// v23: Learn with Ms. Menna (0 to 10), a number picker for practice, and a switch for division.
 const giveStickers = (page, keys) => page.evaluate(list => {
   for (const k of list) state.mastery[FACT_INDEX[k]] = STICKER_AT;
   saveState();
@@ -688,12 +693,13 @@ const giveStickers = (page, keys) => page.evaluate(list => {
 }, keys);
 // The facts of the ×n table from n × from to n × to, as sticker keys.
 const tableKeys = (n, from, to) => Array.from({ length: to - from + 1 }, (_, i) => from + i).map(k => (k <= n ? `${k}x${n}` : `${n}x${k}`));
+const divideOn = page => page.evaluate(() => { state.divOn = state.divIntro = true; saveState(); renderPath(); });
 
 // Plays rounds without answering and lists every question asked.
-const playRounds = (page, path, rounds) => page.evaluate(([path, rounds]) => {
+const playRounds = (page, path, rounds, max = 0) => page.evaluate(([path, rounds, max]) => {
   const out = [];
   for (let r = 0; r < rounds; r++) {
-    startRound(path);
+    startRound(path, max);
     const round = [];
     for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
       round.push({ a: game.a, b: game.b, div: game.div, key: keyOf(game), sticker: hasSticker(keyOf(game)) });
@@ -703,30 +709,48 @@ const playRounds = (page, path, rounds) => page.evaluate(([path, rounds]) => {
   }
   goHome();
   return out;
-}, [path, rounds]);
+}, [path, rounds, max]);
 
-test('both paths are on the home screen and the number buttons are gone', async ({ page }) => {
-  await expect(page.locator('#picker')).toHaveCount(0);
+test('the home screen has the path, a number picker, and division off', async ({ page }) => {
   await expect(page.locator('#pathNow')).toHaveText('Learning ×2 · 0 of 11 stickers');
-  await expect(page.locator('#extraNow')).toHaveText('Learning ×11 · 0 of 12 stickers');
-  await page.locator('#pathBtn').click();
-  await expect(page.locator('#gameScreen')).toHaveClass(/active/);
-  await expect(page.locator('#opSign')).toHaveText('×');
+  await expect(page.locator('#picker .pick-btn')).toHaveCount(18); // 3 to 20
+  await expect(page.locator('#startBtn')).toBeDisabled();
+  await expect(page.locator('#divideToggle')).not.toBeChecked();
 
-  // ×2 first, with no division before a table is learned
+  // ×2 first, with no division while the switch is off
   const main = (await playRounds(page, 'main', 20)).flat();
   expect(main.filter(q => q.a !== 2 && q.b !== 2)).toEqual([]);
   expect(main.filter(q => q.div)).toEqual([]);
 
-  // Learn Extra starts at ×11, open from the start, and its ×11 goes up to 11 × 11
-  const extra = (await playRounds(page, 'extra', 20)).flat();
-  expect(extra.filter(q => q.a !== 11 && q.b !== 11)).toEqual([]);
-  expect(Math.max(...extra.map(q => Math.min(q.a, q.b)))).toBe(11);
+  // Practice asks any fact with both numbers up to her number, and remembers it
+  await page.locator('#picker .pick-btn', { hasText: /^7$/ }).click();
+  await expect(page.locator('#pickSub')).toHaveText('Questions will use numbers 0 to 7');
+  await page.locator('#startBtn').click();
+  await expect(page.locator('#gameScreen')).toHaveClass(/active/);
+  const practice = (await playRounds(page, 'practice', 20, 7)).flat();
+  expect(practice.filter(q => q.a > 7 || q.b > 7 || q.div)).toEqual([]);
+  expect(Math.max(...practice.map(q => Math.max(q.a, q.b)))).toBe(7);
+  await page.reload();
+  await expect(page.locator('#picker .pick-btn.selected')).toHaveText('7');
 });
 
-test('a path moves on at 80%, rounds are mostly known facts, and learned tables bring division', async ({ page }) => {
+test('picker medals follow the stickers up to each number', async ({ page }) => {
+  const upTo3 = [];
+  for (let a = 0; a <= 3; a++) for (let b = a; b <= 3; b++) upTo3.push(`${a}x${b}`);
+  await giveStickers(page, upTo3);
+  await page.reload();
+  await expect(page.locator('#picker .pick-btn[data-n="3"] .medal')).toHaveText('🥇');
+  await expect(page.locator('#picker .pick-btn[data-n="4"] .medal')).toHaveText('🥈'); // 10 of 15
+  await expect(page.locator('#picker .pick-btn[data-n="20"] .medal')).toHaveCount(0);
+});
+
+test('a path moves on at 80%, rounds are mostly known facts, and division joins when switched on', async ({ page }) => {
   await giveStickers(page, tableKeys(2, 2, 10)); // 9 of the 11 ×2 facts
   await expect(page.locator('#pathNow')).toHaveText('Learning ×10 · 1 of 11 stickers'); // 2 × 10 counts for ×10 too
+  const off = (await playRounds(page, 'main', 10)).flat();
+  expect(off.filter(q => q.div)).toEqual([]);
+
+  await divideOn(page);
   const rounds = await playRounds(page, 'main', 40);
   for (const round of rounds) {
     for (const q of round) {
@@ -741,8 +765,10 @@ test('a path moves on at 80%, rounds are mostly known facts, and learned tables 
   expect(Math.min(...divides)).toBeGreaterThanOrEqual(2); // about 3 in 10; a 0 fact can take one slot
   expect(Math.max(...divides)).toBeLessThanOrEqual(3);
 
-  await giveStickers(page, tableKeys(11, 0, 9)); // 10 of the 12 ×11 facts
-  await expect(page.locator('#extraNow')).toHaveText('Learning ×12 · 0 of 13 stickers');
+  // Practice divides too, with numbers up to her pick
+  const practice = (await playRounds(page, 'practice', 10, 5)).flat();
+  expect(practice.filter(q => q.div).length).toBeGreaterThan(15);
+  expect(practice.filter(q => q.a > 5 || q.b > 5)).toEqual([]);
 });
 
 test('finishing a table on the path says what comes next', async ({ page }) => {
@@ -771,7 +797,7 @@ test('division pays like its times fact, hints with the missing number, and show
   await askDivide(8, 7);
   await expect(page.locator('#equation')).toHaveText(/56\s*÷\s*8/);
   await answer(page, true);
-  await expect(page.locator('#gameBankAmount')).toHaveText('$0.06');
+  await expect(page.locator('#gameBankAmount')).toHaveText('$0.05');
   await expect(page.locator('#feedback')).toContainText('56 ÷ 8 = 7 ✓');
   await expect(page.locator('#feedback .family')).toHaveText('8 × 7 = 56 · 7 × 8 = 56 · 56 ÷ 7 = 8');
   expect(await page.evaluate(() => state.mastery[FACT_INDEX['d7x8']])).toBe(1);
@@ -786,7 +812,7 @@ test('division pays like its times fact, hints with the missing number, and show
   await expect(page.locator('#gridCaption')).toHaveText('56 dots in 7 rows. How many in each row?');
   await expect(page.locator('#arrayGrid .cell')).toHaveCount(56);
   await answer(page, true);
-  await expect(page.locator('#gameBankAmount')).toHaveText('$0.07');
+  await expect(page.locator('#gameBankAmount')).toHaveText('$0.06');
   await expect(page.locator('#feedback .family')).toHaveText('7 × 8 = 56 · 8 × 7 = 56 · 56 ÷ 8 = 7');
 
   // Division is never by 0, and a square has a one-line family
@@ -913,7 +939,7 @@ test('sleepy and hard facts come up more often', async ({ page }) => {
     const set = (k, ago, level) => { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today() - ago; state.levels[i] = level; };
     set('2x3', 30, 4);
     set('2x4', 0, 0);
-    game = { path: 'main', step: 9, index: 0, newAt: [], asked: new Set(), prevKey: null };
+    game = { path: 'main', step: 9, index: 0, newAt: [], divideAt: [], asked: new Set(), prevKey: null };
     const n = { '2x3': 0, '2x4': 0, '7x8': 0, '3x5': 0 };
     for (let i = 0; i < 6000; i++) { const q = pickQuestion(); const k = factKey(q.a, q.b); if (k in n) n[k]++; }
     return n;
@@ -925,7 +951,7 @@ test('sleepy and hard facts come up more often', async ({ page }) => {
 test('once the 0 stickers are earned, rounds no longer need a 0 fact', async ({ page }) => {
   const zeros = await page.evaluate(() => {
     // Every fact in the first 4 tables (×2, ×10, ×5, ×0 and ×1) has a sticker
-    for (const k of PATH_FACTS.main.slice(0, 4).flat()) { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
+    for (const k of PATH_FACTS.slice(0, 4).flat()) { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
     let total = 0;
     for (let r = 0; r < 30; r++) {
       startRound('main');
@@ -970,23 +996,127 @@ test('×4 and ×9 facts count as hard, but not with 0, 1 or 2', async ({ page })
   expect(hard).toEqual([true, true, true, true, false, false, false, false, true]);
 });
 
-test('Learn with Ms. Menna ends at ×10, and Learn Extra visits sleepy bigger stickers', async ({ page }) => {
+// Every times fact up to 10 has a sticker earned today.
+const learnAllTimes = page => page.evaluate(() => {
+  for (let a = 0; a <= 10; a++) for (let b = a; b <= 10; b++) { const i = FACT_INDEX[factKey(a, b)]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
+  saveState();
+  renderPath();
+});
+const endRound = page => page.evaluate(() => { game.firstTry = 9; game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
+
+test('Learn with Ms. Menna ends at ×10, and practice visits sleepy bigger stickers', async ({ page }) => {
+  await learnAllTimes(page);
   await page.evaluate(() => {
     const set = (k, ago, level) => { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today() - ago; state.levels[i] = level; };
-    for (let a = 0; a <= 10; a++) for (let b = a; b <= 10; b++) set(factKey(a, b), 0, 0);
     set('6x15', 30, 4); // sleepy, earned with the number buttons before v22
     set('3x17', 0, 0);
     saveState();
-    renderPath();
   });
   await expect(page.locator('#pathNow')).toHaveText('All tables done! Mixed review 🏆');
-  await expect(page.locator('#extraNow')).toHaveText('Learning ×11 · 0 of 12 stickers · 1 sleepy 💤');
   const main = (await playRounds(page, 'main', 20)).flat();
-  expect(main.filter(q => q.a > 10 || q.b > 10)).toEqual([]);
-  expect(main.filter(q => q.div).length).toBeGreaterThan(40); // mixed review keeps dividing
-  const extra = (await playRounds(page, 'extra', 20)).flat();
-  expect(extra.filter(q => q.key === '6x15').length).toBeGreaterThan(0);
-  expect(extra.filter(q => q.key === '3x17')).toEqual([]); // awake, and ×17 is not reached yet
+  expect(main.filter(q => q.a > 10 || q.b > 10 || q.div)).toEqual([]);
+  const practice = (await playRounds(page, 'practice', 20, 16)).flat();
+  expect(practice.filter(q => q.key === '6x15').length).toBeGreaterThan(0);
+  expect(practice.filter(q => q.a > 16 || q.b > 16)).toEqual([]);
+});
+
+test('after the times tables, Ms. Menna invites her to divide, and asks again 3 days after "Not yet"', async ({ page }) => {
+  await learnAllTimes(page);
+  // Not after practice, only after the path
+  await page.evaluate(() => startRound('practice', 5));
+  await endRound(page);
+  await expect(page.locator('#divideInvite')).toBeHidden();
+
+  await page.locator('#againBtn').click();
+  await page.evaluate(() => startRound('main'));
+  await endRound(page);
+  await expect(page.locator('#divideInvite')).toBeVisible();
+  await expect(page.locator('#summaryBubble')).toContainText('Want to learn dividing next?');
+  await expect(page.locator('#againBtn')).toBeVisible();
+  await page.locator('#inviteNoBtn').click();
+  await expect(page.locator('#divideInvite')).toBeHidden();
+  expect(await page.evaluate(() => [state.divOn, state.divAsked === today()])).toEqual([false, true]);
+
+  await page.locator('#againBtn').click();
+  await endRound(page);
+  await expect(page.locator('#divideInvite')).toBeHidden();
+  await page.evaluate(() => { state.divAsked = today() - 3; saveState(); });
+  await page.locator('#againBtn').click();
+  await endRound(page);
+  await expect(page.locator('#divideInvite')).toBeVisible();
+
+  // "Yes" shows the first lesson, then a round that teaches ÷2
+  await page.locator('#inviteYesBtn').click();
+  await expect(page.locator('#divideScreen')).toHaveClass(/active/);
+  await expect(page.locator('#divideBubble')).toContainText('12 ÷ 3');
+  await expect(page.locator('#shareAnswer')).toHaveText('4', { timeout: 10000 });
+  await expect(page.locator('#shareDots .share-row')).toHaveCount(3);
+  await page.locator('#divideGoBtn').click();
+  await expect(page.locator('#gameScreen')).toHaveClass(/active/);
+  expect(await page.evaluate(() => [state.divOn, state.divIntro, game.guided])).toEqual([true, true, true]);
+  await page.reload();
+  await expect(page.locator('#divideToggle')).toBeChecked();
+  await expect(page.locator('#pathNow')).toHaveText('Learning ÷2 · 0 of 10 stickers');
+});
+
+test('the path teaches division table by table, about half the round', async ({ page }) => {
+  await learnAllTimes(page);
+  await divideOn(page);
+  // While she knows few ÷2 facts, every division slot is one she is learning
+  const first = (await playRounds(page, 'main', 5)).flat().filter(q => q.div);
+  expect(first.filter(q => q.sticker)).toEqual([]);
+  await giveStickers(page, tableKeys(2, 1, 6).map(k => 'd' + k)); // 6 of the 10 ÷2 facts
+  const rounds = await playRounds(page, 'main', 30);
+  const divides = rounds.map(round => round.filter(q => q.div));
+  for (const d of divides) expect(d.length).toBe(5);
+  // ÷2 only, from both sides: 14 ÷ 2 and 14 ÷ 7
+  expect(divides.flat().filter(q => q.a !== 2 && q.b !== 2)).toEqual([]);
+  const newOnes = divides.map(d => d.filter(q => !q.sticker).length);
+  expect(Math.min(...newOnes)).toBe(3);
+  expect(rounds.flat().filter(q => !q.div && (q.a > 10 || q.b > 10))).toEqual([]);
+
+  // At 80% of ÷2, it moves on to ÷10
+  await giveStickers(page, tableKeys(2, 1, 8).map(k => 'd' + k));
+  await expect(page.locator('#pathNow')).toHaveText('Learning ÷10 · 0 of 10 stickers');
+  const next = (await playRounds(page, 'main', 10)).flat().filter(q => q.div);
+  // New facts are ÷10, or ÷2 facts still without a sticker, as on the times path
+  expect(next.filter(q => ![2, 10].includes(q.a) && ![2, 10].includes(q.b) && !q.sticker)).toEqual([]);
+  expect(next.some(q => q.a === 10 || q.b === 10)).toBe(true);
+});
+
+test('the first division questions show their picture right away', async ({ page }) => {
+  await learnAllTimes(page);
+  await page.evaluate(() => { state.divOn = state.divIntro = true; state.divPics = 3; saveState(); });
+  await page.locator('#pathBtn').click();
+  await page.evaluate(() => {
+    game.index = 1;
+    nextQuestion(); // a new division fact
+  });
+  expect(await page.evaluate(() => game.div)).toBe(true);
+  await expect(page.locator('#gridArea')).toHaveClass(/show/, { timeout: 4000 });
+  await expect(page.locator('#gameBubble')).toContainText('× ? =');
+  expect(await page.evaluate(() => state.divPics)).toBe(2);
+});
+
+test('switching division on the first time shows the lesson; a v22 save that divided keeps it on', async ({ page }) => {
+  await page.locator('.divide-toggle').click();
+  await expect(page.locator('#divideScreen')).toHaveClass(/active/);
+  await page.locator('#divideGoBtn').click();
+  await expect(page.locator('#startScreen')).toHaveClass(/active/);
+  await expect(page.locator('#divideToggle')).toBeChecked();
+  await page.locator('.divide-toggle').click();
+  await expect(page.locator('#divideToggle')).not.toBeChecked();
+  await page.locator('.divide-toggle').click();
+  await expect(page.locator('#startScreen')).toHaveClass(/active/); // no lesson the second time
+  await expect(page.locator('#divideToggle')).toBeChecked();
+
+  await page.evaluate(() => {
+    const m = TIMES_KEYS.map(() => 0).concat(DIVIDE_KEYS.map(k => (k === 'd2x3' ? 1 : 0)));
+    localStorage.setItem(STORE_KEY, JSON.stringify({ v: 4, totalCents: 10, mastery: m.join(''), savedAt: Date.now() + 5000 }));
+    document.cookie = `${COOKIE_NAME}=; max-age=0; path=/`;
+  });
+  await page.reload();
+  expect(await page.evaluate(() => [state.divOn, state.divIntro])).toEqual([true, true]);
 });
 
 test('an older plain cookie still loads, and is saved again compressed', async ({ page }) => {

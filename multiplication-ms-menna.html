@@ -1273,7 +1273,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v23 - Updated 2026-10-04 02:47 EDT</p>
+    <p class="version">v24 - Updated 2026-10-04 11:44 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2311,11 +2311,12 @@ const INSTRUCTION = /^\W*(tap|press|type|pick|choose|get answers|get questions|a
 const spokenPart = text => text.replace(/([.!?…])\s+/g, '$1\n').split('\n').filter(s => !INSTRUCTION.test(s)).join(' ');
 
 // Shows text in a speech bubble and reads it, minus instructions. `extra` (like the question) is always spoken, but not shown.
-function say(bubbleId, text, extra = '') {
+// With `after`, Ms. Menna first finishes what she is saying, like the praise before the next question.
+function say(bubbleId, text, extra = '', after = false) {
   $(bubbleId).textContent = text;
   const words = [spokenPart(text), extra].filter(Boolean).join(' ');
-  if (words.replace(/[^\p{L}\p{N}]/gu, '')) Speech.speak(words);
-  else Speech.stop(); // a silent bubble still ends the last one's speech
+  if (words.replace(/[^\p{L}\p{N}]/gu, '')) Speech.speak(words, { after });
+  else if (!after) Speech.stop(); // a silent bubble still ends the last one's speech
 }
 
 // ===== HELPERS =====
@@ -2926,13 +2927,13 @@ function nextQuestion() {
     : retry
       ? pick(['Remember this one? 🐾', 'This one is back!'])
       : pick(['Next one!', 'What do you think?', 'You can do it!', 'Think carefully!', 'Ready? Go!']),
-    questionText(q) + '?');
+    questionText(q) + '?', game.index > 0);
   // Just after the first division lesson, and on each new division table, a new division fact comes with its picture.
   if (q.div && !retry && state.divPics > 0 && !hasSticker(game.prevKey)) {
     state.divPics--;
     later(() => {
       if (game.solved || $('gridArea').classList.contains('show')) return;
-      say('gameBubble', `${q.a} × ? = ${q.a * q.b}. How many in each row?`);
+      say('gameBubble', `${q.a} × ? = ${q.a * q.b}. How many in each row?`, '', true);
       showGrid(false);
     }, 1600);
   }
@@ -3180,7 +3181,7 @@ function showGrid(countOut) {
   if (a === 0 || b === 0) {
     grid.style.gridTemplateColumns = '';
     grid.innerHTML = '<span class="zero-note">No dots at all! That makes <b>0</b>.</span>';
-    if (countOut) game.countTimers.push(setTimeout(() => say('gameBubble', `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make 0!`), 900));
+    if (countOut) game.countTimers.push(setTimeout(() => say('gameBubble', `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make 0!`, '', true), 900));
     $('numpad').scrollIntoView({ block: 'end', behavior: 'smooth' });
     return;
   }
@@ -3236,7 +3237,7 @@ function showGrid(countOut) {
   }
 
   if (p && countOut) {
-    // Ms. Menna's tip is spoken first, so the steps wait for her to finish it.
+    // Ms. Menna's tip is spoken first. Each step's words wait for her to finish the last ones, even on Slow.
     const partA = rows.slice(0, p);
     const partB = rows.slice(q < 0 ? p - 1 : p);
     const first = p * b;
@@ -3245,16 +3246,16 @@ function showGrid(countOut) {
       partA.forEach(row => row.cells.forEach(c => c.classList.add('lit')));
       partA[partA.length - 1].sum.classList.add('show');
       sfx.count(0);
-      say('gameBubble', `${p} × ${b} = ${first}!`);
+      say('gameBubble', `${p} × ${b} = ${first}!`, '', true);
     }, 3500), setTimeout(() => {
       partB.forEach(row => row.cells.forEach(c => c.classList.add(q < 0 ? 'away' : 'lit')));
       const sum = partB[partB.length - 1].sum;
       if (q < 0) sum.textContent = '−' + b; // the 10-row total becomes the one row taken away
       retrigger(sum, 'show');
       sfx.count(1);
-      say('gameBubble', q < 0 ? `Take away one ${b}!` : `${q} × ${b} = ${q * b}!`);
+      say('gameBubble', q < 0 ? `Take away one ${b}!` : `${q} × ${b} = ${q * b}!`, '', true);
     }, 6000), setTimeout(() => {
-      say('gameBubble', `${first} ${q < 0 ? '−' : '+'} ${Math.abs(q) * b} = ${answer}!`);
+      say('gameBubble', `${first} ${q < 0 ? '−' : '+'} ${Math.abs(q) * b} = ${answer}!`, '', true);
     }, 8500));
     $('numpad').scrollIntoView({ block: 'end', behavior: 'smooth' });
     return;
@@ -3267,7 +3268,7 @@ function showGrid(countOut) {
       row.sum.classList.add('show');
       sfx.count(i);
       if (i === rows.length - 1) {
-        say('gameBubble', plan.done || `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make ${a * b}!`);
+        say('gameBubble', plan.done || `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make ${a * b}!`, '', true);
       }
     }, 900 + i * step)));
   }
@@ -3298,7 +3299,7 @@ function showSummary() {
     : stars === 2
       ? 'Great job! 🐾'
       : 'Nice try! Keep going! 💪',
-    `You got ${firstTry} out of ${QUESTIONS_PER_ROUND}!`);
+    `You got ${firstTry} out of ${QUESTIONS_PER_ROUND}!`, true);
   $('statFirstTry').textContent = `${firstTry} / ${QUESTIONS_PER_ROUND}`;
   $('statEarned').textContent = formatDelta(roundCents);
   $('statBank').textContent = formatMoney(state.totalCents);

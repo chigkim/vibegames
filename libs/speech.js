@@ -9,6 +9,7 @@
 // Use:
 //   Speech.setup({ words: [[/💎/g, ' gems']] }); // optional, before the first speak()
 //   Speech.speak('7 × 8 = 56! 🐾');              // says "7 times 8 equals 56!"
+//   Speech.speak('Next one!', { after: true });  // waits for the line being said to finish
 //   Speech.stop();
 //   Speech.setMuted(true);
 //   Speech.openPicker();                         // lets a grown-up pick the voice and speed
@@ -29,8 +30,9 @@
     words: [], // game-specific [pattern, replacement] pairs, applied before the shared ones
   };
 
-  // Math symbols are read as words. Emoji are dropped.
+  // Math symbols are read as words. Emoji are dropped. "Grrr" has no vowel, so voices spell it out as letters. She says "Ruff ruff" instead.
   const SHARED_WORDS = [
+    [/\b([Gg])r{2,}\b/g, (_, g) => (g === 'G' ? 'R' : 'r') + 'uff ruff'],
     [/×/g, ' times '],
     [/÷/g, ' divided by '],
     [/−/g, ' minus '],
@@ -49,7 +51,18 @@
   const SPEED_NAMES = ['slow', 'normal', 'fast'];
 
   let muted = false;
-  let turn = 0; // goes up on every speak() and stop(), so a late speak() never talks over a newer one
+  // Every line gets a number. speak() and stop() drop all lines before theirs, so a late line never talks
+  // over a newer one. A line said `after` waits for the one before it, then a short breath. Only the newest
+  // waiting line is kept.
+  let count = 0;
+  let cut = 0; // lines numbered below this are dropped
+  let waiting = 0; // the newest `after` line
+  const GAP = 350;
+  let current = Promise.resolve(); // settles when the newest line ends or is dropped
+  let quietSince = 0;
+  const pause = ms => new Promise(resolve => setTimeout(resolve, Math.max(0, ms)));
+  // iOS Safari sometimes never sends `end`, so a waiting line stops waiting after about as long as the line takes.
+  const lineTime = (words, rate) => 1500 + words.length * 80 / rate;
 
   // ===== SAVED CHOICE =====
   // Saved in localStorage with a cookie copy, like the piggy bank, so it survives if either one is
@@ -130,33 +143,41 @@
     try { EasySpeech.cancel(); } catch { synth.cancel(); } // EasySpeech throws until its voices load
   }
 
-  function talk(text, evenWhenMuted) {
-    const mine = ++turn;
-    cancel();
+  function talk(text, evenWhenMuted, after) {
+    const mine = ++count;
+    if (after) waiting = mine;
+    else { cut = mine; cancel(); }
     const words = clean(text);
     if (!supported || (muted && !evenWhenMuted) || !words) return;
-    ready.then(ok => {
-      if (mine !== turn) return;
+    const waited = after ? current.then(() => pause(quietSince + GAP - Date.now())) : null;
+    let finished;
+    current = new Promise(resolve => { finished = resolve; });
+    Promise.all([ready, waited]).then(([ok]) => {
+      if (mine < cut || (after && mine !== waiting)) return finished();
       // force: still try the default voice if this browser never listed its voices
+      // noStop: if the wait gave up early, the browser still lets the last line finish first
       const options = {
-        text: words, rate: Math.round(settings.rate * SPEEDS[choice.speed] * 100) / 100, pitch: settings.pitch, volume: 1, force: !ok,
+        text: words, rate: Math.round(settings.rate * SPEEDS[choice.speed] * 100) / 100, pitch: settings.pitch, volume: 1, force: !ok, noStop: !!after,
       };
       const voice = currentVoice();
       if (voice) options.voice = voice;
+      let done = Promise.resolve();
       try {
-        EasySpeech.speak(options).catch(() => {}); // rejects when cut off by the next speak()
+        done = EasySpeech.speak(options).catch(() => {}); // rejects when cut off by the next speak()
       } catch { /* never block gameplay on speech */ }
+      Promise.race([done, pause(lineTime(words, options.rate))]).then(() => { quietSince = Date.now(); finished(); });
     });
   }
 
-  // Stops anything being said, then says `text`. Does nothing when muted.
-  function speak(text) {
-    talk(text, false);
+  // Says `text`. Stops anything being said first, or with { after: true } lets it finish. Does nothing when muted.
+  function speak(text, { after = false } = {}) {
+    talk(text, false, after);
   }
 
   function stop() {
-    turn++;
+    cut = ++count;
     cancel();
+    current = Promise.resolve(); // nothing is being said, so the next `after` line need not wait
   }
 
   function setMuted(on) {

@@ -554,7 +554,7 @@
 
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
     <p class="subtitle">Your Pomeranian math teacher</p>
-    <p style="font-size:11px;opacity:0.4;font-family:monospace;margin-bottom:4px;">v5 - Updated 2026-10-03 05:50 EDT</p>
+    <p style="font-size:11px;opacity:0.4;font-family:monospace;margin-bottom:4px;">v6 - Updated 2026-10-04 11:44 EDT</p>
 
     <div class="speech-bubble" id="welcomeBubble">
       Woof woof! I'm Ms. Menna, your math teacher! What's your name, friend?
@@ -568,7 +568,7 @@
 <!-- ===== GAME SCREEN ===== -->
 <div class="screen" id="gameScreen">
   <div class="card" style="position:relative;">
-    <div style="position:absolute;top:10px;right:14px;font-size:11px;opacity:0.35;font-family:monospace;">v5 - Updated 2026-10-03 05:50 EDT</div>
+    <div style="position:absolute;top:10px;right:14px;font-size:11px;opacity:0.35;font-family:monospace;">v6 - Updated 2026-10-04 11:44 EDT</div>
     <div class="pom-wrap">
       <div class="pom-container" id="pomGame">
         <svg viewBox="0 0 130 130" xmlns="http://www.w3.org/2000/svg">
@@ -685,8 +685,9 @@
 
   // ===== TEXT TO SPEECH =====
   // Ms. Menna's voice comes from the shared libs/speech.js.
-  function speak(text) {
-    Speech.speak(text);
+  // With `after`, she first finishes what she is saying, like the praise before the next question.
+  function speak(text, after = false) {
+    Speech.speak(text, { after });
   }
 
   // ===== GAME STATE =====
@@ -783,7 +784,7 @@
     const promptText = prompt.replace('{name}', playerName);
     document.getElementById('gameBubble').textContent = promptText;
     const qText = q.text.replace('−', 'minus').replace('+', 'plus').replace('=', 'equals');
-    speak(greeting + ' ' + promptText + ' ' + qText);
+    speak(greeting + ' ' + promptText + ' ' + qText, currentQuestion > 1);
 
     updateStarDisplay();
     inp.focus();
@@ -905,7 +906,7 @@
     medalRow.innerHTML = medals.map(m => `<div class="medal">${m}</div>`).join('');
 
     showScreen('endScreen');
-    speak(message + ' You got ' + correctAnswers + ' out of ' + totalQuestions + '!');
+    speak(message + ' You got ' + correctAnswers + ' out of ' + totalQuestions + '!', true);
     if (pct >= 0.8) launchConfetti(30);
   }
 

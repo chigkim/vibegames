@@ -5,7 +5,8 @@ const { test, expect } = require('@playwright/test');
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    const log = { spoken: [], cancels: 0 };
+    // finish() plays the browser saying it is done with the line being said.
+    const log = { spoken: [], cancels: 0, current: null, finish() { if (log.current) log.current.dispatchEvent(new Event('end')); } };
     window.__speech = log;
     class FakeUtterance extends EventTarget {
       constructor(text) { super(); this.text = text; }
@@ -26,6 +27,7 @@ test.beforeEach(async ({ page }) => {
       speak(utt) {
         if (!utt.text.trim()) return; // the silent iOS unlock
         log.spoken.push({ text: utt.text, voice: utt.voice && utt.voice.name, rate: utt.rate, pitch: utt.pitch });
+        log.current = utt;
         setTimeout(() => utt.dispatchEvent(new Event('start')), 0);
       },
       cancel() { log.cancels++; },
@@ -54,8 +56,9 @@ test.describe('Multiplication with Ms. Menna', () => {
       Speech.clean('7 × 8 = 56! 🐾'),
       Speech.clean('Yay! +5¢ for you! ⭐'),
       Speech.clean('I have 12 💎. Press ✓!'),
+      Speech.clean('Grrr! Tug of war! 💪'),
     ]);
-    expect(words).toEqual(['7 times 8 equals 56!', 'Yay! plus 5 cents for you!', 'I have 12 gems. Press check!']);
+    expect(words).toEqual(['7 times 8 equals 56!', 'Yay! plus 5 cents for you!', 'I have 12 gems. Press check!', 'Ruff ruff! Tug of war!']);
   });
 
   test('reads the question in the best voice on the device', async ({ page }) => {
@@ -102,6 +105,73 @@ test.describe('Multiplication with Ms. Menna', () => {
     const before = await page.evaluate(() => window.__speech.cancels);
     await page.keyboard.type('1');
     expect(await page.evaluate(() => window.__speech.cancels)).toBeGreaterThan(before);
+  });
+
+  test('an `after` line waits for the line being said to finish', async ({ page }) => {
+    await page.evaluate(() => { Speech.speak('Pawsome!'); Speech.speak('Next one! 6 times 7?', { after: true }); });
+    await page.waitForTimeout(400);
+    expect(await spoken(page)).toEqual(['Pawsome!']);
+    const cancels = await page.evaluate(() => window.__speech.cancels);
+    await page.evaluate(() => window.__speech.finish());
+    await expect.poll(() => spoken(page)).toEqual(['Pawsome!', 'Next one! 6 times 7?']);
+    expect(await page.evaluate(() => window.__speech.cancels)).toBe(cancels); // the praise was not cut off
+  });
+
+  test('only the newest waiting line is said, and typing drops it', async ({ page }) => {
+    await page.evaluate(() => { Speech.speak('One'); Speech.speak('Two', { after: true }); Speech.speak('Three', { after: true }); });
+    await page.waitForTimeout(100);
+    await page.evaluate(() => window.__speech.finish());
+    await expect.poll(() => spoken(page)).toEqual(['One', 'Three']);
+
+    await page.evaluate(() => { window.__speech.spoken.length = 0; Speech.speak('Woof!'); });
+    await page.waitForTimeout(100);
+    await page.evaluate(() => { Speech.speak('Four', { after: true }); Speech.stop(); });
+    await page.evaluate(() => window.__speech.finish());
+    await page.waitForTimeout(600);
+    expect(await spoken(page)).toEqual(['Woof!']);
+  });
+
+  test('a waiting line still comes if the browser never says the last one is done', async ({ page }) => {
+    await page.evaluate(() => { Speech.speak('Yay!'); Speech.speak('Next one!', { after: true }); });
+    await expect.poll(() => spoken(page), { timeout: 5000 }).toEqual(['Yay!', 'Next one!']);
+  });
+
+  test('the praise is not cut off by the next question', async ({ page }) => {
+    await page.locator('#pathBtn').click();
+    const a = Number(await page.locator('#factorA').innerText());
+    const b = Number(await page.locator('#factorB').innerText());
+    const op = await page.locator('#opSign').innerText();
+    await page.keyboard.type(String(op === '÷' ? a / b : a * b));
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#qCounter')).toHaveText(/^1 \//);
+    await expect.poll(async () => (await spoken(page)).length).toBeGreaterThan(1);
+    const praised = (await spoken(page)).length;
+    const cancels = await page.evaluate(() => window.__speech.cancels);
+    await page.waitForTimeout(1000);
+    await page.evaluate(() => window.__speech.finish());
+    await expect(page.locator('#qCounter')).toHaveText(/^2 \//);
+    await expect.poll(async () => (await spoken(page)).length).toBe(praised + 1);
+    expect((await spoken(page)).at(-1)).toMatch(/\?$/);
+    expect(await page.evaluate(() => window.__speech.cancels)).toBe(cancels);
+  });
+
+  test('after a second miss, each step of the picture waits for the last one', async ({ page }) => {
+    await page.locator('#pathBtn').click();
+    await expect.poll(async () => (await spoken(page)).length).toBeGreaterThan(0); // the first question is said
+    await page.evaluate(() => {
+      Object.assign(game, { a: 7, b: 8, div: false });
+      onWrong(56); onWrong(56);
+      window.__speech.spoken.length = 0;
+    });
+    const cancels = await page.evaluate(() => window.__speech.cancels);
+    // The tip is still being said at 3.5 s, so "5 × 8 = 40" waits for it
+    await page.waitForTimeout(4000);
+    expect(await spoken(page)).toEqual([expect.stringMatching(/^7 is 5 and 2/)]);
+    for (const line of ['5 times 8 equals 40!', '2 times 8 equals 16!', '40 plus 16 equals 56!']) {
+      await page.evaluate(() => window.__speech.finish());
+      await expect.poll(() => spoken(page), { timeout: 6000 }).toContain(line);
+    }
+    expect(await page.evaluate(() => window.__speech.cancels)).toBe(cancels);
   });
 
   test('says nothing when muted', async ({ page }) => {

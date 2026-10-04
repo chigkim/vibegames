@@ -59,8 +59,7 @@ test.describe('Multiplication with Ms. Menna', () => {
   });
 
   test('reads the question in the best voice on the device', async ({ page }) => {
-    await page.locator('#picker .pick-btn[data-n="12"]').click();
-    await page.locator('#startBtn').click();
+    await page.locator('#pathBtn').click();
     const a = await page.locator('#factorA').innerText();
     const b = await page.locator('#factorB').innerText();
     await expect.poll(() => spoken(page)).toContainEqual(expect.stringContaining(`${a} times ${b}?`));
@@ -98,8 +97,7 @@ test.describe('Multiplication with Ms. Menna', () => {
   });
 
   test('stops talking when the child starts typing', async ({ page }) => {
-    await page.locator('#picker .pick-btn[data-n="12"]').click();
-    await page.locator('#startBtn').click();
+    await page.locator('#pathBtn').click();
     await expect.poll(async () => (await spoken(page)).length).toBeGreaterThan(0);
     const before = await page.evaluate(() => window.__speech.cancels);
     await page.keyboard.type('1');
@@ -108,8 +106,7 @@ test.describe('Multiplication with Ms. Menna', () => {
 
   test('says nothing when muted', async ({ page }) => {
     await page.locator('#muteBtn').click();
-    await page.locator('#picker .pick-btn[data-n="12"]').click();
-    await page.locator('#startBtn').click();
+    await page.locator('#pathBtn').click();
     await page.waitForTimeout(300);
     expect(await spoken(page)).toEqual([]);
   });

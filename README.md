@@ -10,7 +10,7 @@ Small browser games for young children, made to play on phones and tablets (espe
 | `flappy-birdie.html` | Phaser + Tone.js + ZzFX | Multi-level flappy bird |
 | `hero-rescue.html` | Phaser + Tone.js + ZzFX + NippleJS | Vehicle driving and rescue missions |
 | `ms-menna-math.html` | Plain JavaScript + Speech | Math quiz with spoken feedback |
-| `multiplication-ms-menna.html` | Plain JavaScript + ZzFX + Speech | Multiplication practice |
+| `multiplication-ms-menna.html` | Plain JavaScript + ZzFX + lz-string + Speech | Multiplication and division practice |
 
 Each game is one self-contained HTML file with its CSS and JavaScript inline. The libraries it uses are stored in `libs/`:
 
@@ -20,6 +20,7 @@ Each game is one self-contained HTML file with its CSS and JavaScript inline. Th
 | `tone-15.1.22.js` | Synthesized music and sound effects |
 | `zzfx-1.4.0.micro.min.js` | Tiny arcade-style sound effects |
 | `nipplejs-1.0.4.min.js` | On-screen joystick for touch controls |
+| `lz-string-1.5.0.min.js` | Compresses saved progress so the cookie copy fits in 4 KB |
 | `easy-speech-2.4.0.js` | Fixes browser bugs in the built-in text-to-speech voices |
 | `speech.js` | Ms. Menna's shared voice, built on EasySpeech. Load `easy-speech-2.4.0.js` first, then call `Speech.speak(text)`, `Speech.stop()` and `Speech.setMuted(on)`. It reads math symbols as words and skips emoji. `Speech.openPicker()` opens a voice and speed picker; the choice is saved in localStorage with a cookie copy (`mennaVoice`) and shared by every game. |
 

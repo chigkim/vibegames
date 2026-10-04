@@ -495,67 +495,6 @@
 
   .bank-label { font-size: 0.9rem; font-weight: 700; color: var(--brown); margin: 8px 0 18px; }
 
-  /* ===== NUMBER PICKER ===== */
-  /* The number buttons are the second choice, so they sit in a quieter box under the learning path. */
-  .practice-box { background: rgba(255,255,255,0.55); border: 2px dashed rgba(139,94,60,0.25); border-radius: 24px; padding: 12px 12px 14px; margin-bottom: 4px; }
-
-  .pick-title {
-    font-family: 'Baloo 2', cursive;
-    font-size: clamp(1.05rem, 2.2vmin, 1.35rem);
-    font-weight: 800;
-    color: var(--dark-brown);
-    margin-bottom: 4px;
-  }
-
-  .pick-sub { font-size: 0.85rem; font-weight: 600; color: var(--brown); margin-bottom: 12px; }
-
-  .picker {
-    --pick-gap: clamp(8px, 1.6vmin, 14px);
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--pick-gap);
-    margin-bottom: 18px;
-  }
-
-  .pick-btn {
-    flex: 0 0 calc((100% - 6 * var(--pick-gap)) / 7);
-    min-width: 40px; /* keeps a finger-sized target on small phones, where the row wraps to 6 */
-    max-width: 62px;
-    aspect-ratio: 1;
-    border-radius: 16px;
-    border: 3px solid rgba(0,0,0,0.06);
-    font-family: 'Baloo 2', cursive;
-    font-size: clamp(1.15rem, 3vmin, 1.7rem);
-    font-weight: 800;
-    color: var(--dark-brown);
-    cursor: pointer;
-    box-shadow: 0 4px 0 rgba(0,0,0,0.12);
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-
-  .pick-btn { position: relative; }
-  .pick-btn .medal {
-    position: absolute;
-    top: -9px;
-    right: -9px;
-    font-size: clamp(1.1rem, 2.8vmin, 1.6rem);
-    line-height: 1;
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
-    pointer-events: none;
-  }
-  .medal-key { font-size: 0.85rem; font-weight: 700; color: var(--brown); margin: -8px 0 14px; }
-
-  .pick-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.12); }
-  .pick-btn.selected {
-    border-color: var(--dark-brown);
-    transform: scale(1.08);
-    box-shadow: 0 0 0 4px white, 0 0 0 7px var(--orange), 0 6px 0 rgba(0,0,0,0.12);
-    animation: wiggle 0.4s ease;
-  }
-
-  @keyframes wiggle { 0%,100% { transform: scale(1.08) rotate(0); } 30% { transform: scale(1.12) rotate(-6deg); } 60% { transform: scale(1.12) rotate(5deg); } }
-
   /* ===== BUTTONS ===== */
   .btn {
     display: inline-block;
@@ -575,11 +514,13 @@
   .btn-primary { background: linear-gradient(135deg, var(--orange), var(--soft-orange)); color: white; width: 100%; }
   .btn-secondary { background: linear-gradient(135deg, var(--sky), #7EC8E3); color: var(--dark-brown); width: 100%; margin-top: 12px; }
   .btn:disabled { opacity: 0.5; cursor: default; }
-  .practice-box .btn-primary { font-size: clamp(1rem, 2.2vmin, 1.35rem); padding: clamp(9px, 1.5vmin, 13px) 24px; }
   .btn-path { background: linear-gradient(135deg, #B8F0B0, #7FD98C); color: var(--dark-brown); width: 100%; margin: 0 0 18px;
     font-size: clamp(1.4rem, 3.2vmin, 2rem); line-height: 1.2; padding: clamp(16px, 2.6vmin, 24px) 20px; box-shadow: 0 6px 0 #4FAF5F, 0 0 0 4px #fff, 0 0 0 7px #7FD98C; }
   .btn-path .label { display: block; }
   .btn-path .path-now { display: block; font-size: 0.65em; font-weight: 700; }
+  /* Learn Extra is the second path, so it is smaller and has no ring. */
+  .btn-path.extra { background: linear-gradient(135deg, #D6E8FF, #A8DAFF); font-size: clamp(1.15rem, 2.6vmin, 1.6rem);
+    padding: clamp(12px, 2vmin, 18px) 20px; box-shadow: 0 5px 0 #6FA8D6; }
   .btn-closet { background: linear-gradient(135deg, #D9CCFF, #B9A4FF); color: #3B2A7A; width: 100%; margin-top: 12px; }
   .btn-closet.glow { animation: closetGlow 1.4s ease-in-out infinite; }
   @keyframes closetGlow { 50% { box-shadow: 0 5px 0 rgba(0,0,0,0.15), 0 0 20px rgba(169,148,245,0.95); } }
@@ -704,6 +645,7 @@
 
   .feedback.good { color: var(--dark-green); }
   .feedback.bad { color: var(--red); }
+  .feedback .family { display: block; font-size: 0.8em; color: var(--brown); }
 
   .hint-btn {
     display: none;
@@ -945,9 +887,13 @@
   .btn-row { display: flex; gap: 10px; }
   .btn-row .btn { flex: 1; padding-left: 10px; padding-right: 10px; }
   .sticker-count { font-weight: 800; color: var(--dark-brown); margin: 2px 0 10px; }
+  .chart-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 8px; }
+  .chart-tab { font-family: 'Baloo 2', cursive; font-weight: 800; font-size: clamp(1rem, 2.4vmin, 1.3rem); color: var(--dark-brown);
+    background: white; border: 3px solid var(--peach); border-radius: 50px; padding: 6px 18px; min-height: 44px; cursor: pointer; touch-action: manipulation; }
+  .chart-tab.active { background: var(--gold); border-color: var(--dark-brown); }
   .sticker-grid {
     display: grid;
-    grid-template-columns: repeat(21, 1fr);
+    grid-template-columns: repeat(22, 1fr);
     gap: 2px;
     margin: 0 auto 10px;
     max-width: 680px;
@@ -1274,7 +1220,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v21 - Updated 2026-10-04 00:48 EDT</p>
+    <p class="version">v22 - Updated 2026-10-04 06:02 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1287,15 +1233,10 @@
       <span class="label">🐾 Learn with Ms. Menna</span>
       <span class="path-now" id="pathNow"></span>
     </button>
-
-    <div class="practice-box">
-      <p class="pick-title">Or practice up to a number</p>
-      <p class="pick-sub" id="pickSub">Choose a number from 3 to 19</p>
-      <div class="picker" id="picker"></div>
-      <p class="medal-key">🥉 ⅓ of stickers · 🥈 ⅔ · 🥇 all of them</p>
-
-      <button class="btn btn-primary" id="startBtn" disabled>Let's Go! 🚀</button>
-    </div>
+    <button class="btn btn-path extra" id="extraBtn">
+      <span class="label">🚀 Learn Extra (11 to 20)</span>
+      <span class="path-now" id="extraNow"></span>
+    </button>
     <button class="btn btn-house" id="houseBtn" aria-label="Visit Ms. Menna's House">
       <div class="room house-peek peek" id="housePeek"></div>
       <span class="label">🏠 Ms. Menna's House</span>
@@ -1332,7 +1273,7 @@
       <div class="worth" id="worth"></div>
       <div class="equation" id="equation" aria-live="polite">
         <span class="factor rows" id="factorA">4</span>
-        <span class="times">×</span>
+        <span class="times" id="opSign">×</span>
         <span class="factor cols" id="factorB">5</span>
         <span>=</span>
         <span class="answer-display empty" id="answerDisplay"></span>
@@ -1379,7 +1320,7 @@
     <div class="new-stickers" id="pathUp"></div>
     <div class="practice-list" id="practiceList"></div>
     <button class="btn btn-primary" id="againBtn">Play Again! 🔁</button>
-    <button class="btn btn-secondary" id="homeBtn">Pick a Different Number</button>
+    <button class="btn btn-secondary" id="homeBtn">← Home</button>
   </div>
 </div>
 
@@ -1387,9 +1328,13 @@
 <div class="screen" id="stickerScreen">
   <div class="card">
     <h1>Sticker Chart ⭐</h1>
-    <p class="sticker-count" id="stickerCount">0 of 91 stickers</p>
+    <div class="chart-tabs" role="tablist">
+      <button class="chart-tab active" id="tabTimes" role="tab" aria-selected="true">× Times</button>
+      <button class="chart-tab" id="tabDivide" role="tab" aria-selected="false">÷ Divide</button>
+    </div>
+    <p class="sticker-count" id="stickerCount"></p>
     <div class="sticker-grid" id="stickerGrid"></div>
-    <p class="sticker-help">Get a fact right on the first try 3 times to earn its sticker. The last time has to be on another day.<br>Each dot is one time. 3 × 7 and 7 × 3 share a sticker!<br>💤 Sleepy stickers want a visit. Get one right to wake it up!</p>
+    <p class="sticker-help">Get a fact right on the first try 3 times to earn its sticker. The last time has to be on another day.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 share a sticker!</span><br>💤 Sleepy stickers want a visit. Get one right to wake it up!</p>
     <button class="btn btn-secondary" id="stickerBackBtn">← Back</button>
   </div>
 </div>
@@ -1454,23 +1399,25 @@
 <script src="./libs/zzfx-1.4.0.micro.min.js"></script>
 <script src="./libs/easy-speech-2.4.0.js"></script>
 <script src="./libs/speech.js"></script>
+<script src="./libs/lz-string-1.5.0.min.js"></script>
 <script>
 'use strict';
 
 // ===== CONSTANTS =====
 const QUESTIONS_PER_ROUND = 10;
 const HINT_CENTS = 1; // Pay for a right answer after the picture was shown, whatever the factors.
-const MIN_PICK = 3; // smallest "up to" choice on the start screen
-const MAX_NUMBER = 19;
+const MAX_NUMBER = 20;
 const OLD_MAX_NUMBER = 13; // v11 and earlier stopped at 13; their facts keep the first places in FACT_KEYS
-const MAX_PAYOUTS_KEPT = 30; // keeps the cookie mirror under its 4 KB limit
+const MAX_PAYOUTS_KEPT = 30;
 const PAY_CONFIRM_DELAY = 1000; // ms before "Yes, paid" can be tapped
 const STORE_KEY = 'mennaMultiplication';
 const COOKIE_NAME = 'mennaMult';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 400; // Browsers cap cookie lifetime at 400 days.
+const COOKIE_LZ = 'lz'; // a v22 cookie is compressed and starts with this; older ones are plain JSON, starting with %7B
+const SAVE_VERSION = 22; // a save without this is in an older format and is saved again in the new one
 const PICK_COLORS = ['#FFB3C6', '#FFD6B0', '#FFE08A', '#C8F0B0', '#A8DAFF', '#C9B8FF', '#FFC4A8',
   '#B8F0E0', '#FFD1F0', '#D6E8FF', '#FFE9A8', '#D9C8FF', '#FFB8A8', '#B8E8C8', '#FFCFE0',
-  '#C4E4FF', '#FFE2B8', '#E0D0FF', '#C8F5E8'];
+  '#C4E4FF', '#FFE2B8', '#E0D0FF', '#C8F5E8', '#FFD6B0'];
 const ROW_COLORS = ['#FF9FBF', '#FFB870', '#FFD84D', '#8FDB7A', '#6FC3F2', '#A994F5', '#FF9E80',
   '#5FD6B8', '#F59BE0', '#8FB8F5', '#F2C94C', '#B79CF2', '#FF8A8A'];
 
@@ -1488,10 +1435,16 @@ function centsFor(a, b) {
 
 // Every fact once (3×7 and 7×3 are the same), in a fixed order so progress saves as one short string.
 // Facts up to 13 come first in the v11 order, so old saves line up and an old open tab still reads them right.
+// New facts always go at the end: 14 to 19 in v12, then the 0s, then 20 in v22, then division.
 const FACT_KEYS = [];
 for (let a = 1; a <= OLD_MAX_NUMBER; a++) for (let b = a; b <= OLD_MAX_NUMBER; b++) FACT_KEYS.push(`${a}x${b}`);
-for (let b = OLD_MAX_NUMBER + 1; b <= MAX_NUMBER; b++) for (let a = 1; a <= b; a++) FACT_KEYS.push(`${a}x${b}`);
-for (let b = 0; b <= MAX_NUMBER; b++) FACT_KEYS.push(`0x${b}`); // added in v12, so they go last
+for (let b = OLD_MAX_NUMBER + 1; b <= 19; b++) for (let a = 1; a <= b; a++) FACT_KEYS.push(`${a}x${b}`);
+for (let b = 0; b <= 19; b++) FACT_KEYS.push(`0x${b}`);
+for (let a = 0; a <= 20; a++) FACT_KEYS.push(`${a}x20`);
+// A division fact shares its sticker with its partner: 56 ÷ 7 and 56 ÷ 8 are both d7x8. Nothing is divided by 0.
+const TIMES_KEYS = FACT_KEYS.slice();
+const DIVIDE_KEYS = TIMES_KEYS.filter(k => !k.startsWith('0x')).map(k => 'd' + k);
+FACT_KEYS.push(...DIVIDE_KEYS);
 const ZERO_COLOR = '#EDE6DE'; // sticker chart heading for 0
 const FACT_INDEX = Object.fromEntries(FACT_KEYS.map((k, i) => [k, i]));
 const STICKER_AT = 3; // first-try right answers needed for a sticker
@@ -1855,7 +1808,7 @@ for (const f of FURNITURE) {
 // Saved in localStorage with a cookie mirror, so progress survives if either one is cleared.
 function defaultState() {
   return {
-    totalCents: 0, paidCents: 0, payouts: [], weights: {}, mastery: FACT_KEYS.map(() => 0), lastMax: 0, muted: false,
+    totalCents: 0, paidCents: 0, payouts: [], weights: {}, mastery: FACT_KEYS.map(() => 0), muted: false,
     gems: 0, owned: [], worn: { ...DEFAULT_WORN }, toys: {}, treats: {}, furniture: [], home: {}, room: 'bedroom', savedAt: 0,
     days: FACT_KEYS.map(() => 0), levels: FACT_KEYS.map(() => 0), easyPath: false,
   };
@@ -1884,7 +1837,17 @@ function decodeOwned(text, lookup = ITEMS) {
 function readCookie() {
   const match = document.cookie.match(new RegExp('(?:^|; )' + COOKIE_NAME + '=([^;]*)'));
   if (!match) return null;
-  try { return JSON.parse(decodeURIComponent(match[1])); } catch { return null; }
+  try {
+    const text = match[1].startsWith(COOKIE_LZ)
+      ? LZString.decompressFromEncodedURIComponent(match[1].slice(COOKIE_LZ.length))
+      : decodeURIComponent(match[1]);
+    return JSON.parse(text);
+  } catch { return null; }
+}
+
+// The cookie copy is compressed to fit the 4 KB limit. The other two copies stay plain JSON.
+function packCookie(json) {
+  return typeof LZString === 'undefined' ? encodeURIComponent(json) : COOKIE_LZ + LZString.compressToEncodedURIComponent(json);
 }
 
 function readLocal() {
@@ -1994,7 +1957,6 @@ function parseSave(saved) {
       .filter(po => po && Number.isFinite(po.t) && Number.isFinite(po.c) && po.c > 0)
       .slice(0, MAX_PAYOUTS_KEPT);
   }
-  if (Number.isInteger(saved.lastMax) && saved.lastMax >= MIN_PICK && saved.lastMax <= MAX_NUMBER) state.lastMax = saved.lastMax;
   state.muted = !!saved.muted;
   if (Number.isFinite(saved.gems)) state.gems = Math.max(0, Math.round(saved.gems));
   if (typeof saved.owned === 'string') {
@@ -2027,7 +1989,7 @@ function parseSave(saved) {
   return state;
 }
 
-// One character per fact in FACT_KEYS order, in steps of 1/WEIGHT_STEPS above 1. Keeps 190 facts inside the cookie.
+// One character per fact in FACT_KEYS order, in steps of 1/WEIGHT_STEPS above 1.
 const WEIGHT_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const WEIGHT_STEPS = 4;
 function encodeWeights() {
@@ -2097,16 +2059,16 @@ function saveState() {
   }
   state.weights = weights;
   const json = JSON.stringify({
-    ...state, mastery: state.mastery.join(''), owned: encodeOwned(), weights: encodeWeights(),
+    v: SAVE_VERSION, ...state, mastery: state.mastery.join(''), owned: encodeOwned(), weights: encodeWeights(),
     days: undefined, levels: undefined, review: encodeReview(),
     furniture: encodeOwned(FURNITURE, state.furniture), home: Object.values(state.home).join(','),
   });
   try { localStorage.setItem(STORE_KEY, json); } catch { /* storage may be unavailable in private mode */ }
   if (window.indexedDB) SaveDB.write(json);
   const secure = location.protocol === 'https:' ? '; Secure' : '';
-  // A browser drops a cookie over 4 KB. If lots of furniture makes it too big, the cookie copy leaves out the payout list.
-  let cookie = encodeURIComponent(json);
-  if (cookie.length > 3900) cookie = encodeURIComponent(JSON.stringify({ ...JSON.parse(json), payouts: [], partial: true }));
+  // A browser drops a cookie over 4 KB. If it is still too big, the cookie copy leaves out the payout list.
+  let cookie = packCookie(json);
+  if (cookie.length > 3900) cookie = packCookie(JSON.stringify({ ...JSON.parse(json), payouts: [], partial: true }));
   document.cookie = `${COOKIE_NAME}=${cookie}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax${secure}`;
   savedBase = JSON.parse(JSON.stringify(state));
 }
@@ -2263,13 +2225,17 @@ const $ = id => document.getElementById(id);
 const formatMoney = cents => '$' + (cents / 100).toFixed(2);
 const formatDelta = cents => (cents >= 0 ? '+' : '−') + Math.abs(cents) + '¢';
 const factKey = (a, b) => (a <= b ? `${a}x${b}` : `${b}x${a}`);
-const weightOf = (a, b) => state.weights[factKey(a, b)] || 1;
+// A question is { a, b, div }. Division asks (a × b) ÷ a, so the answer is b.
+const keyOf = q => (q.div ? 'd' : '') + factKey(q.a, q.b);
+const factsOf = key => key.replace('d', '').split('x').map(Number);
+const questionText = q => (q.div ? `${q.a * q.b} ÷ ${q.a}` : `${q.a} × ${q.b}`);
+const answerOf = q => (q.div ? q.b : q.a * q.b);
+const weightOf = key => state.weights[key] || 1;
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-const masteryOf = (a, b) => state.mastery[FACT_INDEX[factKey(a, b)]];
-const hasSticker = (a, b) => masteryOf(a, b) >= STICKER_AT;
+const hasSticker = key => state.mastery[FACT_INDEX[key]] >= STICKER_AT;
 const isSleepy = i => state.mastery[i] >= STICKER_AT &&
   (state.levels[i] === SLEEPY_NOW || (state.days[i] > 0 && today() >= state.days[i] + REVIEW_DAYS[state.levels[i]]));
-const sleepyCount = () => FACT_KEYS.filter((_, i) => isSleepy(i)).length;
+const sleepyCount = (keys = FACT_KEYS) => keys.filter(k => isSleepy(FACT_INDEX[k])).length;
 // Facts children miss most: products over 40, and the ×4 to ×9 tables (except ×5).
 // A table fact is easy when the other number is 0, 1 or 2.
 const HARD_TABLES = [4, 6, 7, 8, 9];
@@ -2523,133 +2489,85 @@ function changeBank(delta) {
   return changed;
 }
 
-// ===== START SCREEN =====
-let selectedMax = state.lastMax || 0;
-
-function buildPicker() {
-  const picker = $('picker');
-  for (let n = MIN_PICK; n <= MAX_NUMBER; n++) {
-    const btn = document.createElement('button');
-    btn.className = 'pick-btn';
-    btn.textContent = n;
-    btn.dataset.n = n;
-    btn.style.background = PICK_COLORS[n - 1];
-    btn.addEventListener('click', () => selectMax(n, true));
-    picker.appendChild(btn);
-  }
-  renderMedals();
-  if (selectedMax) selectMax(selectedMax, false);
-}
-
-// A number's medal shows how many stickers she has for the facts in a round up to that number.
-function medalFor(n) {
-  let got = 0;
-  for (let a = 0; a <= n; a++) for (let b = a; b <= n; b++) if (hasSticker(a, b)) got++;
-  const share = got / ((n + 1) * (n + 2) / 2);
-  return share >= 1 ? '🥇' : share >= 2 / 3 ? '🥈' : share >= 1 / 3 ? '🥉' : '';
-}
-
-function renderMedals() {
-  document.querySelectorAll('.pick-btn').forEach(btn => {
-    const medal = medalFor(+btn.dataset.n);
-    let el = btn.querySelector('.medal');
-    if (!medal) { if (el) el.remove(); return; }
-    if (!el) {
-      el = document.createElement('span');
-      el.className = 'medal';
-      btn.appendChild(el);
-    }
-    el.textContent = medal;
-    btn.setAttribute('aria-label', `${btn.dataset.n}, ${{ '🥇': 'gold', '🥈': 'silver', '🥉': 'bronze' }[medal]} medal`);
-  });
-  renderPath();
-}
-
-function selectMax(n, withSound) {
-  selectedMax = n;
-  document.querySelectorAll('.pick-btn').forEach(b => b.classList.toggle('selected', +b.dataset.n === n));
-  $('startBtn').disabled = false;
-  $('pickSub').textContent = `Questions will use numbers 0 to ${n}`;
-  if (withSound) {
-    sfx.select(n);
-    say('startBubble', pick([
-      `Ooh, ${n}! Great choice!`,
-      `Up to ${n}? You've got this! 🐾`,
-      `${n} it is! Let's go!`,
-    ]));
-    animatePom($('pomStart'), 'bounce');
-  }
-}
-
-// ===== LEARNING PATH =====
-// Easy tables first, then families that build on each other (×2, ×4, ×8 by doubling; ×3, ×6, ×9), and ×7 last. A table is done when 80% of its facts have stickers,
-// so the path follows her stickers and needs nothing new in the save. The path ends at ×12, like school; the number buttons still go to 19.
-const PATH = [[2], [10], [5], [0, 1], [4], [8], [3], [6], [9], [7], [11], [12]];
+// ===== LEARNING PATHS =====
+// Learn with Ms. Menna: easy tables first, then families that build on each other (×2, ×4, ×8 by doubling; ×3, ×6, ×9),
+// and ×7 last, each up to × 10. Learn Extra: ×11 to ×20, where each table goes up to itself, so ×13 is 13 × 0 to 13 × 13.
+// A table is done when 80% of its facts have stickers, so the paths follow her stickers and need nothing new in the save.
+const PATHS = {
+  main: [[2], [10], [5], [0, 1], [4], [8], [3], [6], [9], [7]],
+  extra: [[11], [12], [13], [14], [15], [16], [17], [18], [19], [20]],
+};
 const PATH_DONE_AT = 0.8;
 const PATH_NEW_AT = [1, 4, 7]; // questions that teach a fact without a sticker yet; the rest are review
 const PATH_NEW_AT_EASY = [2, 6]; // after a round with fewer than 7 first-try answers, until a round with 8 or more
+const DIVIDE_AT = [3, 5, 9]; // division questions, once she has learned a table
 
-function pathFacts(step) {
-  const keys = new Set();
-  for (const n of PATH[step]) for (let k = 0; k <= 12; k++) keys.add(factKey(n, k));
-  return [...keys];
+const PATH_FACTS = {};
+const DIVIDE_FACTS = {};
+for (const [path, steps] of Object.entries(PATHS)) {
+  PATH_FACTS[path] = steps.map(step => {
+    const keys = new Set();
+    for (const n of step) for (let k = 0; k <= (path === 'main' ? 10 : n); k++) keys.add(factKey(n, k));
+    return [...keys];
+  });
+  // Learning a table also opens its division: learning 7 × 8 opens 56 ÷ 7 and 56 ÷ 8.
+  DIVIDE_FACTS[path] = PATH_FACTS[path].map(keys => keys.filter(k => !k.startsWith('0x')).map(k => 'd' + k));
+}
+// Which path a fact belongs to: numbers up to 10 are the main path, and a number from 11 to 20 makes it Learn Extra.
+const pathOf = key => (Math.max(...factsOf(key)) <= 10 ? 'main' : 'extra');
+const PATH_KEYS = { main: FACT_KEYS.filter(k => pathOf(k) === 'main'), extra: FACT_KEYS.filter(k => pathOf(k) === 'extra') };
+
+const pathShare = (path, step) => PATH_FACTS[path][step].filter(hasSticker).length / PATH_FACTS[path][step].length;
+
+// The first table she hasn't learned yet, or the number of tables when every table is done.
+function pathStep(path) {
+  const i = PATHS[path].findIndex((_, step) => pathShare(path, step) < PATH_DONE_AT);
+  return i < 0 ? PATHS[path].length : i;
 }
 
-const PATH_FACTS = PATH.map((_, i) => pathFacts(i));
-const pathShare = step => PATH_FACTS[step].filter(k => state.mastery[FACT_INDEX[k]] >= STICKER_AT).length / PATH_FACTS[step].length;
-
-// The first table she hasn't learned yet, or PATH.length when every table is done.
-function pathStep() {
-  const i = PATH.findIndex((_, step) => pathShare(step) < PATH_DONE_AT);
-  return i < 0 ? PATH.length : i;
-}
-
-const pathName = step => PATH[step].map(n => '×' + n).join(' & ');
+const pathName = (path, step) => PATHS[path][step].map(n => '×' + n).join(' & ');
 
 function renderPath() {
-  const step = pathStep();
-  if (step === PATH.length) {
-    $('pathNow').textContent = 'All tables done! Mixed review 🏆';
-    return;
+  for (const [path, el] of [['main', $('pathNow')], ['extra', $('extraNow')]]) {
+    const step = pathStep(path);
+    const sleepy = sleepyCount(PATH_KEYS[path]);
+    const nap = sleepy ? ` · ${sleepy} sleepy 💤` : '';
+    if (step === PATHS[path].length) {
+      el.textContent = `All tables done! Mixed review 🏆${nap}`;
+      continue;
+    }
+    const facts = PATH_FACTS[path][step];
+    el.textContent = `Learning ${pathName(path, step)} · ${facts.filter(hasSticker).length} of ${facts.length} stickers${nap}`;
   }
-  const facts = PATH_FACTS[step];
-  const got = facts.filter(k => state.mastery[FACT_INDEX[k]] >= STICKER_AT).length;
-  const sleepy = sleepyCount();
-  $('pathNow').textContent = `Learning ${pathName(step)} · ${got} of ${facts.length} stickers${sleepy ? ` · ${sleepy} sleepy 💤` : ''}`;
 }
 
 // Facts from every table up to her current one, split into ones she knows and ones she is learning.
 function pathPools() {
-  const top = Math.min(game.step, PATH.length - 1);
-  const known = [];
-  const learning = [];
-  for (let s = 0; s <= top; s++) {
-    for (const key of PATH_FACTS[s]) {
-      if (known.includes(key) || learning.includes(key)) continue;
-      (state.mastery[FACT_INDEX[key]] >= STICKER_AT ? known : learning).push(key);
-    }
-  }
-  // Stickers past ×12 from the number buttons or older paths still get their review visits.
-  for (const key of FACT_KEYS) {
-    const i = FACT_INDEX[key];
-    if (key.split('x').some(n => +n > 12) && state.mastery[i] >= STICKER_AT && isSleepy(i)) known.push(key);
-  }
-  return { known, learning };
+  const steps = PATH_FACTS[game.path];
+  const top = Math.min(game.step, steps.length - 1);
+  const known = new Set();
+  const learning = new Set();
+  for (let s = 0; s <= top; s++) for (const key of steps[s]) (hasSticker(key) ? known : learning).add(key);
+  // Sleepy stickers from later tables, earned with the number buttons before v22, still get their visits.
+  for (const key of PATH_KEYS[game.path]) if (!key.startsWith('d') && isSleepy(FACT_INDEX[key])) known.add(key);
+  return { known: [...known], learning: [...learning] };
+}
+
+// Division facts of every table she has learned, and any sleepy division sticker on this path.
+function dividePool() {
+  const keys = new Set(DIVIDE_FACTS[game.path].filter((_, s) => pathShare(game.path, s) >= PATH_DONE_AT).flat());
+  for (const key of PATH_KEYS[game.path]) if (key.startsWith('d') && isSleepy(FACT_INDEX[key])) keys.add(key);
+  return [...keys];
 }
 
 // ===== GAME =====
 let game = null;
 
-// With path set, questions come from the learning path instead of everything up to max.
-function startRound(max, path = false) {
-  if (!path) {
-    state.lastMax = max;
-    saveState();
-  }
+// path is 'main' or 'extra'.
+function startRound(path) {
   game = {
-    max,
     path,
-    step: path ? pathStep() : 0,
+    step: pathStep(path),
     index: 0,
     firstTry: 0,
     roundCents: 0,
@@ -2664,6 +2582,7 @@ function startRound(max, path = false) {
     newAt: state.easyPath ? PATH_NEW_AT_EASY : PATH_NEW_AT,
     a: 0,
     b: 0,
+    div: false,
     attempts: 0,
     input: '',
     locked: false,
@@ -2673,8 +2592,8 @@ function startRound(max, path = false) {
     zeroAt: Math.floor(Math.random() * QUESTIONS_PER_ROUND), // the round asks a 0 fact by this question
   };
   // A 0 fact comes every round until she has its sticker. After that only when it is sleepy, or now and then.
-  const keys = path ? Object.values(pathPools()).flat() : FACT_KEYS.filter(k => k.split('x').every(n => +n <= max));
-  game.zeroNeeded = keys.some(k => k.startsWith('0x') && (state.mastery[FACT_INDEX[k]] < STICKER_AT || isSleepy(FACT_INDEX[k])));
+  const keys = Object.values(pathPools()).flat();
+  game.zeroNeeded = keys.some(k => k.startsWith('0x') && (!hasSticker(k) || isSleepy(FACT_INDEX[k])));
   showScreen('gameScreen');
   renderBank();
   nextQuestion();
@@ -2696,56 +2615,31 @@ function later(fn, ms) {
   game.timers.push(setTimeout(fn, ms));
 }
 
+// Mostly facts she knows, with a few she is learning mixed in, so most answers are wins.
 // Facts missed more often have higher weights, so they come up more often.
 function pickQuestion(zeroOnly) {
-  if (game.path) return pickPathQuestion(zeroOnly);
-  const N = game.max;
-  const options = [];
-  let total = 0;
-  for (let a = 0; a <= N; a++) {
-    for (let b = 0; b <= N; b++) {
-      const key = factKey(a, b);
-      if (key === game.prevKey || (zeroOnly && a && b)) continue;
-      let w = weightOf(a, b);
-      const i = FACT_INDEX[key];
-      const sleepy = isSleepy(i);
-      // Keeps the easy 0 facts from filling a round of small numbers. A 0 sticker she knows comes back only now and then.
-      if (a === 0 || b === 0) w *= state.mastery[i] >= STICKER_AT && !sleepy ? 0.1 : 0.5;
-      if (sleepy) w *= 3;
-      else if (isHard(a, b)) w *= 1.5;
-      if (game.asked.has(key)) w *= 0.25;
-      options.push({ a, b, w });
-      total += w;
-    }
-  }
-  let r = Math.random() * total;
-  for (const o of options) {
-    r -= o.w;
-    if (r <= 0) return o;
-  }
-  return options[options.length - 1];
-}
-
-// Mostly facts she knows, with a few she is learning mixed in, so most answers are wins.
-function pickPathQuestion(zeroOnly) {
+  const divide = zeroOnly || !DIVIDE_AT.includes(game.index) ? [] : dividePool();
   const { known, learning } = pathPools();
   let pool = known.length >= 6 ? known : [...known, ...learning];
   const newSlot = game.newAt.includes(game.index);
   if (zeroOnly) {
     const zeros = learning.filter(k => k.startsWith('0x'));
     pool = newSlot && zeros.length ? zeros : [...known, ...learning].filter(k => k.startsWith('0x'));
-  } else if (newSlot && learning.length) pool = learning;
+  } else if (divide.length) pool = divide;
+  else if (newSlot && learning.length) pool = learning;
   const fresh = pool.filter(k => k !== game.prevKey);
   if (fresh.length) pool = fresh;
   const options = pool.map(key => {
-    const [a, b] = key.split('x').map(Number);
-    let w = state.weights[key] || 1;
+    const [a, b] = factsOf(key);
+    const i = FACT_INDEX[key];
+    let w = weightOf(key);
     if (a === 0 && !zeroOnly) w *= 0.5;
     if (game.asked.has(key)) w *= 0.25;
-    w *= 1 + state.mastery[FACT_INDEX[key]]; // finish the facts that are nearly stickers first
-    if (isSleepy(FACT_INDEX[key])) w *= 4; // review visits first
+    w *= 1 + state.mastery[i]; // finish the facts that are nearly stickers first
+    if (isSleepy(i)) w *= 4; // review visits first
     else if (isHard(a, b)) w *= 2;
-    return Math.random() < 0.5 ? { a, b, w } : { a: b, b: a, w };
+    const div = key.startsWith('d');
+    return Math.random() < 0.5 ? { a, b, div, w } : { a: b, b: a, div, w };
   });
   let r = Math.random() * options.reduce((sum, o) => sum + o.w, 0);
   for (const o of options) {
@@ -2767,15 +2661,17 @@ function nextQuestion() {
   const retry = due >= 0 ? game.retries.splice(due, 1)[0] : null;
   const q = retry || pickQuestion(needZero);
   if (q.a === 0 || q.b === 0) game.hadZero = true;
-  Object.assign(game, { a: q.a, b: q.b, attempts: 0, hinted: false, solved: false, input: '', locked: false });
-  game.prevKey = factKey(q.a, q.b);
+  Object.assign(game, { a: q.a, b: q.b, div: !!q.div, attempts: 0, hinted: false, solved: false, input: '', locked: false });
+  game.prevKey = keyOf(q);
   game.asked.add(game.prevKey);
 
   const cents = centsFor(q.a, q.b);
   $('worth').textContent = `This one pays ${cents}¢!`;
   $('worth').className = 'worth tier-' + cents;
-  $('factorA').textContent = q.a;
-  $('factorB').textContent = q.b;
+  // Division shows the product first: 56 ÷ 7.
+  $('factorA').textContent = q.div ? q.a * q.b : q.a;
+  $('opSign').textContent = q.div ? '÷' : '×';
+  $('factorB').textContent = q.div ? q.a : q.b;
   retrigger($('equation'), 'new');
   $('qCounter').textContent = `${game.index + 1} / ${QUESTIONS_PER_ROUND}`;
   $('progressFill').style.width = (game.index / QUESTIONS_PER_ROUND * 100) + '%';
@@ -2788,10 +2684,12 @@ function nextQuestion() {
   renderAnswer();
   say('gameBubble', game.index === 0
     ? pick(["Let's multiply!", 'Here we go!'])
+    : q.div && !retry
+      ? pick(["Let's share! ➗", 'Can you split it up?', 'A dividing one!'])
     : retry
       ? pick(['Remember this one? 🐾', 'This one is back!'])
       : pick(['Next one!', 'What do you think?', 'You can do it!', 'Think carefully!', 'Ready? Go!']),
-    `${q.a} times ${q.b}?`);
+    questionText(q) + '?');
 }
 
 function renderAnswer(status) {
@@ -2830,7 +2728,7 @@ function submitAnswer() {
     animatePom($('pomGame'), 'shake');
     return;
   }
-  const answer = game.a * game.b;
+  const answer = answerOf(game);
   if (+game.input === answer) onCorrect(answer);
   else onWrong(answer);
 }
@@ -2840,19 +2738,19 @@ function onCorrect(answer) {
   game.solved = true;
   clearCountOut();
   $('hintBtn').classList.remove('show');
-  const key = factKey(game.a, game.b);
+  const key = keyOf(game);
+  const fact = { a: game.a, b: game.b, div: game.div };
   let newSticker = false;
   let woke = false;
   let tomorrow = false; // the sticker dot has to wait for another day
   if (game.attempts === 0) {
     game.firstTry++;
     game.streak++;
-    const w = weightOf(game.a, game.b);
-    state.weights[key] = 1 + (w - 1) * 0.6;
+    state.weights[key] = 1 + (weightOf(key) - 1) * 0.6;
     const i = FACT_INDEX[key];
     const day = today();
     // A fact missed earlier this round was just shown, so getting it now earns no dot and wakes nothing.
-    if (game.missed.some(m => factKey(m.a, m.b) === key)) {
+    if (game.missed.some(m => keyOf(m) === key)) {
       // practice only
     } else if (state.mastery[i] < STICKER_AT) {
       if (state.mastery[i] === STICKER_AT - 1 && state.days[i] === day) tomorrow = true;
@@ -2862,14 +2760,14 @@ function onCorrect(answer) {
         newSticker = state.mastery[i] === STICKER_AT;
         if (newSticker) {
           state.levels[i] = 0;
-          game.newStickers.push({ a: game.a, b: game.b });
+          game.newStickers.push(fact);
         }
       }
     } else if (isSleepy(i)) {
       woke = true;
       state.levels[i] = state.levels[i] === SLEEPY_NOW ? 0 : Math.min(state.levels[i] + 1, REVIEW_DAYS.length - 1);
       state.days[i] = day;
-      game.woken.push({ a: game.a, b: game.b });
+      game.woken.push(fact);
     }
   }
   const cents = game.hinted ? HINT_CENTS : centsFor(game.a, game.b);
@@ -2892,18 +2790,26 @@ function onCorrect(answer) {
   else if (game.attempts === 0 && Math.random() < 0.35) confetti(18);
   if (newSticker) {
     later(() => {
-      banner(`${stickerFor(key)} New sticker: ${game.a} × ${game.b}!`);
+      banner(`${stickerFor(key)} New sticker: ${questionText(fact)}!`);
       sfx.sticker();
     }, 500);
   } else if (woke) {
     later(() => {
-      banner(`${stickerFor(key)} ${game.a} × ${game.b} woke up!`);
+      banner(`${stickerFor(key)} ${questionText(fact)} woke up!`);
       sfx.sticker();
     }, 500);
   }
 
   $('feedback').className = 'feedback good';
-  $('feedback').textContent = `${game.a} × ${game.b} = ${answer} ✓`;
+  $('feedback').textContent = `${questionText(fact)} = ${answer} ✓`;
+  // After a division answer, Ms. Menna shows the whole fact family.
+  if (game.div) {
+    const [a, b, c] = [game.a, game.b, game.a * game.b];
+    const family = document.createElement('span');
+    family.className = 'family';
+    family.textContent = a === b ? `${a} × ${b} = ${c}` : `${a} × ${b} = ${c} · ${b} × ${a} = ${c} · ${c} ÷ ${b} = ${a}`;
+    $('feedback').appendChild(family);
+  }
   say('gameBubble', trick
     ? trick.say(game.streak)
     : woke
@@ -2921,16 +2827,16 @@ function onCorrect(answer) {
 
 function onWrong(answer) {
   game.attempts++;
-  const key = factKey(game.a, game.b);
-  if (game.attempts <= 2) state.weights[key] = Math.min(12, weightOf(game.a, game.b) + 2);
+  const key = keyOf(game);
+  if (game.attempts <= 2) state.weights[key] = Math.min(12, weightOf(key) + 2);
   game.streak = 0;
   if (game.attempts === 1) {
-    game.missed.push({ a: game.a, b: game.b });
+    game.missed.push({ a: game.a, b: game.b, div: game.div });
     // Not yet learned: lose one dot towards the sticker. Stickers she has earned stay.
     const i = FACT_INDEX[key];
     if (state.mastery[i] < STICKER_AT) state.mastery[i] = Math.max(0, state.mastery[i] - 1);
     else state.levels[i] = SLEEPY_NOW; // the sticker stays, but it is sleepy until she gets it in a later round
-    if (!game.retries.some(r => r.key === key)) game.retries.push({ a: game.a, b: game.b, key, at: game.index + 3 });
+    if (!game.retries.some(r => r.key === key)) game.retries.push({ a: game.a, b: game.b, div: game.div, key, at: game.index + 3 });
   }
 
   saveState();
@@ -2948,7 +2854,7 @@ function onWrong(answer) {
     $('hintBtn').classList.add('show');
   } else {
     $('hintBtn').classList.remove('show');
-    const plan = hintPlan(game.a, game.b);
+    const plan = hintPlan(game);
     say('gameBubble', plan.tip || `Let's count! ${plan.rows} ${plan.rows === 1 ? 'row' : 'rows'} of ${plan.cols}…`);
     showGrid(true);
   }
@@ -2970,7 +2876,13 @@ const splitOf = n => (n > 12 ? [10, n - 10] : SPLITS[n]);
 
 // How the picture draws a × b: rows, dots per row, the split (p rows, then q more, or q = -1 to take one
 // away), what Ms. Menna says on the second miss (tip), and what she says when the count is done (done).
-function hintPlan(a, b) {
+// Division is the missing number: 56 ÷ 7 is 7 × ? = 56, drawn as 7 rows with the dots shared out.
+function hintPlan({ a, b, div }) {
+  if (div) {
+    const c = a * b;
+    return { rows: a, cols: b, div, tip: `${a} × ? = ${c}. Share ${c} into ${a} ${a === 1 ? 'row' : 'rows'}!`,
+      done: `${a} ${a === 1 ? 'row' : 'rows'} of ${b} make ${c}. So ${c} ÷ ${a} = ${b}!` };
+  }
   if (a === 0 || b === 0 || a === 1 || b === 1) return { rows: a, cols: b };
   if (a === 2 || b === 2) {
     const m = a === 2 ? b : a;
@@ -2999,7 +2911,7 @@ const SPLIT_COLORS = ['#FFB870', '#6FC3F2'];
 
 // ===== VISUAL GRID: rows × dots, split in two colors when the fact has a strategy =====
 function showGrid(countOut) {
-  const plan = hintPlan(game.a, game.b);
+  const plan = hintPlan(game);
   const { rows: a, cols: b, p, q } = plan;
   const drawn = q < 0 ? p : a; // 9 is drawn as 10 rows, and the last one is taken away
   const area = $('gridArea');
@@ -3013,8 +2925,9 @@ function showGrid(countOut) {
     $('worth').className = 'worth tier-1';
   }
   const rowsOf = n => `${n} ${n === 1 ? 'row' : 'rows'}`;
-  $('gridCaption').innerHTML =
-    `<span class="r">${rowsOf(a)}</span> of <span class="c">${b} ${b === 1 ? 'dot' : 'dots'}</span>` +
+  $('gridCaption').innerHTML = plan.div
+    ? `${a * b} dots in <span class="r">${rowsOf(a)}</span>. How many in each row?`
+    : `<span class="r">${rowsOf(a)}</span> of <span class="c">${b} ${b === 1 ? 'dot' : 'dots'}</span>` +
     (p ? `<br><span class="pa">${rowsOf(p)}</span> ${q < 0 ? '−' : '+'} <span class="pb">${rowsOf(Math.abs(q))}</span>` : '');
 
   // With a 0 there is nothing to draw, which is the point.
@@ -3146,29 +3059,30 @@ function showSummary() {
     renderGems();
   }
   // A hard round makes the next path rounds teach 2 new facts instead of 3, until a strong round.
-  if (game.path) state.easyPath = firstTry < 7 || (firstTry < 8 && state.easyPath);
-  if (bonus || game.path) saveState();
+  state.easyPath = firstTry < 7 || (firstTry < 8 && state.easyPath);
+  saveState();
   $('statGems').textContent = `+${game.roundGems} 💎`;
-  const list = facts => facts.map(f => `${stickerFor(factKey(f.a, f.b))} ${f.a} × ${f.b}`).join('  ');
+  const list = facts => facts.map(f => `${stickerFor(keyOf(f))} ${questionText(f)}`).join('  ');
   $('newStickers').textContent = [
     game.newStickers.length ? 'New stickers: ' + list(game.newStickers) : '',
     game.woken.length ? 'Woke up: ' + list(game.woken) : '',
   ].filter(Boolean).join('\n');
-  const step = game.path ? pathStep() : 0;
+  const step = pathStep(game.path);
   $('pathUp').textContent = step > game.step
-    ? (step === PATH.length ? '🐾 You learned all the tables! 🏆' : `🐾 You learned ${pathName(game.step)}! Next up: ${pathName(step)}`)
+    ? (step === PATHS[game.path].length
+      ? '🐾 You learned all the tables! 🏆'
+      : `🐾 You learned ${pathName(game.path, game.step)}! Next up: ${pathName(game.path, step)}`)
     : '';
-  $('homeBtn').textContent = game.path ? '← Home' : 'Pick a Different Number';
 
   const unique = [];
   const seen = new Set();
   for (const m of missed) {
-    const key = factKey(m.a, m.b);
+    const key = keyOf(m);
     if (!seen.has(key)) { seen.add(key); unique.push(m); }
   }
   $('practiceList').innerHTML = unique.length
     ? 'Ms. Menna will ask these again soon:<br>' +
-      unique.map(m => `<span class="fact">${m.a} × ${m.b} = ${m.a * m.b}</span>`).join('')
+      unique.map(m => `<span class="fact">${questionText(m)} = ${answerOf(m)}</span>`).join('')
     : 'No mistakes this round! 🎯';
 
   showScreen('summaryScreen');
@@ -3181,7 +3095,7 @@ function goHome() {
   game = null;
   renderBank();
   renderGems();
-  renderMedals();
+  renderPath();
   renderPeek();
   say('startBubble', pick([
     'Woof! Let\'s practice!',
@@ -3192,30 +3106,45 @@ function goHome() {
 
 // ===== STICKER CHART =====
 let stickersSeen = null; // stickers shown last time, so new ones can pop in
+let chartPage = 'times'; // 'times' or 'divide'
 
+// Times page: a row for each number 0 to 20, with 3 × 7 and 7 × 3 sharing a sticker.
+// Divide page: 56 ÷ 7 is in row 7, column 8, and shares its sticker with 56 ÷ 8. There is no 0 row, since nothing is divided by 0.
 function showStickers() {
+  const divide = chartPage === 'divide';
+  const from = divide ? 1 : 0;
   const grid = $('stickerGrid');
-  const cells = ['<div class="corner">×</div>'];
-  for (let b = 0; b <= MAX_NUMBER; b++) cells.push(`<div class="head" style="background:${PICK_COLORS[b - 1] || ZERO_COLOR}">${b}</div>`);
-  for (let a = 0; a <= MAX_NUMBER; a++) {
-    cells.push(`<div class="head" style="background:${PICK_COLORS[a - 1] || ZERO_COLOR}">${a}</div>`);
-    for (let b = 0; b <= MAX_NUMBER; b++) {
-      const key = factKey(a, b);
-      const m = masteryOf(a, b);
+  const head = n => `<div class="head" style="background:${PICK_COLORS[n - 1] || ZERO_COLOR}">${n}</div>`;
+  const cells = [`<div class="corner">${divide ? '÷' : '×'}</div>`];
+  for (let b = from; b <= MAX_NUMBER; b++) cells.push(head(b));
+  for (let a = from; a <= MAX_NUMBER; a++) {
+    cells.push(head(a));
+    for (let b = from; b <= MAX_NUMBER; b++) {
+      const q = { a, b, div: divide };
+      const key = keyOf(q);
+      const m = state.mastery[FACT_INDEX[key]];
+      const name = questionText(q);
       if (m >= STICKER_AT) {
         const isNew = stickersSeen && !stickersSeen.has(key);
-        if (isSleepy(FACT_INDEX[key])) cells.push(`<div class="got sleepy" title="${a} × ${b}, sleepy"><span>${stickerFor(key)}</span></div>`);
-        else cells.push(`<div class="got${isNew ? ' new' : ''}" title="${a} × ${b} = ${a * b}">${stickerFor(key)}</div>`);
+        if (isSleepy(FACT_INDEX[key])) cells.push(`<div class="got sleepy" title="${name}, sleepy"><span>${stickerFor(key)}</span></div>`);
+        else cells.push(`<div class="got${isNew ? ' new' : ''}" title="${name} = ${answerOf(q)}">${stickerFor(key)}</div>`);
       } else {
-        cells.push(`<div title="${a} × ${b}">${m ? `<span class="dots">${'●'.repeat(m)}</span>` : ''}</div>`);
+        cells.push(`<div title="${name}">${m ? `<span class="dots">${'●'.repeat(m)}</span>` : ''}</div>`);
       }
     }
   }
+  grid.style.gridTemplateColumns = `repeat(${MAX_NUMBER + 2 - from}, 1fr)`;
   grid.innerHTML = cells.join('');
-  const got = state.mastery.filter(m => m >= STICKER_AT).length;
-  const sleepy = sleepyCount();
-  $('stickerCount').textContent = `${got} of ${FACT_KEYS.length} stickers${got === FACT_KEYS.length ? ' — all of them! 🏆' : ''}${sleepy ? ` · ${sleepy} sleepy 💤` : ''}`;
-  stickersSeen = new Set(FACT_KEYS.filter(k => state.mastery[FACT_INDEX[k]] >= STICKER_AT));
+  const keys = divide ? DIVIDE_KEYS : TIMES_KEYS;
+  const got = keys.filter(hasSticker).length;
+  const sleepy = sleepyCount(keys);
+  $('stickerCount').textContent = `${got} of ${keys.length} stickers${got === keys.length ? ' — all of them! 🏆' : ''}${sleepy ? ` · ${sleepy} sleepy 💤` : ''}`;
+  $('stickerShare').textContent = divide ? '56 ÷ 7 and 56 ÷ 8 share a sticker!' : '3 × 7 and 7 × 3 share a sticker!';
+  for (const [id, page] of [['tabTimes', 'times'], ['tabDivide', 'divide']]) {
+    $(id).classList.toggle('active', page === chartPage);
+    $(id).setAttribute('aria-selected', page === chartPage);
+  }
+  stickersSeen = new Set([...(stickersSeen || []), ...keys.filter(hasSticker)]);
   showScreen('stickerScreen');
 }
 
@@ -3944,7 +3873,7 @@ function onPayYes() {
 // Show a save that came from another tab.
 function renderSaved() {
   renderBank();
-  renderMedals();
+  renderPath();
   renderGems();
   dressAllPoms();
   renderMute();
@@ -3984,7 +3913,7 @@ function init() {
     el.querySelector('[clip-path]').setAttribute('clip-path', `url(#pigBelly${i})`);
   });
   buildFloaters();
-  buildPicker();
+  renderPath();
   renderBank();
   renderPeek();
   renderGems();
@@ -4017,9 +3946,9 @@ function init() {
   if (window.indexedDB) {
     SaveDB.read().then(saved => {
       if (saved && ((saved.savedAt || 0) > state.savedAt || (loadedPartial && !saved.partial && saved.savedAt === state.savedAt))) reloadState(saved);
-      else if (state.savedAt) saveState(); // older saves get their IndexedDB copy now
+      else if (state.savedAt) saveState(); // older saves get their IndexedDB copy and the v22 format now
     });
-  }
+  } else if (state.savedAt) saveState(); // older saves are written again in the v22 format
   // Ask the browser never to clear Pom's save on its own.
   document.addEventListener('pointerdown', () => {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
@@ -4031,14 +3960,16 @@ function init() {
     renderSaved();
   }
 
-  $('startBtn').addEventListener('click', () => { if (selectedMax) { sfx.hint(); startRound(selectedMax); } });
-  $('againBtn').addEventListener('click', () => startRound(game.max, game.path));
-  $('pathBtn').addEventListener('click', () => { sfx.hint(); startRound(MAX_NUMBER, true); });
+  $('againBtn').addEventListener('click', () => startRound(game.path));
+  $('pathBtn').addEventListener('click', () => { sfx.hint(); startRound('main'); });
+  $('extraBtn').addEventListener('click', () => { sfx.hint(); startRound('extra'); });
   $('homeBtn').addEventListener('click', goHome);
   $('quitBtn').addEventListener('click', goHome);
   $('cashoutBtn').addEventListener('click', showCashout);
   $('voiceBtn').addEventListener('click', Speech.openPicker);
   $('stickersBtn').addEventListener('click', showStickers);
+  $('tabTimes').addEventListener('click', () => { sfx.tap(0); chartPage = 'times'; showStickers(); });
+  $('tabDivide').addEventListener('click', () => { sfx.tap(0); chartPage = 'divide'; showStickers(); });
   $('stickerBackBtn').addEventListener('click', goHome);
   $('cashBackBtn').addEventListener('click', goHome);
   $('closetBtn').addEventListener('click', showCloset);
@@ -4096,8 +4027,8 @@ function init() {
   $('hintBtn').addEventListener('click', () => {
     if (!game || game.solved) return;
     sfx.hint();
-    const { rows, cols } = hintPlan(game.a, game.b);
-    say('gameBubble', `${rows} ${rows === 1 ? 'row' : 'rows'} of ${cols}. How many?`);
+    const { rows, cols, div } = hintPlan(game);
+    say('gameBubble', div ? `${rows} × ? = ${rows * cols}. How many in each row?` : `${rows} ${rows === 1 ? 'row' : 'rows'} of ${cols}. How many?`);
     showGrid(false);
   });
 

@@ -496,15 +496,18 @@
   .bank-label { font-size: 0.9rem; font-weight: 700; color: var(--brown); margin: 8px 0 18px; }
 
   /* ===== NUMBER PICKER ===== */
+  /* The number buttons are the second choice, so they sit in a quieter box under the learning path. */
+  .practice-box { background: rgba(255,255,255,0.55); border: 2px dashed rgba(139,94,60,0.25); border-radius: 24px; padding: 12px 12px 14px; margin-bottom: 4px; }
+
   .pick-title {
     font-family: 'Baloo 2', cursive;
-    font-size: clamp(1.3rem, 2.8vmin, 1.8rem);
+    font-size: clamp(1.05rem, 2.2vmin, 1.35rem);
     font-weight: 800;
     color: var(--dark-brown);
     margin-bottom: 4px;
   }
 
-  .pick-sub { font-size: 0.95rem; font-weight: 600; color: var(--brown); margin-bottom: 14px; }
+  .pick-sub { font-size: 0.85rem; font-weight: 600; color: var(--brown); margin-bottom: 12px; }
 
   .picker {
     --pick-gap: clamp(8px, 1.6vmin, 14px);
@@ -516,17 +519,18 @@
   }
 
   .pick-btn {
-    flex: 0 0 calc((100% - 5 * var(--pick-gap)) / 6);
-    max-width: 84px;
+    flex: 0 0 calc((100% - 6 * var(--pick-gap)) / 7);
+    min-width: 40px; /* keeps a finger-sized target on small phones, where the row wraps to 6 */
+    max-width: 62px;
     aspect-ratio: 1;
-    border-radius: 20px;
+    border-radius: 16px;
     border: 3px solid rgba(0,0,0,0.06);
     font-family: 'Baloo 2', cursive;
-    font-size: clamp(1.6rem, 4vmin, 2.4rem);
+    font-size: clamp(1.15rem, 3vmin, 1.7rem);
     font-weight: 800;
     color: var(--dark-brown);
     cursor: pointer;
-    box-shadow: 0 5px 0 rgba(0,0,0,0.12);
+    box-shadow: 0 4px 0 rgba(0,0,0,0.12);
     transition: transform 0.15s, box-shadow 0.15s;
   }
 
@@ -571,7 +575,9 @@
   .btn-primary { background: linear-gradient(135deg, var(--orange), var(--soft-orange)); color: white; width: 100%; }
   .btn-secondary { background: linear-gradient(135deg, var(--sky), #7EC8E3); color: var(--dark-brown); width: 100%; margin-top: 12px; }
   .btn:disabled { opacity: 0.5; cursor: default; }
-  .btn-path { background: linear-gradient(135deg, #B8F0B0, #7FD98C); color: var(--dark-brown); width: 100%; margin: 0 0 18px; }
+  .practice-box .btn-primary { font-size: clamp(1rem, 2.2vmin, 1.35rem); padding: clamp(9px, 1.5vmin, 13px) 24px; }
+  .btn-path { background: linear-gradient(135deg, #B8F0B0, #7FD98C); color: var(--dark-brown); width: 100%; margin: 0 0 18px;
+    font-size: clamp(1.4rem, 3.2vmin, 2rem); line-height: 1.2; padding: clamp(16px, 2.6vmin, 24px) 20px; box-shadow: 0 6px 0 #4FAF5F, 0 0 0 4px #fff, 0 0 0 7px #7FD98C; }
   .btn-path .label { display: block; }
   .btn-path .path-now { display: block; font-size: 0.65em; font-weight: 700; }
   .btn-closet { background: linear-gradient(135deg, #D9CCFF, #B9A4FF); color: #3B2A7A; width: 100%; margin-top: 12px; }
@@ -1268,7 +1274,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v20 - Updated 2026-10-04 00:35 EDT</p>
+    <p class="version">v21 - Updated 2026-10-04 00:48 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1282,12 +1288,14 @@
       <span class="path-now" id="pathNow"></span>
     </button>
 
-    <p class="pick-title">Or pick your biggest number</p>
-    <p class="pick-sub" id="pickSub">Choose a number from 3 to 19</p>
-    <div class="picker" id="picker"></div>
-    <p class="medal-key">🥉 ⅓ of stickers · 🥈 ⅔ · 🥇 all of them</p>
+    <div class="practice-box">
+      <p class="pick-title">Or practice up to a number</p>
+      <p class="pick-sub" id="pickSub">Choose a number from 3 to 19</p>
+      <div class="picker" id="picker"></div>
+      <p class="medal-key">🥉 ⅓ of stickers · 🥈 ⅔ · 🥇 all of them</p>
 
-    <button class="btn btn-primary" id="startBtn" disabled>Let's Go! 🚀</button>
+      <button class="btn btn-primary" id="startBtn" disabled>Let's Go! 🚀</button>
+    </div>
     <button class="btn btn-house" id="houseBtn" aria-label="Visit Ms. Menna's House">
       <div class="room house-peek peek" id="housePeek"></div>
       <span class="label">🏠 Ms. Menna's House</span>

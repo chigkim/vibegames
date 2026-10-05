@@ -1273,7 +1273,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v24 - Updated 2026-10-04 11:44 EDT</p>
+    <p class="version">v25 - Updated 2026-10-04 20:20 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1413,7 +1413,7 @@
     </div>
     <p class="sticker-count" id="stickerCount"></p>
     <div class="sticker-grid" id="stickerGrid"></div>
-    <p class="sticker-help">Get a fact right on the first try 3 times to earn its sticker. The last time has to be on another day.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 share a sticker!</span><br>💤 Sleepy stickers want a visit. Get one right to wake it up!</p>
+    <p class="sticker-help">Get a fact right on the first try 3 times to earn its sticker. The last time has to be on another day.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 each have a sticker!</span><br>💤 Sleepy stickers want a visit. Get one right to wake it up!</p>
     <button class="btn btn-secondary" id="stickerBackBtn">← Back</button>
   </div>
 </div>
@@ -1494,7 +1494,8 @@ const STORE_KEY = 'mennaMultiplication';
 const COOKIE_NAME = 'mennaMult';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 400; // Browsers cap cookie lifetime at 400 days.
 const COOKIE_LZ = 'lz'; // a v22 cookie is compressed and starts with this; older ones are plain JSON, starting with %7B
-const SAVE_VERSION = 22; // a save without this is in an older format and is saved again in the new one
+const SAVE_VERSION = 25; // a save without this is in an older format and is saved again in the new one
+const SPLIT_VERSION = 25; // saves before this had one sticker for 3 × 7 and 7 × 3, and one for 56 ÷ 7 and 56 ÷ 8
 const PICK_COLORS = ['#FFB3C6', '#FFD6B0', '#FFE08A', '#C8F0B0', '#A8DAFF', '#C9B8FF', '#FFC4A8',
   '#B8F0E0', '#FFD1F0', '#D6E8FF', '#FFE9A8', '#D9C8FF', '#FFB8A8', '#B8E8C8', '#FFCFE0',
   '#C4E4FF', '#FFE2B8', '#E0D0FF', '#C8F5E8', '#FFD6B0'];
@@ -1516,18 +1517,27 @@ function centsFor(a, b) {
   return small <= 5 ? 7 : 8;
 }
 
-// Every fact once (3×7 and 7×3 are the same), in a fixed order so progress saves as one short string.
+// Every fact in a fixed order, so progress saves as one short string. A key is the fact as asked: 7x3 is 7 × 3, d7x8 is 56 ÷ 7.
 // Facts up to 13 come first in the v11 order, so old saves line up and an old open tab still reads them right.
-// New facts always go at the end: 14 to 19 in v12, then the 0s, then 20 in v22, then division.
+// New facts always go at the end: 14 to 19 in v12, then the 0s, then 20 in v22, then division, then the flipped facts in v25.
 const FACT_KEYS = [];
 for (let a = 1; a <= OLD_MAX_NUMBER; a++) for (let b = a; b <= OLD_MAX_NUMBER; b++) FACT_KEYS.push(`${a}x${b}`);
 for (let b = OLD_MAX_NUMBER + 1; b <= 19; b++) for (let a = 1; a <= b; a++) FACT_KEYS.push(`${a}x${b}`);
 for (let b = 0; b <= 19; b++) FACT_KEYS.push(`0x${b}`);
 for (let a = 0; a <= 20; a++) FACT_KEYS.push(`${a}x20`);
-// A division fact shares its sticker with its partner: 56 ÷ 7 and 56 ÷ 8 are both d7x8. Nothing is divided by 0.
-const TIMES_KEYS = FACT_KEYS.slice();
-const DIVIDE_KEYS = TIMES_KEYS.filter(k => !k.startsWith('0x')).map(k => 'd' + k);
-FACT_KEYS.push(...DIVIDE_KEYS);
+// Nothing is divided by 0.
+const OLD_TIMES_KEYS = FACT_KEYS.slice();
+const OLD_DIVIDE_KEYS = OLD_TIMES_KEYS.filter(k => !k.startsWith('0x')).map(k => 'd' + k);
+FACT_KEYS.push(...OLD_DIVIDE_KEYS);
+// Up to v24, 3 × 7 and 7 × 3 shared a sticker, and so did 56 ÷ 7 and 56 ÷ 8. Since v25 each has its own; 7 × 7 is still one fact.
+const SHARED_FACT_COUNT = FACT_KEYS.length;
+const flipKey = key => key.replace(/(\d+)x(\d+)/, '$2x$1');
+const TIMES_FLIPS = OLD_TIMES_KEYS.filter(k => flipKey(k) !== k).map(flipKey);
+const DIVIDE_FLIPS = OLD_DIVIDE_KEYS.filter(k => flipKey(k) !== k).map(flipKey);
+FACT_KEYS.push(...TIMES_FLIPS, ...DIVIDE_FLIPS);
+const TIMES_KEYS = [...OLD_TIMES_KEYS, ...TIMES_FLIPS];
+const DIVIDE_KEYS = [...OLD_DIVIDE_KEYS, ...DIVIDE_FLIPS];
+const hasZero = key => /(^|x)0(x|$)/.test(key);
 const ZERO_COLOR = '#EDE6DE'; // sticker chart heading for 0
 const FACT_INDEX = Object.fromEntries(FACT_KEYS.map((k, i) => [k, i]));
 const STICKER_AT = 3; // first-try right answers needed for a sticker
@@ -1719,13 +1729,15 @@ for (const item of CLOSET) {
 const DEFAULT_WORN = { hat: 'cap', fur: 'classic' };
 
 // ===== POM'S HOUSE =====
-// Stickers open rooms (they are never spent). Gems buy furniture, and each piece has its own spot in its room.
+// Stickers open rooms (they are never spent), and an open room stays open. Gems buy furniture, and each piece has its own spot in its room.
+// The 0–10 path has 121 times and 100 division stickers: the Playroom opens with all the times facts, the Garden with everything.
+// `oldNeed` is what a room needed up to v24, when flipped facts shared a sticker, so a room open then stays open.
 const ROOMS = [
-  { id: 'bedroom', name: 'Bedroom', ico: '🛏️', need: 10, wall: '#FFE6EE', floor: '#E8C49A', hello: 'My cozy bedroom! 🛏️' },
-  { id: 'kitchen', name: 'Kitchen', ico: '🍳', need: 30, wall: '#FFF4D2', floor: '#EFD9BE', hello: 'My kitchen! Yum!' },
-  { id: 'playroom', name: 'Playroom', ico: '🧸', need: 60, wall: '#E2F1FF', floor: '#BFE3C0', hello: 'The playroom! Let\'s play! 🧸' },
-  { id: 'yard', name: 'Yard', ico: '🦴', need: 100, outdoor: true, floor: '#9CDB7A', hello: 'My yard! 🦴' },
-  { id: 'garden', name: 'Garden', ico: '🌻', need: 150, outdoor: true, floor: '#86CC6A', hello: 'My pretty garden! 🌻' },
+  { id: 'bedroom', name: 'Bedroom', ico: '🛏️', need: 20, oldNeed: 10, wall: '#FFE6EE', floor: '#E8C49A', hello: 'My cozy bedroom! 🛏️' },
+  { id: 'kitchen', name: 'Kitchen', ico: '🍳', need: 60, oldNeed: 30, wall: '#FFF4D2', floor: '#EFD9BE', hello: 'My kitchen! Yum!' },
+  { id: 'playroom', name: 'Playroom', ico: '🧸', need: 121, oldNeed: 60, wall: '#E2F1FF', floor: '#BFE3C0', hello: 'The playroom! Let\'s play! 🧸' },
+  { id: 'yard', name: 'Yard', ico: '🦴', need: 171, oldNeed: 100, outdoor: true, floor: '#9CDB7A', hello: 'My yard! 🦴' },
+  { id: 'garden', name: 'Garden', ico: '🌻', need: 221, oldNeed: 150, outdoor: true, floor: '#86CC6A', hello: 'My pretty garden! 🌻' },
 ];
 const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
 
@@ -1898,6 +1910,7 @@ function defaultState() {
     divOn: false, divIntro: false, // division is on, and she has seen the first division lesson
     divAsked: 0, // the day she last said "Not yet" to learning dividing
     divPics: 0, // new division questions left that show their picture right away
+    rooms: [], // rooms she has opened, which stay open
   };
 }
 
@@ -2029,6 +2042,7 @@ function parseSave(saved) {
       if (+s[2] <= SLEEPY_NOW) state.levels[i] = +s[2];
     }
   }
+  if (!(saved.v >= SPLIT_VERSION)) splitShared(state);
   // Stickers from before v19 have no visit dates. Their first visit comes in 1 to 7 days, spread out so they don't all get sleepy at once.
   const day = today();
   state.mastery.forEach((m, i) => {
@@ -2075,6 +2089,7 @@ function parseSave(saved) {
       if (FURN[id] && (FURN[id].price === 0 || state.furniture.includes(id))) state.home[FURN[id].base] = id;
     }
   }
+  if (Array.isArray(saved.rooms)) state.rooms = [...new Set([...state.rooms, ...saved.rooms.filter(id => ROOM[id])])];
   if (ROOM[saved.room]) state.room = saved.room;
   if (saved.worn && typeof saved.worn === 'object') {
     state.worn = { fur: 'classic' };
@@ -2084,6 +2099,21 @@ function parseSave(saved) {
   }
   state.savedAt = saved.savedAt || 0;
   return state;
+}
+
+// A save from v24 or before had one sticker for 3 × 7 and 7 × 3. Both now get its dots, sticker, review days and weight.
+// Rooms open at the old sticker counts stay open, since the counts changed with the split.
+function splitShared(state) {
+  const old = state.mastery.slice(0, SHARED_FACT_COUNT).filter(m => m >= STICKER_AT).length;
+  for (const room of ROOMS) if (old >= room.oldNeed) state.rooms.push(room.id);
+  for (let i = 0; i < SHARED_FACT_COUNT; i++) {
+    const j = FACT_INDEX[flipKey(FACT_KEYS[i])];
+    if (j === i) continue;
+    state.mastery[j] = state.mastery[i];
+    state.days[j] = state.days[i];
+    state.levels[j] = state.levels[i];
+    if (state.weights[FACT_KEYS[i]]) state.weights[FACT_KEYS[j]] = state.weights[FACT_KEYS[i]];
+  }
 }
 
 // One character per fact in FACT_KEYS order, in steps of 1/WEIGHT_STEPS above 1.
@@ -2131,6 +2161,7 @@ function mergeNewer(stored) {
     else delete state.weights[key];
   }
   state.divIntro = state.divIntro || stored.divIntro;
+  state.rooms = [...new Set([...stored.rooms, ...state.rooms])];
   // Choices like the outfit, toys, furniture spots and the room go to this tab, the one saving now.
   // A payout row is lost only if the newest copy is the cookie without the list; paidCents is still right.
 }
@@ -2156,6 +2187,7 @@ function saveState() {
     if (w > 1.01) weights[key] = Math.round(w * 100) / 100;
   }
   state.weights = weights;
+  keepRoomsOpen();
   const json = JSON.stringify({
     v: SAVE_VERSION, ...state, mastery: state.mastery.join(''), owned: encodeOwned(), weights: encodeWeights(),
     days: undefined, levels: undefined, review: encodeReview(),
@@ -2323,8 +2355,8 @@ function say(bubbleId, text, extra = '', after = false) {
 const $ = id => document.getElementById(id);
 const formatMoney = cents => '$' + (cents / 100).toFixed(2);
 const formatDelta = cents => (cents >= 0 ? '+' : '−') + Math.abs(cents) + '¢';
-const factKey = (a, b) => (a <= b ? `${a}x${b}` : `${b}x${a}`);
-// A question is { a, b, div }. Division asks (a × b) ÷ a, so the answer is b.
+const factKey = (a, b) => `${a}x${b}`;
+// A question is { a, b, div }. Division asks (a × b) ÷ a, so the answer is b. Each order is its own fact.
 const keyOf = q => (q.div ? 'd' : '') + factKey(q.a, q.b);
 const factsOf = key => key.replace('d', '').split('x').map(Number);
 const questionText = q => (q.div ? `${q.a * q.b} ÷ ${q.a}` : `${q.a} × ${q.b}`);
@@ -2606,11 +2638,11 @@ const AUTO_PICTURES = { lesson: 3, table: 2 }; // new division questions that sh
 
 const PATH_FACTS = PATH.map(step => {
   const keys = new Set();
-  for (const n of step) for (let k = 0; k <= 10; k++) keys.add(factKey(n, k));
+  for (const n of step) for (let k = 0; k <= 10; k++) keys.add(factKey(n, k)).add(factKey(k, n));
   return [...keys];
 });
-// Learning a table also opens its division: learning 7 × 8 opens 56 ÷ 7 and 56 ÷ 8.
-const DIVIDE_FACTS = PATH_FACTS.map(keys => keys.filter(k => !k.startsWith('0x')).map(k => 'd' + k));
+// Learning a table also opens its division: learning 7 × 8 and 8 × 7 opens 56 ÷ 7 and 56 ÷ 8.
+const DIVIDE_FACTS = PATH_FACTS.map(keys => keys.filter(k => !hasZero(k)).map(k => 'd' + k));
 // Facts with numbers up to 10. Bigger numbers are for practice.
 const MAIN_KEYS = FACT_KEYS.filter(k => Math.max(...factsOf(k)) <= 10);
 
@@ -2668,15 +2700,15 @@ function pathPool(zeroOnly) {
   }
   const pools = poolsOf(PATH_FACTS, game.step, false);
   if (!zeroOnly) return mixOf(pools, game.newAt);
-  const zeros = pools.learning.filter(k => k.startsWith('0x'));
-  return game.newAt.includes(game.index) && zeros.length ? zeros : [...pools.known, ...pools.learning].filter(k => k.startsWith('0x'));
+  const zeros = pools.learning.filter(hasZero);
+  return game.newAt.includes(game.index) && zeros.length ? zeros : [...pools.known, ...pools.learning].filter(hasZero);
 }
 
 // Practice asks any fact with both numbers up to her number. Division leaves out 0.
 function practicePool(zeroOnly) {
   const divide = !zeroOnly && game.divideAt.includes(game.index);
   const keys = FACT_KEYS.filter(k => k.startsWith('d') === divide && factsOf(k).every(n => n <= game.max));
-  return zeroOnly ? keys.filter(k => k.startsWith('0x')) : keys;
+  return zeroOnly ? keys.filter(hasZero) : keys;
 }
 
 // ===== START SCREEN =====
@@ -2700,8 +2732,8 @@ function buildPicker() {
 // A number's medal shows how many times stickers she has for the facts up to that number.
 function medalFor(n) {
   let got = 0;
-  for (let a = 0; a <= n; a++) for (let b = a; b <= n; b++) if (hasSticker(factKey(a, b))) got++;
-  const share = got / ((n + 1) * (n + 2) / 2);
+  for (let a = 0; a <= n; a++) for (let b = 0; b <= n; b++) if (hasSticker(factKey(a, b))) got++;
+  const share = got / ((n + 1) * (n + 1));
   return share >= 1 ? '🥇' : share >= 2 / 3 ? '🥈' : share >= 1 / 3 ? '🥉' : '';
 }
 
@@ -2838,7 +2870,7 @@ function startRound(path, max = 0) {
   };
   // A 0 fact comes every round until she has its sticker. After that only when it is sleepy, or now and then.
   const keys = path === 'practice' ? practicePool(true) : Object.values(poolsOf(PATH_FACTS, game.step, false)).flat();
-  game.zeroNeeded = keys.some(k => k.startsWith('0x') && (!hasSticker(k) || isSleepy(FACT_INDEX[k])));
+  game.zeroNeeded = keys.some(k => hasZero(k) && (!hasSticker(k) || isSleepy(FACT_INDEX[k])));
   showScreen('gameScreen');
   renderBank();
   nextQuestion();
@@ -2871,13 +2903,12 @@ function pickQuestion(zeroOnly) {
     const i = FACT_INDEX[key];
     let w = weightOf(key);
     // Keeps the easy 0 facts from filling a practice round. A 0 sticker she knows comes back only now and then.
-    if (a === 0 && !zeroOnly) w *= practice && hasSticker(key) && !isSleepy(i) ? 0.1 : 0.5;
+    if (hasZero(key) && !zeroOnly) w *= practice && hasSticker(key) && !isSleepy(i) ? 0.1 : 0.5;
     if (game.asked.has(key)) w *= 0.25;
     w *= 1 + state.mastery[i]; // finish the facts that are nearly stickers first
     if (isSleepy(i)) w *= 4; // review visits first
     else if (isHard(a, b)) w *= 2;
-    const div = key.startsWith('d');
-    return Math.random() < 0.5 ? { a, b, div, w } : { a: b, b: a, div, w };
+    return { a, b, div: key.startsWith('d'), w };
   });
   let r = Math.random() * options.reduce((sum, o) => sum + o.w, 0);
   for (const o of options) {
@@ -3369,8 +3400,8 @@ function goHome() {
 let stickersSeen = null; // stickers shown last time, so new ones can pop in
 let chartPage = 'times'; // 'times' or 'divide'
 
-// Times page: a row for each number 0 to 20, with 3 × 7 and 7 × 3 sharing a sticker.
-// Divide page: 56 ÷ 7 is in row 7, column 8, and shares its sticker with 56 ÷ 8. There is no 0 row, since nothing is divided by 0.
+// Times page: a row for each number 0 to 20. 3 × 7 is in row 3, column 7, and 7 × 3 has its own sticker.
+// Divide page: 56 ÷ 7 is in row 7, column 8; 56 ÷ 8 has its own sticker. There is no 0 row, since nothing is divided by 0.
 function showStickers() {
   const divide = chartPage === 'divide';
   const from = divide ? 1 : 0;
@@ -3400,7 +3431,7 @@ function showStickers() {
   const got = keys.filter(hasSticker).length;
   const sleepy = sleepyCount(keys);
   $('stickerCount').textContent = `${got} of ${keys.length} stickers${got === keys.length ? ' — all of them! 🏆' : ''}${sleepy ? ` · ${sleepy} sleepy 💤` : ''}`;
-  $('stickerShare').textContent = divide ? '56 ÷ 7 and 56 ÷ 8 share a sticker!' : '3 × 7 and 7 × 3 share a sticker!';
+  $('stickerShare').textContent = divide ? '56 ÷ 7 and 56 ÷ 8 each have a sticker!' : '3 × 7 and 7 × 3 each have a sticker!';
   for (const [id, page] of [['tabTimes', 'times'], ['tabDivide', 'divide']]) {
     $(id).classList.toggle('active', page === chartPage);
     $(id).setAttribute('aria-selected', page === chartPage);
@@ -3732,8 +3763,13 @@ function buyItem() {
 // ===== POM'S HOUSE =====
 const ownsFurn = id => FURN[id].price === 0 || state.furniture.includes(id);
 const stickerCount = () => state.mastery.filter(m => m >= STICKER_AT).length;
-// A room with furniture already bought stays open, so a v15 save keeps rooms opened at the old sticker counts.
-const roomOpen = room => stickerCount() >= room.need || state.furniture.some(id => FURN[id] && FURN[id].room === room.id);
+// A room stays open once opened. A room with furniture already bought is open too, so a v15 save keeps rooms opened at the old counts.
+const roomOpen = room => state.rooms.includes(room.id) || stickerCount() >= room.need ||
+  state.furniture.some(id => FURN[id] && FURN[id].room === room.id);
+// Called on every save, so a room opened by stickers is remembered.
+function keepRoomsOpen() {
+  for (const room of ROOMS) if (!state.rooms.includes(room.id) && roomOpen(room)) state.rooms.push(room.id);
+}
 let housePick = null; // the piece whose colors are showing
 let houseTrying = null; // a color shown in its spot before buying it
 

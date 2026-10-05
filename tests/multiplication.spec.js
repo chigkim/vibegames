@@ -241,7 +241,7 @@ test('a tab that missed another tab\'s payout cannot pay it again, and adds to i
 test('a stale tab cannot spend gems the other tab already spent', async ({ page }) => {
   await page.evaluate(() => { state.gems = 10; saveState(); });
   await page.locator('#houseBtn').click();
-  await page.evaluate(() => { for (let i = 0; i < 10; i++) state.mastery[i] = STICKER_AT; showHouse(); });
+  await page.evaluate(() => { for (let i = 0; i < 20; i++) state.mastery[i] = STICKER_AT; showHouse(); });
   await page.locator('#furnItems .item[data-id="bed"]').click();
   await page.locator('#furnColors .color-btn[data-id="bed"]').click();
   // The other tab spent 8 of the 10 gems on a lamp.
@@ -287,21 +287,24 @@ test('the sticker chart has a times page and a divide page', async ({ page }) =>
     saveState();
   });
   await page.locator('#stickersBtn').click();
-  await expect(page.locator('#stickerCount')).toHaveText('3 of 231 stickers');
-  // 0 to 20 plus headings is a 22×22 grid; 3×7 and 7×3 both show the sticker
+  await expect(page.locator('#stickerCount')).toHaveText('3 of 441 stickers');
+  // 0 to 20 plus headings is a 22×22 grid; 3×7 has a sticker and 7×3 has its own, not earned yet
   await expect(page.locator('#stickerGrid > div')).toHaveCount(22 * 22);
-  await expect(page.locator('#stickerGrid > .got')).toHaveCount(5);
+  await expect(page.locator('#stickerGrid > .got')).toHaveCount(3);
+  await expect(page.locator('#stickerGrid > .got[title="3 × 7 = 21"]')).toHaveCount(1);
+  await expect(page.locator('#stickerGrid > .got[title="7 × 3 = 21"]')).toHaveCount(0);
   await expect(page.locator('#stickerGrid > div').nth(1)).toHaveText('0');
-  await expect(page.locator('#stickerGrid .dots')).toHaveCount(2);
+  await expect(page.locator('#stickerGrid .dots')).toHaveCount(1); // 2 × 5 only; 5 × 2 has its own dots
 
-  // No 0 row or column on the divide page. 56 ÷ 7 and 56 ÷ 8 share a sticker.
+  // No 0 row or column on the divide page. 56 ÷ 7 and 56 ÷ 8 each have a sticker.
   await page.locator('#tabDivide').click();
-  await expect(page.locator('#stickerCount')).toHaveText('2 of 210 stickers');
+  await expect(page.locator('#stickerCount')).toHaveText('2 of 400 stickers');
   await expect(page.locator('#stickerGrid > div')).toHaveCount(21 * 21);
   await expect(page.locator('#stickerGrid > div').nth(1)).toHaveText('1');
-  await expect(page.locator('#stickerGrid > .got')).toHaveCount(3); // 56 ÷ 7, 56 ÷ 8, 4 ÷ 2
+  await expect(page.locator('#stickerGrid > .got')).toHaveCount(2); // 56 ÷ 7 and 4 ÷ 2
   await expect(page.locator('#stickerGrid > .got[title="56 ÷ 7 = 8"]')).toHaveCount(1);
-  await expect(page.locator('#stickerShare')).toHaveText('56 ÷ 7 and 56 ÷ 8 share a sticker!');
+  await expect(page.locator('#stickerGrid > .got[title="56 ÷ 8 = 7"]')).toHaveCount(0);
+  await expect(page.locator('#stickerShare')).toHaveText('56 ÷ 7 and 56 ÷ 8 each have a sticker!');
   await page.locator('#stickerBackBtn').click();
   await expect(page.locator('#startScreen')).toHaveClass(/active/);
 });
@@ -339,18 +342,20 @@ test('a save from v11 (numbers up to 13) keeps every sticker, coin, gem and clos
   const loaded = await page.evaluate(() => ({
     cents: state.totalCents, paid: state.paidCents, gems: state.gems, owned: state.owned, worn: state.worn,
     m78: state.mastery[FACT_INDEX['7x8']], m1313: state.mastery[FACT_INDEX['13x13']], m69: state.mastery[FACT_INDEX['6x9']],
-    learned: state.mastery.filter(m => m === 3).length, w78: state.weights['7x8'], w1213: state.weights['12x13'],
+    m87: state.mastery[FACT_INDEX['8x7']], m96: state.mastery[FACT_INDEX['9x6']],
+    learned: state.mastery.filter(m => m === 3).length, w78: state.weights['7x8'], w87: state.weights['8x7'], w1213: state.weights['12x13'],
   }));
+  // A shared sticker from before v25 goes to both 7 × 8 and 8 × 7
   expect(loaded).toEqual({
     cents: 437, paid: 120, gems: 9, owned: ['party', 'choc'], worn: { hat: 'party', fur: 'choc' },
-    m78: 3, m1313: 3, m69: 2, learned: 2, w78: 5.5, w1213: 3,
+    m78: 3, m1313: 3, m69: 2, m87: 3, m96: 2, learned: 3, w78: 5.5, w87: 5.5, w1213: 3,
   });
 
   // Loading saved it again in the newest format. It still starts with the v11 sticker string, so an old tab still open reads it right
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem(STORE_KEY)));
-  expect(saved.v).toBe(22);
+  expect(saved.v).toBe(25);
   expect(saved.mastery.slice(0, 91)).toBe(old);
-  expect(saved.mastery).toHaveLength(441);
+  expect(saved.mastery).toHaveLength(841);
   await page.reload();
   expect(await page.evaluate(() => [state.weights['7x8'], state.weights['12x13'], state.weights['1x1']])).toEqual([5.5, 3, undefined]);
 });
@@ -528,7 +533,7 @@ test('the house Ms. Menna stays inside the house before it is opened', async ({ 
   // Even with the Bedroom locked on a new save, she must never land on the body.
   expect(await page.evaluate(() => houseWalker.el.parentElement.id)).toBe('houseRoom');
   await expect(page.locator('#pomHouse')).toBeHidden();
-  await page.evaluate(() => { for (let i = 0; i < 10; i++) state.mastery[i] = STICKER_AT; saveState(); });
+  await page.evaluate(() => { for (let i = 0; i < 20; i++) state.mastery[i] = STICKER_AT; saveState(); });
   await page.reload();
   expect(await page.evaluate(() => houseWalker.el.parentElement.id)).toBe('houseRoom');
   await expect(page.locator('#pomHouse')).toBeHidden();
@@ -608,14 +613,14 @@ test('Ms. Menna buys toys, plays with them, and uses them in streak tricks', asy
   expect(await page.evaluate(() => doTrick(7).cls)).toBe('trick-spin');
 });
 
-test('the Bedroom needs 10 stickers, but the Closet works before that', async ({ page }) => {
+test('the Bedroom needs 20 stickers, but the Closet works before that', async ({ page }) => {
   await page.locator('#houseBtn').click();
   await expect(page.locator('#houseRoom')).toHaveClass(/locked/);
-  await expect(page.locator('#houseBubble')).toHaveText('10 more ⭐ to open my Bedroom!');
+  await expect(page.locator('#houseBubble')).toHaveText('20 more ⭐ to open my Bedroom!');
   await expect(page.locator('#furnItems')).toBeHidden();
   await page.locator('#closetBtn').click();
   await expect(page.locator('#closetScreen')).toHaveClass(/active/);
-  expect(await page.evaluate(() => ROOMS.map(r => r.need))).toEqual([10, 30, 60, 100, 150]);
+  expect(await page.evaluate(() => ROOMS.map(r => r.need))).toEqual([20, 60, 121, 171, 221]);
 });
 
 test('a v15 save keeps rooms with furniture open under the new sticker counts', async ({ page }) => {
@@ -635,23 +640,44 @@ test('a v15 save keeps rooms with furniture open under the new sticker counts', 
   expect(await page.evaluate(() => state.room)).toBe('garden');
 
   // A new player with 5 stickers and a bed from v15 keeps the Bedroom; with no furniture it stays locked.
-  await page.evaluate(() => { state.mastery.fill(0); for (let i = 0; i < 5; i++) state.mastery[i] = STICKER_AT; showHouse(); });
+  await page.evaluate(() => { state.rooms = []; state.mastery.fill(0); for (let i = 0; i < 5; i++) state.mastery[i] = STICKER_AT; showHouse(); });
   expect(await page.evaluate(() => [roomOpen(ROOM.bedroom), roomOpen(ROOM.garden), roomOpen(ROOM.yard)])).toEqual([true, true, false]);
   await page.evaluate(() => { state.furniture = []; });
   expect(await page.evaluate(() => roomOpen(ROOM.bedroom))).toBe(false);
 });
 
+test('an open room stays open, and a v24 save keeps rooms opened at the old counts', async ({ page }) => {
+  // 20 stickers open the Bedroom; it stays open after losing them
+  await page.evaluate(() => { for (let i = 0; i < 20; i++) state.mastery[i] = STICKER_AT; saveState(); state.mastery.fill(0); saveState(); });
+  await page.reload();
+  expect(await page.evaluate(() => [roomOpen(ROOM.bedroom), state.rooms])).toEqual([true, ['bedroom']]);
+
+  // A v24 save with 35 shared stickers opened the Kitchen at 30. After the split it has 70 stickers, but the Playroom stays shut.
+  await page.evaluate(() => {
+    const m = Array(SHARED_FACT_COUNT).fill(0);
+    const pairs = OLD_TIMES_KEYS.filter(k => flipKey(k) !== k).slice(0, 35);
+    for (const k of pairs) m[FACT_INDEX[k]] = STICKER_AT;
+    localStorage.setItem(STORE_KEY, JSON.stringify({ v: 24, mastery: m.join(''), savedAt: Date.now() + 5000 }));
+    document.cookie = `${COOKIE_NAME}=; max-age=0; path=/`;
+  });
+  await page.reload();
+  expect(await page.evaluate(() => [stickerCount(), ROOMS.filter(roomOpen).map(r => r.id)])).toEqual([70, ['bedroom', 'kitchen']]);
+  // Losing the copied stickers does not close the Kitchen
+  await page.evaluate(() => { state.mastery.fill(0); });
+  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'kitchen']);
+});
+
 test("Ms. Menna's House opens rooms with stickers and buys furniture colors with gems", async ({ page }) => {
-  await page.evaluate(() => { state.gems = 30; state.totalCents = 120; for (let i = 0; i < 30; i++) state.mastery[i] = STICKER_AT; saveState(); });
+  await page.evaluate(() => { state.gems = 30; state.totalCents = 120; for (let i = 0; i < 60; i++) state.mastery[i] = STICKER_AT; saveState(); });
   await page.reload();
   await page.locator('#houseBtn').click();
   await expect(page.locator('#houseScreen')).toHaveClass(/active/);
 
-  // 30 stickers open the Kitchen but not the Playroom
+  // 60 stickers open the Kitchen but not the Playroom
   await expect(page.locator('.room-tab[data-room="kitchen"]')).not.toHaveClass(/locked/);
   await expect(page.locator('.room-tab[data-room="playroom"]')).toHaveClass(/locked/);
   await page.locator('.room-tab[data-room="playroom"]').click();
-  await expect(page.locator('#houseBubble')).toHaveText('30 more ⭐ to open it!');
+  await expect(page.locator('#houseBubble')).toHaveText('61 more ⭐ to open it!');
 
   // The closet is free; an empty spot shows its colors, and a color is shown in place before buying
   await expect(page.locator('#houseRoom .spot[data-id="wardrobe"]')).not.toHaveClass(/empty/);
@@ -691,8 +717,8 @@ const giveStickers = (page, keys) => page.evaluate(list => {
   saveState();
   renderPath();
 }, keys);
-// The facts of the ×n table from n × from to n × to, as sticker keys.
-const tableKeys = (n, from, to) => Array.from({ length: to - from + 1 }, (_, i) => from + i).map(k => (k <= n ? `${k}x${n}` : `${n}x${k}`));
+// The facts of the ×n table from n × from to n × to, and their flips, as sticker keys.
+const tableKeys = (n, from, to) => [...new Set(Array.from({ length: to - from + 1 }, (_, i) => from + i).flatMap(k => [`${n}x${k}`, `${k}x${n}`]))];
 const divideOn = page => page.evaluate(() => { state.divOn = state.divIntro = true; saveState(); renderPath(); });
 
 // Plays rounds without answering and lists every question asked.
@@ -712,7 +738,7 @@ const playRounds = (page, path, rounds, max = 0) => page.evaluate(([path, rounds
 }, [path, rounds, max]);
 
 test('the home screen has the path, a number picker, and division off', async ({ page }) => {
-  await expect(page.locator('#pathNow')).toHaveText('Learning ×2 · 0 of 11 stickers');
+  await expect(page.locator('#pathNow')).toHaveText('Learning ×2 · 0 of 21 stickers'); // 2 × 0 to 2 × 10 and their flips
   await expect(page.locator('#picker .pick-btn')).toHaveCount(18); // 3 to 20
   await expect(page.locator('#startBtn')).toBeDisabled();
   await expect(page.locator('#divideToggle')).not.toBeChecked();
@@ -736,17 +762,20 @@ test('the home screen has the path, a number picker, and division off', async ({
 
 test('picker medals follow the stickers up to each number', async ({ page }) => {
   const upTo3 = [];
-  for (let a = 0; a <= 3; a++) for (let b = a; b <= 3; b++) upTo3.push(`${a}x${b}`);
+  for (let a = 0; a <= 3; a++) for (let b = 0; b <= 3; b++) upTo3.push(`${a}x${b}`);
   await giveStickers(page, upTo3);
   await page.reload();
   await expect(page.locator('#picker .pick-btn[data-n="3"] .medal')).toHaveText('🥇');
-  await expect(page.locator('#picker .pick-btn[data-n="4"] .medal')).toHaveText('🥈'); // 10 of 15
+  await expect(page.locator('#picker .pick-btn[data-n="4"] .medal')).toHaveText('🥉'); // 16 of 25
+  await giveStickers(page, ['0x4', '4x0']);
+  await page.reload();
+  await expect(page.locator('#picker .pick-btn[data-n="4"] .medal')).toHaveText('🥈'); // 18 of 25
   await expect(page.locator('#picker .pick-btn[data-n="20"] .medal')).toHaveCount(0);
 });
 
 test('a path moves on at 80%, rounds are mostly known facts, and division joins when switched on', async ({ page }) => {
-  await giveStickers(page, tableKeys(2, 2, 10)); // 9 of the 11 ×2 facts
-  await expect(page.locator('#pathNow')).toHaveText('Learning ×10 · 1 of 11 stickers'); // 2 × 10 counts for ×10 too
+  await giveStickers(page, tableKeys(2, 2, 10)); // 17 of the 21 ×2 facts
+  await expect(page.locator('#pathNow')).toHaveText('Learning ×10 · 2 of 21 stickers'); // 2 × 10 and 10 × 2 count for ×10 too
   const off = (await playRounds(page, 'main', 10)).flat();
   expect(off.filter(q => q.div)).toEqual([]);
 
@@ -772,7 +801,7 @@ test('a path moves on at 80%, rounds are mostly known facts, and division joins 
 });
 
 test('finishing a table on the path says what comes next', async ({ page }) => {
-  await giveStickers(page, tableKeys(2, 2, 9));
+  await giveStickers(page, [...tableKeys(2, 2, 9), '2x1']); // 16 of 21, just under 80%
   await page.locator('#pathBtn').click();
   await page.evaluate(() => {
     state.mastery[FACT_INDEX[factKey(2, 10)]] = STICKER_AT;
@@ -793,14 +822,14 @@ test('division pays like its times fact, hints with the missing number, and show
     $('factorA').textContent = x * y; $('opSign').textContent = '÷'; $('factorB').textContent = x;
   }, [a, b]);
 
-  // 56 ÷ 8 = 7 pays what 8 × 7 pays, and earns a dot on the sticker 56 ÷ 7 shares
+  // 56 ÷ 8 = 7 pays what 8 × 7 pays, and earns a dot on its own sticker
   await askDivide(8, 7);
   await expect(page.locator('#equation')).toHaveText(/56\s*÷\s*8/);
   await answer(page, true);
   await expect(page.locator('#gameBankAmount')).toHaveText('$0.05');
   await expect(page.locator('#feedback')).toContainText('56 ÷ 8 = 7 ✓');
   await expect(page.locator('#feedback .family')).toHaveText('8 × 7 = 56 · 7 × 8 = 56 · 56 ÷ 7 = 8');
-  expect(await page.evaluate(() => state.mastery[FACT_INDEX['d7x8']])).toBe(1);
+  expect(await page.evaluate(() => [state.mastery[FACT_INDEX['d8x7']], state.mastery[FACT_INDEX['d7x8']]])).toEqual([1, 0]);
 
   // The picture turns 56 ÷ 7 into 7 × ? = 56, and pays 1¢ after it
   await page.waitForTimeout(2200);
@@ -816,7 +845,7 @@ test('division pays like its times fact, hints with the missing number, and show
   await expect(page.locator('#feedback .family')).toHaveText('7 × 8 = 56 · 8 × 7 = 56 · 56 ÷ 8 = 7');
 
   // Division is never by 0, and a square has a one-line family
-  expect(await page.evaluate(() => [FACT_INDEX['d0x5'], DIVIDE_KEYS.length])).toEqual([undefined, 210]);
+  expect(await page.evaluate(() => [FACT_INDEX['d0x5'], FACT_INDEX['d5x0'], DIVIDE_KEYS.length])).toEqual([undefined, undefined, 400]);
   await page.waitForTimeout(2200);
   await askDivide(6, 6);
   await answer(page, true);
@@ -824,7 +853,7 @@ test('division pays like its times fact, hints with the missing number, and show
 });
 
 test('division stickers count towards opening rooms', async ({ page }) => {
-  await giveStickers(page, await page.evaluate(() => DIVIDE_KEYS.slice(0, 10)));
+  await giveStickers(page, await page.evaluate(() => DIVIDE_KEYS.slice(0, 20)));
   await page.locator('#houseBtn').click();
   await expect(page.locator('#houseRoom')).not.toHaveClass(/locked/);
 });
@@ -910,14 +939,14 @@ test('a sticker gets sleepy when its visit is due, and a right answer wakes it',
   await page.reload();
   await expect(page.locator('#pathNow')).toContainText('1 sleepy 💤');
   await page.locator('#stickersBtn').click();
-  await expect(page.locator('#stickerGrid > .sleepy')).toHaveCount(2); // 3 × 5 and 5 × 3
-  await expect(page.locator('#stickerCount')).toHaveText('3 of 231 stickers · 1 sleepy 💤');
+  await expect(page.locator('#stickerGrid > .sleepy')).toHaveCount(1); // 3 × 5, while 5 × 3 has no sticker
+  await expect(page.locator('#stickerCount')).toHaveText('3 of 441 stickers · 1 sleepy 💤');
   await page.locator('#stickerBackBtn').click();
 
   await page.locator('#pathBtn').click();
-  await askFact(page, 5, 3);
+  await askFact(page, 3, 5);
   await answer(page, true);
-  await expect(page.locator('.banner')).toContainText('5 × 3 woke up!');
+  await expect(page.locator('.banner')).toContainText('3 × 5 woke up!');
   expect(await page.evaluate(() => [isSleepy(FACT_INDEX['3x5']), state.levels[FACT_INDEX['3x5']], state.mastery[FACT_INDEX['3x5']]]))
     .toEqual([false, 1, 3]);
 
@@ -998,7 +1027,7 @@ test('×4 and ×9 facts count as hard, but not with 0, 1 or 2', async ({ page })
 
 // Every times fact up to 10 has a sticker earned today.
 const learnAllTimes = page => page.evaluate(() => {
-  for (let a = 0; a <= 10; a++) for (let b = a; b <= 10; b++) { const i = FACT_INDEX[factKey(a, b)]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
+  for (let a = 0; a <= 10; a++) for (let b = 0; b <= 10; b++) { const i = FACT_INDEX[factKey(a, b)]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
   saveState();
   renderPath();
 });
@@ -1056,7 +1085,7 @@ test('after the times tables, Ms. Menna invites her to divide, and asks again 3 
   expect(await page.evaluate(() => [state.divOn, state.divIntro, game.guided])).toEqual([true, true, true]);
   await page.reload();
   await expect(page.locator('#divideToggle')).toBeChecked();
-  await expect(page.locator('#pathNow')).toHaveText('Learning ÷2 · 0 of 10 stickers');
+  await expect(page.locator('#pathNow')).toHaveText('Learning ÷2 · 0 of 19 stickers');
 });
 
 test('the path teaches division table by table, about half the round', async ({ page }) => {
@@ -1065,7 +1094,7 @@ test('the path teaches division table by table, about half the round', async ({ 
   // While she knows few ÷2 facts, every division slot is one she is learning
   const first = (await playRounds(page, 'main', 5)).flat().filter(q => q.div);
   expect(first.filter(q => q.sticker)).toEqual([]);
-  await giveStickers(page, tableKeys(2, 1, 6).map(k => 'd' + k)); // 6 of the 10 ÷2 facts
+  await giveStickers(page, tableKeys(2, 1, 6).map(k => 'd' + k)); // 11 of the 19 ÷2 facts
   const rounds = await playRounds(page, 'main', 30);
   const divides = rounds.map(round => round.filter(q => q.div));
   for (const d of divides) expect(d.length).toBe(5);
@@ -1076,8 +1105,8 @@ test('the path teaches division table by table, about half the round', async ({ 
   expect(rounds.flat().filter(q => !q.div && (q.a > 10 || q.b > 10))).toEqual([]);
 
   // At 80% of ÷2, it moves on to ÷10
-  await giveStickers(page, tableKeys(2, 1, 8).map(k => 'd' + k));
-  await expect(page.locator('#pathNow')).toHaveText('Learning ÷10 · 0 of 10 stickers');
+  await giveStickers(page, [...tableKeys(2, 1, 8), '2x9'].map(k => 'd' + k)); // 16 of 19
+  await expect(page.locator('#pathNow')).toHaveText('Learning ÷10 · 0 of 19 stickers');
   const next = (await playRounds(page, 'main', 10)).flat().filter(q => q.div);
   // New facts are ÷10, or ÷2 facts still without a sticker, as on the times path
   expect(next.filter(q => ![2, 10].includes(q.a) && ![2, 10].includes(q.b) && !q.sticker)).toEqual([]);
@@ -1111,7 +1140,7 @@ test('switching division on the first time shows the lesson; a v22 save that div
   await expect(page.locator('#divideToggle')).toBeChecked();
 
   await page.evaluate(() => {
-    const m = TIMES_KEYS.map(() => 0).concat(DIVIDE_KEYS.map(k => (k === 'd2x3' ? 1 : 0)));
+    const m = OLD_TIMES_KEYS.map(() => 0).concat(OLD_DIVIDE_KEYS.map(k => (k === 'd2x3' ? 1 : 0))); // the v22 layout
     localStorage.setItem(STORE_KEY, JSON.stringify({ v: 4, totalCents: 10, mastery: m.join(''), savedAt: Date.now() + 5000 }));
     document.cookie = `${COOKIE_NAME}=; max-age=0; path=/`;
   });
@@ -1134,7 +1163,8 @@ test('an older plain cookie still loads, and is saved again compressed', async (
     times: TIMES_KEYS.filter(hasSticker).length,
     divide: DIVIDE_KEYS.filter(hasSticker).length,
   }));
-  expect(saved).toEqual({ gems: 8, lz: true, cookie: 22, local: 22, times: 210, divide: 0 });
+  // The 210 shared stickers are now 400: 20 squares like 3 × 3, and 190 pairs like 3 × 7 and 7 × 3
+  expect(saved).toEqual({ gems: 8, lz: true, cookie: 25, local: 25, times: 400, divide: 0 });
 });
 
 test('older stickers get spread-out first visits, and review dates survive a reload', async ({ page }) => {

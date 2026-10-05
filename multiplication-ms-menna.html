@@ -944,13 +944,15 @@
   .chart-tab { font-family: 'Baloo 2', cursive; font-weight: 800; font-size: clamp(1rem, 2.4vmin, 1.3rem); color: var(--dark-brown);
     background: white; border: 3px solid var(--peach); border-radius: 50px; padding: 6px 18px; min-height: 44px; cursor: pointer; touch-action: manipulation; }
   .chart-tab.active { background: var(--gold); border-color: var(--dark-brown); }
+  .chart-tab.small { font-size: clamp(0.9rem, 2.1vmin, 1.1rem); padding: 4px 16px; }
   .sticker-grid {
     display: grid;
     grid-template-columns: repeat(22, 1fr);
     gap: 2px;
     margin: 0 auto 10px;
-    max-width: 680px;
+    max-width: 560px;
   }
+  .sticker-grid[hidden] { display: none; }
   .sticker-grid > div {
     aspect-ratio: 1;
     display: flex;
@@ -1273,7 +1275,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v25 - Updated 2026-10-04 20:20 EDT</p>
+    <p class="version">v26 - Updated 2026-10-04 20:53 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1411,8 +1413,13 @@
       <button class="chart-tab active" id="tabTimes" role="tab" aria-selected="true">× Times</button>
       <button class="chart-tab" id="tabDivide" role="tab" aria-selected="false">÷ Divide</button>
     </div>
+    <div class="chart-tabs" role="tablist">
+      <button class="chart-tab small active" id="tabLow" role="tab" aria-selected="true">0–10</button>
+      <button class="chart-tab small" id="tabHigh" role="tab" aria-selected="false">11–20</button>
+    </div>
     <p class="sticker-count" id="stickerCount"></p>
     <div class="sticker-grid" id="stickerGrid"></div>
+    <div class="sticker-grid" id="stickerGridMore" hidden></div>
     <p class="sticker-help">Get a fact right on the first try 3 times to earn its sticker. The last time has to be on another day.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 each have a sticker!</span><br>💤 Sleepy stickers want a visit. Get one right to wake it up!</p>
     <button class="btn btn-secondary" id="stickerBackBtn">← Back</button>
   </div>
@@ -3399,19 +3406,17 @@ function goHome() {
 // ===== STICKER CHART =====
 let stickersSeen = null; // stickers shown last time, so new ones can pop in
 let chartPage = 'times'; // 'times' or 'divide'
+let chartHigh = false; // false shows numbers up to 10, true shows facts with a number from 11 to 20
+const range = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
-// Times page: a row for each number 0 to 20. 3 × 7 is in row 3, column 7, and 7 × 3 has its own sticker.
-// Divide page: 56 ÷ 7 is in row 7, column 8; 56 ÷ 8 has its own sticker. There is no 0 row, since nothing is divided by 0.
-function showStickers() {
-  const divide = chartPage === 'divide';
-  const from = divide ? 1 : 0;
-  const grid = $('stickerGrid');
+// One grid: a row for each number in `rows`, a column for each number in `cols`.
+// 3 × 7 is in row 3, column 7. 56 ÷ 7 is in row 7, column 8.
+function fillGrid(grid, rows, cols, divide) {
   const head = n => `<div class="head" style="background:${PICK_COLORS[n - 1] || ZERO_COLOR}">${n}</div>`;
-  const cells = [`<div class="corner">${divide ? '÷' : '×'}</div>`];
-  for (let b = from; b <= MAX_NUMBER; b++) cells.push(head(b));
-  for (let a = from; a <= MAX_NUMBER; a++) {
+  const cells = [`<div class="corner">${divide ? '÷' : '×'}</div>`, ...cols.map(head)];
+  for (const a of rows) {
     cells.push(head(a));
-    for (let b = from; b <= MAX_NUMBER; b++) {
+    for (const b of cols) {
       const q = { a, b, div: divide };
       const key = keyOf(q);
       const m = state.mastery[FACT_INDEX[key]];
@@ -3425,18 +3430,37 @@ function showStickers() {
       }
     }
   }
-  grid.style.gridTemplateColumns = `repeat(${MAX_NUMBER + 2 - from}, 1fr)`;
+  grid.style.gridTemplateColumns = `repeat(${cols.length + 1}, 1fr)`;
   grid.innerHTML = cells.join('');
-  const keys = divide ? DIVIDE_KEYS : TIMES_KEYS;
+}
+
+// Each page has two views, so the squares stay big enough to see on a phone.
+// 0–10 is the Learning Path. 11–20 has every fact with a bigger number, in two grids:
+// columns 11–20 for every row, then rows 11–20 for columns up to 10. There is no 0 on the divide page.
+function showStickers() {
+  const divide = chartPage === 'divide';
+  const from = divide ? 1 : 0;
+  const low = range(from, 10);
+  const high = range(11, MAX_NUMBER);
+  if (chartHigh) {
+    fillGrid($('stickerGrid'), range(from, MAX_NUMBER), high, divide);
+    fillGrid($('stickerGridMore'), high, low, divide);
+  } else {
+    fillGrid($('stickerGrid'), low, low, divide);
+  }
+  $('stickerGridMore').hidden = !chartHigh;
+  const keys = (divide ? DIVIDE_KEYS : TIMES_KEYS).filter(k => Math.max(...factsOf(k)) > 10 === chartHigh);
   const got = keys.filter(hasSticker).length;
   const sleepy = sleepyCount(keys);
   $('stickerCount').textContent = `${got} of ${keys.length} stickers${got === keys.length ? ' — all of them! 🏆' : ''}${sleepy ? ` · ${sleepy} sleepy 💤` : ''}`;
   $('stickerShare').textContent = divide ? '56 ÷ 7 and 56 ÷ 8 each have a sticker!' : '3 × 7 and 7 × 3 each have a sticker!';
-  for (const [id, page] of [['tabTimes', 'times'], ['tabDivide', 'divide']]) {
-    $(id).classList.toggle('active', page === chartPage);
-    $(id).setAttribute('aria-selected', page === chartPage);
+  for (const [id, on] of [['tabTimes', !divide], ['tabDivide', divide], ['tabLow', !chartHigh], ['tabHigh', chartHigh]]) {
+    $(id).classList.toggle('active', on);
+    $(id).setAttribute('aria-selected', on);
   }
-  stickersSeen = new Set([...(stickersSeen || []), ...keys.filter(hasSticker)]);
+  $('tabLow').textContent = `${from}–10`;
+  // Every sticker counts as seen, so stickers in the other view don't pop in later as if new
+  stickersSeen = new Set(FACT_KEYS.filter(hasSticker));
   showScreen('stickerScreen');
 }
 
@@ -4283,6 +4307,8 @@ function init() {
   $('stickersBtn').addEventListener('click', showStickers);
   $('tabTimes').addEventListener('click', () => { sfx.tap(0); chartPage = 'times'; showStickers(); });
   $('tabDivide').addEventListener('click', () => { sfx.tap(0); chartPage = 'divide'; showStickers(); });
+  $('tabLow').addEventListener('click', () => { sfx.tap(0); chartHigh = false; showStickers(); });
+  $('tabHigh').addEventListener('click', () => { sfx.tap(0); chartHigh = true; showStickers(); });
   $('stickerBackBtn').addEventListener('click', goHome);
   $('cashBackBtn').addEventListener('click', goHome);
   $('closetBtn').addEventListener('click', showCloset);

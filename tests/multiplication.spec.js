@@ -280,26 +280,40 @@ test('Ms. Menna does a trick for 3 right in a row', async ({ page }) => {
   await expect(page.locator('#gameBubble')).toContainText('3 in a row');
 });
 
-test('the sticker chart has a times page and a divide page', async ({ page }) => {
+test('the sticker chart has times and divide pages, each with a 0–10 and an 11–20 view', async ({ page }) => {
   await page.evaluate(() => {
-    for (const k of ['3x7', '4x17', '0x0', 'd7x8', 'd2x2']) state.mastery[FACT_INDEX[k]] = 3;
+    for (const k of ['3x7', '4x17', '17x4', '0x0', 'd7x8', 'd2x2', 'd3x15']) state.mastery[FACT_INDEX[k]] = 3;
     state.mastery[FACT_INDEX['2x5']] = 1;
     saveState();
   });
   await page.locator('#stickersBtn').click();
-  await expect(page.locator('#stickerCount')).toHaveText('3 of 441 stickers');
-  // 0 to 20 plus headings is a 22×22 grid; 3×7 has a sticker and 7×3 has its own, not earned yet
-  await expect(page.locator('#stickerGrid > div')).toHaveCount(22 * 22);
-  await expect(page.locator('#stickerGrid > .got')).toHaveCount(3);
+  await expect(page.locator('#stickerCount')).toHaveText('2 of 121 stickers');
+  // 0 to 10 plus headings is a 12×12 grid; 3×7 has a sticker and 7×3 has its own, not earned yet
+  await expect(page.locator('#stickerGrid > div')).toHaveCount(12 * 12);
+  await expect(page.locator('#stickerGridMore')).toBeHidden();
+  await expect(page.locator('#stickerGrid > .got')).toHaveCount(2);
   await expect(page.locator('#stickerGrid > .got[title="3 × 7 = 21"]')).toHaveCount(1);
   await expect(page.locator('#stickerGrid > .got[title="7 × 3 = 21"]')).toHaveCount(0);
   await expect(page.locator('#stickerGrid > div').nth(1)).toHaveText('0');
   await expect(page.locator('#stickerGrid .dots')).toHaveCount(1); // 2 × 5 only; 5 × 2 has its own dots
 
+  // 11–20: columns 11–20 for rows 0–20, then rows 11–20 for columns 0–10
+  await page.locator('#tabHigh').click();
+  await expect(page.locator('#stickerCount')).toHaveText('2 of 320 stickers');
+  await expect(page.locator('#stickerGrid > div')).toHaveCount(22 * 11);
+  await expect(page.locator('#stickerGridMore > div')).toHaveCount(11 * 12);
+  await expect(page.locator('#stickerGrid > .got[title="4 × 17 = 68"]')).toHaveCount(1);
+  await expect(page.locator('#stickerGridMore > .got[title="17 × 4 = 68"]')).toHaveCount(1);
+
   // No 0 row or column on the divide page. 56 ÷ 7 and 56 ÷ 8 each have a sticker.
   await page.locator('#tabDivide').click();
-  await expect(page.locator('#stickerCount')).toHaveText('2 of 400 stickers');
-  await expect(page.locator('#stickerGrid > div')).toHaveCount(21 * 21);
+  await expect(page.locator('#stickerCount')).toHaveText('1 of 300 stickers');
+  await expect(page.locator('#stickerGridMore > div')).toHaveCount(11 * 11);
+  await page.locator('#tabLow').click();
+  await expect(page.locator('#tabLow')).toHaveText('1–10');
+  await expect(page.locator('#stickerCount')).toHaveText('2 of 100 stickers');
+  await expect(page.locator('#stickerGrid > div')).toHaveCount(11 * 11);
+  await expect(page.locator('#stickerGridMore')).toBeHidden();
   await expect(page.locator('#stickerGrid > div').nth(1)).toHaveText('1');
   await expect(page.locator('#stickerGrid > .got')).toHaveCount(2); // 56 ÷ 7 and 4 ÷ 2
   await expect(page.locator('#stickerGrid > .got[title="56 ÷ 7 = 8"]')).toHaveCount(1);
@@ -940,7 +954,7 @@ test('a sticker gets sleepy when its visit is due, and a right answer wakes it',
   await expect(page.locator('#pathNow')).toContainText('1 sleepy 💤');
   await page.locator('#stickersBtn').click();
   await expect(page.locator('#stickerGrid > .sleepy')).toHaveCount(1); // 3 × 5, while 5 × 3 has no sticker
-  await expect(page.locator('#stickerCount')).toHaveText('3 of 441 stickers · 1 sleepy 💤');
+  await expect(page.locator('#stickerCount')).toHaveText('3 of 121 stickers · 1 sleepy 💤');
   await page.locator('#stickerBackBtn').click();
 
   await page.locator('#pathBtn').click();

@@ -789,7 +789,7 @@ test('picker medals follow the stickers up to each number', async ({ page }) => 
 
 test('a path moves on at 80%, rounds are mostly known facts, and division joins when switched on', async ({ page }) => {
   await giveStickers(page, tableKeys(2, 2, 10)); // 17 of the 21 ×2 facts
-  await expect(page.locator('#pathNow')).toHaveText('Learning ×10 · 2 of 21 stickers'); // 2 × 10 and 10 × 2 count for ×10 too
+  await expect(page.locator('#pathNow')).toHaveText('Learning ×10 · 0 of 19 stickers'); // 2 × 10 and 10 × 2 were in ×2
   const off = (await playRounds(page, 'main', 10)).flat();
   expect(off.filter(q => q.div)).toEqual([]);
 
@@ -1028,6 +1028,58 @@ test('on the ×0 & ×1 step, 0 facts come up as often as ×1 facts', async ({ pa
   expect(share).toBeGreaterThan(0.47); // about 15 of 28; it was about 37% while 0 facts were held back
 });
 
+test('a table counts only the facts it adds, so ×9 and ×7 are taught and ×0 & ×1 needs its 0 facts', async ({ page }) => {
+  const give = keys => page.evaluate(ks => {
+    for (const k of ks) { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
+    saveState(); renderPath();
+  }, keys);
+  await give(await page.evaluate(() => PATH_FACTS.slice(0, 3).flat()));
+  // ×0 & ×1 adds 15 0 facts and 13 ×1 facts. Every ×1 fact and 11 of the 0 facts is not enough.
+  const [zeros, ones] = await page.evaluate(() => [PATH_NEW[3].filter(hasZero), PATH_NEW[3].filter(k => !hasZero(k))]);
+  await give([...ones, ...zeros.slice(0, 11)]);
+  await expect(page.locator('#pathNow')).toHaveText('Learning ×0 & ×1 · 24 of 28 stickers');
+  await give(zeros.slice(11, 12));
+  await expect(page.locator('#pathNow')).toHaveText(/^Learning ×4 /);
+
+  // With the first 8 tables done, ×9 is still taught: it adds 9 × 7, 7 × 9 and 9 × 9
+  await give(await page.evaluate(() => PATH_FACTS.slice(0, 8).flat()));
+  await expect(page.locator('#pathNow')).toHaveText('Learning ×9 · 0 of 3 stickers');
+  await page.locator('#pathBtn').click();
+  await page.evaluate(() => { game.index = game.newAt[0]; });
+  const fresh = await page.evaluate(() => Array.from({ length: 30 }, () => keyOf(pickQuestion(false))));
+  expect(fresh.every(k => ['9x7', '7x9', '9x9'].includes(k))).toBe(true);
+  // One round can finish ×9 and ×7 together, and the summary names both
+  await page.evaluate(() => {
+    for (const k of ['9x7', '7x9', '9x9', '7x7']) state.mastery[FACT_INDEX[k]] = STICKER_AT;
+    game.index = QUESTIONS_PER_ROUND;
+    nextQuestion();
+  });
+  await expect(page.locator('#pathUp')).toHaveText("🐾 You learned ×9 and ×7! That's all the times tables! 🏆");
+});
+
+test('the round\'s 0 fact is one she still needs, and the last question is free for a retry', async ({ page }) => {
+  const out = await page.evaluate(() => {
+    // Every 0 fact on the path has a sticker except 0 × 7
+    for (const k of PATH_FACTS.flat()) { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
+    state.mastery[FACT_INDEX['0x7']] = 0;
+    startRound('main');
+    game.index = 3; // a review question
+    const picks = new Set(Array.from({ length: 20 }, () => keyOf(pickQuestion(true))));
+    const zeroAts = new Set(Array.from({ length: 200 }, () => { startRound('main'); return game.zeroAt; }));
+    // A retry due on the last question wins, since the 0 fact had its chance by the 9th
+    startRound('main');
+    Object.assign(game, { index: QUESTIONS_PER_ROUND - 1, hadZero: false, zeroNeeded: true, zeroAt: 0, prevKey: null });
+    game.retries.push({ a: 8, b: 8, div: false, key: '8x8', at: QUESTIONS_PER_ROUND - 1 });
+    nextQuestion();
+    const last = keyOf(game);
+    goHome();
+    return { picks: [...picks], maxZeroAt: Math.max(...zeroAts), last };
+  });
+  expect(out.picks).toEqual(['0x7']);
+  expect(out.maxZeroAt).toBe(8);
+  expect(out.last).toBe('8x8');
+});
+
 test('after a hard round the path teaches 2 new facts instead of 3', async ({ page }) => {
   await page.locator('#pathBtn').click();
   expect(await page.evaluate(() => game.newAt.length)).toBe(3);
@@ -1135,7 +1187,7 @@ test('the path teaches division table by table, about half the round', async ({ 
 
   // At 80% of ÷2, it moves on to ÷10
   await giveStickers(page, [...tableKeys(2, 1, 8), '2x9'].map(k => 'd' + k)); // 16 of 19
-  await expect(page.locator('#pathNow')).toHaveText('Learning ÷10 · 0 of 19 stickers');
+  await expect(page.locator('#pathNow')).toHaveText('Learning ÷10 · 0 of 17 stickers');
   const next = (await playRounds(page, 'main', 10)).flat().filter(q => q.div);
   // New facts are ÷10, or ÷2 facts still without a sticker, as on the times path
   expect(next.filter(q => ![2, 10].includes(q.a) && ![2, 10].includes(q.b) && !q.sticker)).toEqual([]);
@@ -1154,6 +1206,12 @@ test('the first division questions show their picture right away', async ({ page
   await expect(page.locator('#gridArea')).toHaveClass(/show/, { timeout: 4000 });
   await expect(page.locator('#gameBubble')).toContainText('× ? =');
   expect(await page.evaluate(() => state.divPics)).toBe(2);
+  // A picture she didn't ask for keeps the full pay
+  await expect(page.locator('#worth')).toHaveText(/^This one pays \d+¢!$/);
+  const want = await page.evaluate(() => centsFor(game.a, game.b));
+  const before = await page.evaluate(() => state.totalCents);
+  await answer(page, true);
+  expect(await page.evaluate(b => state.totalCents - b, before)).toBe(want);
 });
 
 test('switching division on the first time shows the lesson; a v22 save that divided keeps it on', async ({ page }) => {

@@ -1275,7 +1275,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v27 - Updated 2026-10-06 06:51 EDT</p>
+    <p class="version">v28 - Updated 2026-10-06 07:18 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2654,13 +2654,24 @@ const DIVIDE_FACTS = PATH_FACTS.map(keys => keys.filter(k => !hasZero(k)).map(k 
 const MAIN_KEYS = FACT_KEYS.filter(k => Math.max(...factsOf(k)) <= 10);
 
 const shareOf = keys => keys.filter(hasSticker).length / keys.length;
-// The first table she hasn't learned yet, or the number of tables when every table is done.
-function stepOf(steps) {
-  const i = steps.findIndex(keys => shareOf(keys) < PATH_DONE_AT);
-  return i < 0 ? steps.length : i;
+// What each table adds: its facts that no earlier table has. ×9 adds 9 × 7, 7 × 9 and 9 × 9, and ×7 adds 7 × 7.
+const newFactsOf = steps => steps.map((keys, s) => keys.filter(k => !steps.slice(0, s).some(e => e.includes(k))));
+const PATH_NEW = newFactsOf(PATH_FACTS);
+const DIVIDE_NEW = newFactsOf(DIVIDE_FACTS);
+// A table is done when 80% of what it adds has stickers, for each of its numbers, so ×0 & ×1 needs its 0 facts too.
+function tableDone(news, s) {
+  return PATH[s].every(n => {
+    const keys = news[s].filter(k => factsOf(k).includes(n));
+    return !keys.length || shareOf(keys) >= PATH_DONE_AT;
+  });
 }
-const pathStep = () => stepOf(PATH_FACTS);
-const divideStep = () => stepOf(DIVIDE_FACTS);
+// The first table she hasn't learned yet, or the number of tables when every table is done.
+function stepOf(news) {
+  const i = news.findIndex((_, s) => !tableDone(news, s));
+  return i < 0 ? news.length : i;
+}
+const pathStep = () => stepOf(PATH_NEW);
+const divideStep = () => stepOf(DIVIDE_NEW);
 // The path teaches division after all the times tables, if division is on.
 const guidedDivide = () => state.divOn && pathStep() === PATH.length && divideStep() < PATH.length;
 // Ms. Menna invites her to learn dividing when she knows every times table, and again a few days after "Not yet".
@@ -2677,7 +2688,7 @@ function renderPath() {
   const at = step < PATH.length ? step : divideStep();
   $('pathNow').textContent = step === PATH.length && !guidedDivide()
     ? `All tables done! Mixed review 🏆${nap}`
-    : `Learning ${pathName(at, sign)} · ${(sign === '×' ? PATH_FACTS : DIVIDE_FACTS)[at].filter(hasSticker).length} of ${(sign === '×' ? PATH_FACTS : DIVIDE_FACTS)[at].length} stickers${nap}`;
+    : `Learning ${pathName(at, sign)} · ${(sign === '×' ? PATH_NEW : DIVIDE_NEW)[at].filter(hasSticker).length} of ${(sign === '×' ? PATH_NEW : DIVIDE_NEW)[at].length} stickers${nap}`;
   $('divideToggle').checked = state.divOn;
 }
 
@@ -2701,21 +2712,29 @@ function pathPool(zeroOnly) {
   if (!zeroOnly && game.divideAt.includes(game.index)) {
     if (game.guided) return mixOf(poolsOf(DIVIDE_FACTS, game.divStep, true), game.divNewAt);
     // Division of every table she has learned, and any sleepy division sticker.
-    const keys = new Set(DIVIDE_FACTS.filter((_, s) => shareOf(PATH_FACTS[s]) >= PATH_DONE_AT).flat());
+    const keys = new Set(DIVIDE_FACTS.filter((_, s) => tableDone(PATH_NEW, s)).flat());
     for (const key of MAIN_KEYS) if (key.startsWith('d') && isSleepy(FACT_INDEX[key])) keys.add(key);
     if (keys.size) return [...keys];
   }
   const pools = poolsOf(PATH_FACTS, game.step, false);
   if (!zeroOnly) return mixOf(pools, game.newAt);
-  const zeros = pools.learning.filter(hasZero);
-  return game.newAt.includes(game.index) && zeros.length ? zeros : [...pools.known, ...pools.learning].filter(hasZero);
+  return neededZeros([...pools.known, ...pools.learning].filter(hasZero));
+}
+
+// The round's 0 fact is one she still needs: a 0 fact without a sticker, then a sleepy one, then any.
+function neededZeros(keys) {
+  for (const want of [k => !hasSticker(k), k => isSleepy(FACT_INDEX[k])]) {
+    const needed = keys.filter(want);
+    if (needed.length) return needed;
+  }
+  return keys;
 }
 
 // Practice asks any fact with both numbers up to her number. Division leaves out 0.
 function practicePool(zeroOnly) {
   const divide = !zeroOnly && game.divideAt.includes(game.index);
   const keys = FACT_KEYS.filter(k => k.startsWith('d') === divide && factsOf(k).every(n => n <= game.max));
-  return zeroOnly ? keys.filter(hasZero) : keys;
+  return zeroOnly ? neededZeros(keys.filter(hasZero)) : keys;
 }
 
 // ===== START SCREEN =====
@@ -2873,7 +2892,8 @@ function startRound(path, max = 0) {
     timers: [],
     countTimers: [], // the picture's row-by-row count, cleared when it restarts or the answer is right
     hadZero: false,
-    zeroAt: Math.floor(Math.random() * QUESTIONS_PER_ROUND), // the round asks a 0 fact by this question
+    // The round asks a 0 fact by this question, at the latest the 9th, so the last one is free for a retry.
+    zeroAt: Math.floor(Math.random() * (QUESTIONS_PER_ROUND - 1)),
   };
   // A 0 fact comes every round until she has its sticker. After that only when it is sleepy, or now and then.
   const keys = path === 'practice' ? practicePool(true) : Object.values(poolsOf(PATH_FACTS, game.step, false)).flat();
@@ -2934,8 +2954,9 @@ function nextQuestion() {
     return;
   }
   const needZero = game.zeroNeeded && !game.hadZero && game.index >= game.zeroAt;
-  const lastOne = game.index === QUESTIONS_PER_ROUND - 1;
-  const due = needZero && lastOne ? -1 : game.retries.findIndex(r => r.at <= game.index && r.key !== game.prevKey);
+  // The 9th question is the 0 fact's last chance, so it goes ahead of a retry there. The 10th is the retry's.
+  const zeroLast = game.index === QUESTIONS_PER_ROUND - 2;
+  const due = needZero && zeroLast ? -1 : game.retries.findIndex(r => r.at <= game.index && r.key !== game.prevKey);
   const retry = due >= 0 ? game.retries.splice(due, 1)[0] : null;
   const q = retry || pickQuestion(needZero);
   if (q.a === 0 || q.b === 0) game.hadZero = true;
@@ -2974,7 +2995,7 @@ function nextQuestion() {
     later(() => {
       if (game.solved || $('gridArea').classList.contains('show')) return;
       say('gameBubble', `${q.a} × ? = ${q.a * q.b}. How many in each row?`, '', true);
-      showGrid(false);
+      showGrid(false, true);
     }, 1600);
   }
 }
@@ -3197,7 +3218,8 @@ function hintPlan({ a, b, div }) {
 const SPLIT_COLORS = ['#FFB870', '#6FC3F2'];
 
 // ===== VISUAL GRID: rows × dots, split in two colors when the fact has a strategy =====
-function showGrid(countOut) {
+// A picture Ms. Menna shows on her own (free) keeps the full pay; one she asks for, or after two misses, pays 1¢.
+function showGrid(countOut, free = false) {
   const plan = hintPlan(game);
   const { rows: a, cols: b, p, q } = plan;
   const drawn = q < 0 ? p : a; // 9 is drawn as 10 rows, and the last one is taken away
@@ -3206,7 +3228,7 @@ function showGrid(countOut) {
   area.classList.add('show');
   $('hintBtn').classList.remove('show');
   clearCountOut();
-  if (!game.hinted) {
+  if (!game.hinted && !free) {
     game.hinted = true;
     $('worth').textContent = `With the picture, this one pays ${HINT_CENTS}¢`;
     $('worth').className = 'worth tier-1';
@@ -3361,14 +3383,19 @@ function showSummary() {
   const divStep = divideStep();
   const times = game.path === 'main' && step > game.step;
   const divide = game.guided && divStep > game.divStep;
+  // Every table passed this round, since one round can finish more than one: "×9 and ×7".
+  const learned = (from, to, sign) => {
+    const names = PATH.slice(from, to).map((_, s) => pathName(from + s, sign));
+    return names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names.at(-1) : names[0];
+  };
   $('pathUp').textContent = times
     ? (step === PATH.length
-      ? '🐾 You learned all the times tables! 🏆'
-      : `🐾 You learned ${pathName(game.step)}! Next up: ${pathName(step)}`)
+      ? `🐾 You learned ${learned(game.step, step)}! That's all the times tables! 🏆`
+      : `🐾 You learned ${learned(game.step, step)}! Next up: ${pathName(step)}`)
     : divide
     ? (divStep === PATH.length
-      ? '🐾 You learned all your dividing! 🏆'
-      : `🐾 You learned ${pathName(game.divStep, '÷')}! Next up: ${pathName(divStep, '÷')}`)
+      ? `🐾 You learned ${learned(game.divStep, divStep, '÷')}! That's all your dividing! 🏆`
+      : `🐾 You learned ${learned(game.divStep, divStep, '÷')}! Next up: ${pathName(divStep, '÷')}`)
     : '';
   // A new division table starts with a few pictures.
   if ((times || divide) && guidedDivide()) state.divPics = Math.max(state.divPics, AUTO_PICTURES.table);

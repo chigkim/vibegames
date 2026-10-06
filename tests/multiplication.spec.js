@@ -1013,6 +1013,21 @@ test('once the 0 stickers are earned, rounds no longer need a 0 fact', async ({ 
   expect(zeros.total).toBeLessThan(26); // now and then, not every round
 });
 
+test('on the ×0 & ×1 step, 0 facts come up as often as ×1 facts', async ({ page }) => {
+  const share = await page.evaluate(() => {
+    // ×2, ×10 and ×5 are done, so the path is on ×0 & ×1: 15 new 0 facts and 13 new ×1 facts
+    for (const k of PATH_FACTS.slice(0, 3).flat()) { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
+    startRound('main');
+    game.index = game.newAt[0];
+    let zeros = 0;
+    const picks = 3000;
+    for (let n = 0; n < picks; n++) if (hasZero(keyOf(pickQuestion(false)))) zeros++;
+    goHome();
+    return zeros / picks;
+  });
+  expect(share).toBeGreaterThan(0.47); // about 15 of 28; it was about 37% while 0 facts were held back
+});
+
 test('after a hard round the path teaches 2 new facts instead of 3', async ({ page }) => {
   await page.locator('#pathBtn').click();
   expect(await page.evaluate(() => game.newAt.length)).toBe(3);

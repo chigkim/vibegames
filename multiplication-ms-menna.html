@@ -1275,7 +1275,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v26 - Updated 2026-10-04 20:53 EDT</p>
+    <p class="version">v27 - Updated 2026-10-06 06:51 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2910,7 +2910,9 @@ function pickQuestion(zeroOnly) {
     const i = FACT_INDEX[key];
     let w = weightOf(key);
     // Keeps the easy 0 facts from filling a practice round. A 0 sticker she knows comes back only now and then.
-    if (hasZero(key) && !zeroOnly) w *= practice && hasSticker(key) && !isSleepy(i) ? 0.1 : 0.5;
+    // On the ×0 & ×1 step they come up as often as the ×1 facts, so the step doesn't finish with 0 facts left over.
+    const zeroStep = !practice && PATH[game.step]?.includes(0);
+    if (hasZero(key) && !zeroOnly && !zeroStep) w *= practice && hasSticker(key) && !isSleepy(i) ? 0.1 : 0.5;
     if (game.asked.has(key)) w *= 0.25;
     w *= 1 + state.mastery[i]; // finish the facts that are nearly stickers first
     if (isSleepy(i)) w *= 4; // review visits first

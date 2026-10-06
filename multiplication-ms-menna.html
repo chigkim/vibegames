@@ -1275,7 +1275,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v28 - Updated 2026-10-06 07:18 EDT</p>
+    <p class="version">v29 - Updated 2026-10-06 18:44 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1420,7 +1420,7 @@
     <p class="sticker-count" id="stickerCount"></p>
     <div class="sticker-grid" id="stickerGrid"></div>
     <div class="sticker-grid" id="stickerGridMore" hidden></div>
-    <p class="sticker-help">Get a fact right on the first try 3 times to earn its sticker. The last time has to be on another day.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 each have a sticker!</span><br>💤 Sleepy stickers want a visit. Get one right to wake it up!</p>
+    <p class="sticker-help">Get a fact right on the first try on 3 different days to earn its sticker.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 each have a sticker!</span><br>💤 Sleepy stickers want a visit. Get one right to wake it up!</p>
     <button class="btn btn-secondary" id="stickerBackBtn">← Back</button>
   </div>
 </div>
@@ -1491,6 +1491,7 @@
 
 // ===== CONSTANTS =====
 const QUESTIONS_PER_ROUND = 10;
+const RECENT_TRIES = 10; // the last new times facts she answered on the path, right or not, kept in the save
 const HINT_CENTS = 1; // Pay for a right answer after the picture was shown, whatever the factors.
 const MAX_NUMBER = 20;
 const MIN_PICK = 3; // the smallest number on the practice picker
@@ -1548,7 +1549,7 @@ const hasZero = key => /(^|x)0(x|$)/.test(key);
 const ZERO_COLOR = '#EDE6DE'; // sticker chart heading for 0
 const FACT_INDEX = Object.fromEntries(FACT_KEYS.map((k, i) => [k, i]));
 const STICKER_AT = 3; // first-try right answers needed for a sticker
-// The last dot of a sticker must come on a different day from the dot before it, so every sticker is learned on 2 days.
+// One dot a day, so every sticker is learned on 3 different days.
 // A sticker then wants a visit after 1, 3, 7, 14 and 30 days. Once a visit is due it is sleepy 💤 until she gets it right again.
 const REVIEW_DAYS = [1, 3, 7, 14, 30];
 const SLEEPY_NOW = REVIEW_DAYS.length; // a sticker she just missed: sleepy right away, then starts again at 1 day
@@ -1913,6 +1914,9 @@ function defaultState() {
     totalCents: 0, paidCents: 0, payouts: [], weights: {}, mastery: FACT_KEYS.map(() => 0), muted: false,
     gems: 0, owned: [], worn: { ...DEFAULT_WORN }, toys: {}, treats: {}, furniture: [], home: {}, room: 'bedroom', savedAt: 0,
     days: FACT_KEYS.map(() => 0), levels: FACT_KEYS.map(() => 0), easyPath: false,
+    fastPath: false, newTries: '', // 4 new facts a round, and her last first answers to new facts
+    missedDay: 0, missedKeys: [], // facts she missed on the path that day, oldest first
+    peekStep: 0, // the later table her next sneak peek comes from
     lastMax: 0, // the number she picked last for practice
     divOn: false, divIntro: false, // division is on, and she has seen the first division lesson
     divAsked: 0, // the day she last said "Not yet" to learning dividing
@@ -2059,6 +2063,13 @@ function parseSave(saved) {
     }
   });
   state.easyPath = !!saved.easyPath;
+  state.fastPath = !!saved.fastPath;
+  if (typeof saved.newTries === 'string' && /^[01]*$/.test(saved.newTries)) state.newTries = saved.newTries.slice(-RECENT_TRIES);
+  if (Number.isInteger(saved.missedDay) && Array.isArray(saved.missedKeys)) {
+    state.missedDay = saved.missedDay;
+    state.missedKeys = saved.missedKeys.filter(k => k in FACT_INDEX && /^d?(\d|10)x(\d|10)$/.test(k));
+  }
+  if (Number.isInteger(saved.peekStep)) state.peekStep = saved.peekStep;
   if (Number.isInteger(saved.lastMax) && saved.lastMax >= MIN_PICK && saved.lastMax <= MAX_NUMBER) state.lastMax = saved.lastMax;
   if (typeof saved.divOn === 'boolean') {
     state.divOn = saved.divOn;
@@ -2168,6 +2179,8 @@ function mergeNewer(stored) {
     else delete state.weights[key];
   }
   state.divIntro = state.divIntro || stored.divIntro;
+  if (stored.missedDay > state.missedDay) [state.missedDay, state.missedKeys] = [stored.missedDay, stored.missedKeys];
+  else if (stored.missedDay === state.missedDay) state.missedKeys = [...new Set([...stored.missedKeys, ...state.missedKeys])];
   state.rooms = [...new Set([...stored.rooms, ...state.rooms])];
   // Choices like the outfit, toys, furniture spots and the room go to this tab, the one saving now.
   // A payout row is lost only if the newest copy is the cookie without the list; paidCents is still right.
@@ -2374,10 +2387,6 @@ const hasSticker = key => state.mastery[FACT_INDEX[key]] >= STICKER_AT;
 const isSleepy = i => state.mastery[i] >= STICKER_AT &&
   (state.levels[i] === SLEEPY_NOW || (state.days[i] > 0 && today() >= state.days[i] + REVIEW_DAYS[state.levels[i]]));
 const sleepyCount = (keys = FACT_KEYS) => keys.filter(k => isSleepy(FACT_INDEX[k])).length;
-// Facts children miss most: products over 40, and the ×4 to ×9 tables (except ×5).
-// A table fact is easy when the other number is 0, 1 or 2.
-const HARD_TABLES = [4, 6, 7, 8, 9];
-const isHard = (a, b) => a * b > 40 || (Math.min(a, b) >= 3 && (HARD_TABLES.includes(a) || HARD_TABLES.includes(b)));
 
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
@@ -2635,6 +2644,9 @@ const PATH = [[2], [10], [5], [0, 1], [4], [8], [3], [6], [9], [7]];
 const PATH_DONE_AT = 0.8;
 const PATH_NEW_AT = [1, 4, 7]; // questions that teach a fact without a sticker yet; the rest are review
 const PATH_NEW_AT_EASY = [2, 6]; // after a round with fewer than 7 first-try answers, until a round with 8 or more
+const PATH_NEW_AT_FAST = [1, 4, 6, 8]; // after a round with 9 or more, when she also got most of her recent new facts
+const REDO_PER_ROUND = 3; // facts she missed earlier today, asked again on review questions: 2 with 4 new facts, 1 when easier
+const FAST_RIGHT = 8; // of those, how many she got right first time for 4 new facts a round
 const DIVIDE_AT = [3, 5, 9]; // division questions, once division is on and she has learned a table
 const GUIDED_DIVIDE_AT = [1, 3, 5, 7, 9]; // division questions while the path teaches division
 const GUIDED_NEW_AT = [1, 5, 9]; // division questions that teach a fact without a sticker yet
@@ -2680,14 +2692,21 @@ const inviteDue = () => !state.divOn && pathStep() === PATH.length && today() - 
 // ×0 & ×1 is ÷1 for division, since nothing is divided by 0.
 const pathName = (step, sign = '×') => PATH[step].filter(n => sign === '×' || n).map(n => sign + n).join(' & ');
 
+// A table is learned at 80% of its stickers, so the rest are still to collect in mixed review.
+const moreToGet = divide => {
+  const left = MAIN_KEYS.filter(k => k.startsWith('d') === divide && !hasSticker(k)).length;
+  return left ? ` ${left} more ${left === 1 ? 'sticker' : 'stickers'} to collect!` : '';
+};
+
 function renderPath() {
-  const sleepy = sleepyCount(MAIN_KEYS.filter(k => state.divOn || !k.startsWith('d')));
+  const shown = MAIN_KEYS.filter(k => state.divOn || !k.startsWith('d'));
+  const sleepy = sleepyCount(shown);
   const nap = sleepy ? ` · ${sleepy} sleepy 💤` : '';
   const step = pathStep();
   const sign = step < PATH.length ? '×' : '÷';
   const at = step < PATH.length ? step : divideStep();
   $('pathNow').textContent = step === PATH.length && !guidedDivide()
-    ? `All tables done! Mixed review 🏆${nap}`
+    ? `All tables done! ${shown.filter(hasSticker).length} of ${shown.length} stickers · Mixed review 🏆${nap}`
     : `Learning ${pathName(at, sign)} · ${(sign === '×' ? PATH_NEW : DIVIDE_NEW)[at].filter(hasSticker).length} of ${(sign === '×' ? PATH_NEW : DIVIDE_NEW)[at].length} stickers${nap}`;
   $('divideToggle').checked = state.divOn;
 }
@@ -2703,38 +2722,36 @@ function poolsOf(steps, top, divide) {
 }
 
 // Mostly facts she knows, with a few she is learning on the `newAt` questions, so most answers are wins.
+// A fact that can't earn a dot today waits: one that had its dot today, or a miss.
+const REVIEW_KNOWN = 6; // stickers she needs before review questions ask only facts she knows
 function mixOf({ known, learning }, newAt) {
-  if (newAt.includes(game.index) && learning.length) return learning;
-  return known.length >= 6 ? known : [...known, ...learning];
+  const open = learning.filter(canEarn);
+  const teach = open.length ? open : known.length ? [] : learning;
+  if (newAt.includes(game.index) && learning.length) return teach.length ? teach : known;
+  return known.length >= REVIEW_KNOWN ? known : [...known, ...teach];
 }
 
-function pathPool(zeroOnly) {
-  if (!zeroOnly && game.divideAt.includes(game.index)) {
+// A fact without a sticker that the next right answer moves on. One dot a day, and a miss uses up the day.
+function canEarn(key) {
+  const i = FACT_INDEX[key];
+  return state.mastery[i] < STICKER_AT && state.days[i] !== today();
+}
+
+function pathPool() {
+  if (game.divideAt.includes(game.index)) {
     if (game.guided) return mixOf(poolsOf(DIVIDE_FACTS, game.divStep, true), game.divNewAt);
     // Division of every table she has learned, and any sleepy division sticker.
     const keys = new Set(DIVIDE_FACTS.filter((_, s) => tableDone(PATH_NEW, s)).flat());
     for (const key of MAIN_KEYS) if (key.startsWith('d') && isSleepy(FACT_INDEX[key])) keys.add(key);
     if (keys.size) return [...keys];
   }
-  const pools = poolsOf(PATH_FACTS, game.step, false);
-  if (!zeroOnly) return mixOf(pools, game.newAt);
-  return neededZeros([...pools.known, ...pools.learning].filter(hasZero));
-}
-
-// The round's 0 fact is one she still needs: a 0 fact without a sticker, then a sleepy one, then any.
-function neededZeros(keys) {
-  for (const want of [k => !hasSticker(k), k => isSleepy(FACT_INDEX[k])]) {
-    const needed = keys.filter(want);
-    if (needed.length) return needed;
-  }
-  return keys;
+  return mixOf(poolsOf(PATH_FACTS, game.step, false), game.newAt);
 }
 
 // Practice asks any fact with both numbers up to her number. Division leaves out 0.
-function practicePool(zeroOnly) {
-  const divide = !zeroOnly && game.divideAt.includes(game.index);
-  const keys = FACT_KEYS.filter(k => k.startsWith('d') === divide && factsOf(k).every(n => n <= game.max));
-  return zeroOnly ? neededZeros(keys.filter(hasZero)) : keys;
+function practicePool() {
+  const divide = game.divideAt.includes(game.index);
+  return FACT_KEYS.filter(k => k.startsWith('d') === divide && factsOf(k).every(n => n <= game.max));
 }
 
 // ===== START SCREEN =====
@@ -2854,6 +2871,7 @@ function endDivideLesson() {
 
 // ===== GAME =====
 let game = null;
+let carried = null; // retries the last round had no room for, asked first if she plays the same kind of round again
 
 // path is 'main' for Learn with Ms. Menna, or 'practice' for every fact up to max.
 function startRound(path, max = 0) {
@@ -2877,10 +2895,13 @@ function startRound(path, max = 0) {
     asked: new Set(),
     prevKey: null,
     streak: 0,
-    retries: [], // facts missed this round, asked again a few questions later
+    // Facts missed this round, asked again a few questions later. Ones the last round had no room for come first.
+    retries: carried && carried.path === path && carried.max === max
+      ? carried.retries.filter(r => !r.div || state.divOn).map(r => ({ ...r, at: 0 })) : [],
     newStickers: [],
     woken: [],
-    newAt: path === 'practice' ? [] : guided ? GUIDED_TIMES_NEW_AT : easy ? PATH_NEW_AT_EASY : PATH_NEW_AT,
+    newAt: path === 'practice' ? [] : guided ? GUIDED_TIMES_NEW_AT : easy ? PATH_NEW_AT_EASY
+      : state.fastPath ? PATH_NEW_AT_FAST : PATH_NEW_AT,
     divNewAt: easy ? GUIDED_NEW_AT_EASY : GUIDED_NEW_AT,
     divideAt: !state.divOn ? [] : guided ? GUIDED_DIVIDE_AT : DIVIDE_AT,
     a: 0,
@@ -2891,13 +2912,22 @@ function startRound(path, max = 0) {
     locked: false,
     timers: [],
     countTimers: [], // the picture's row-by-row count, cleared when it restarts or the answer is right
-    hadZero: false,
-    // The round asks a 0 fact by this question, at the latest the 9th, so the last one is free for a retry.
-    zeroAt: Math.floor(Math.random() * (QUESTIONS_PER_ROUND - 1)),
+    track: false, // this question is a new times fact, so her first answer counts toward 4 new facts a round
+    redo: [], // facts she missed in an earlier round today, to practice again on review questions
+    redoNow: false, // this question is one of them
+    peeked: false, // the round's sneak peek at a later table was asked
+    peekNow: false, // this question is the sneak peek
+    hardBefore: false, // the last question was new, a retry, a sneak peek, a fact missed earlier today, or one without a sticker
+    // While she has only a few stickers, review asks facts she is learning too, and those don't hold back a peek.
+    fewKnown: poolsOf(PATH_FACTS, pathStep(), false).known.length < REVIEW_KNOWN,
+    freeMisses: 0, // misses on sneak peeks and facts missed earlier today, which don't count toward easier mode or 4 new facts
   };
-  // A 0 fact comes every round until she has its sticker. After that only when it is sleepy, or now and then.
-  const keys = path === 'practice' ? practicePool(true) : Object.values(poolsOf(PATH_FACTS, game.step, false)).flat();
-  game.zeroNeeded = keys.some(k => hasZero(k) && (!hasSticker(k) || isSleepy(FACT_INDEX[k])));
+  carried = null;
+  if (path === 'main') {
+    const waiting = new Set(game.retries.map(r => r.key));
+    const most = easy ? 1 : game.newAt.length > PATH_NEW_AT.length ? REDO_PER_ROUND - 1 : REDO_PER_ROUND;
+    game.redo = missedToday().filter(k => !waiting.has(k) && (!k.startsWith('d') || state.divOn)).slice(0, most);
+  }
   showScreen('gameScreen');
   renderBank();
   nextQuestion();
@@ -2920,9 +2950,9 @@ function later(fn, ms) {
 }
 
 // Facts missed more often have higher weights, so they come up more often.
-function pickQuestion(zeroOnly) {
+function pickQuestion() {
   const practice = game.path === 'practice';
-  let pool = practice ? practicePool(zeroOnly) : pathPool(zeroOnly);
+  let pool = practice ? practicePool() : pathPool();
   const fresh = pool.filter(k => k !== game.prevKey);
   if (fresh.length) pool = fresh;
   const options = pool.map(key => {
@@ -2930,13 +2960,10 @@ function pickQuestion(zeroOnly) {
     const i = FACT_INDEX[key];
     let w = weightOf(key);
     // Keeps the easy 0 facts from filling a practice round. A 0 sticker she knows comes back only now and then.
-    // On the ×0 & ×1 step they come up as often as the ×1 facts, so the step doesn't finish with 0 facts left over.
-    const zeroStep = !practice && PATH[game.step]?.includes(0);
-    if (hasZero(key) && !zeroOnly && !zeroStep) w *= practice && hasSticker(key) && !isSleepy(i) ? 0.1 : 0.5;
+    if (practice && hasZero(key) && hasSticker(key) && !isSleepy(i)) w *= 0.1;
     if (game.asked.has(key)) w *= 0.25;
     w *= 1 + state.mastery[i]; // finish the facts that are nearly stickers first
     if (isSleepy(i)) w *= 4; // review visits first
-    else if (isHard(a, b)) w *= 2;
     return { a, b, div: key.startsWith('d'), w };
   });
   let r = Math.random() * options.reduce((sum, o) => sum + o.w, 0);
@@ -2953,16 +2980,30 @@ function nextQuestion() {
     showSummary();
     return;
   }
-  const needZero = game.zeroNeeded && !game.hadZero && game.index >= game.zeroAt;
-  // The 9th question is the 0 fact's last chance, so it goes ahead of a retry there. The 10th is the retry's.
-  const zeroLast = game.index === QUESTIONS_PER_ROUND - 2;
-  const due = needZero && zeroLast ? -1 : game.retries.findIndex(r => r.at <= game.index && r.key !== game.prevKey);
+  // Questions that teach a new fact keep it: a retry waits for the next review question, or the last one.
+  const teaching = game.newAt.includes(game.index) ||
+    (game.guided && game.divideAt.includes(game.index) && game.divNewAt.includes(game.index));
+  const last = game.index === QUESTIONS_PER_ROUND - 1;
+  const due = teaching && !last ? -1 : game.retries.findIndex(r => r.at <= game.index && r.key !== game.prevKey);
   const retry = due >= 0 ? game.retries.splice(due, 1)[0] : null;
-  const q = retry || pickQuestion(needZero);
-  if (q.a === 0 || q.b === 0) game.hadZero = true;
+  // A review question after one she knows can be the round's sneak peek at a later table, or a fact she missed
+  // earlier today, but not the fact just asked. So once she has a few stickers, a hard question comes after a sticker.
+  const open = !retry && !teaching && !game.hardBefore && !game.divideAt.includes(game.index);
+  const peek = open && !game.peeked ? peekFact() : null;
+  const redoAt = open && !peek ? game.redo.findIndex(k => k !== game.prevKey) : -1;
+  const redo = redoAt >= 0 ? game.redo.splice(redoAt, 1)[0] : null;
+  const extra = peek || redo;
+  const q = retry || (extra && { a: factsOf(extra)[0], b: factsOf(extra)[1], div: extra.startsWith('d') }) || pickQuestion();
+  if (peek) game.peeked = true;
+  // Asked again, it goes to the back, so the next round practices the others first.
+  if (redo) state.missedKeys = [...missedToday().filter(k => k !== redo), redo];
+  game.peekNow = !!peek;
+  game.redoNow = !!redo;
   Object.assign(game, { a: q.a, b: q.b, div: !!q.div, attempts: 0, hinted: false, solved: false, input: '', locked: false });
   game.prevKey = keyOf(q);
+  game.hardBefore = teaching || !!retry || !!extra || (!game.fewKnown && !hasSticker(game.prevKey));
   game.asked.add(game.prevKey);
+  game.track = game.path === 'main' && !retry && !extra && !q.div && !hasSticker(game.prevKey) && !game.missed.some(m => keyOf(m) === game.prevKey);
 
   const cents = centsFor(q.a, q.b);
   $('worth').textContent = `This one pays ${cents}¢!`;
@@ -3050,8 +3091,9 @@ function onCorrect(answer) {
   const fact = { a: game.a, b: game.b, div: game.div };
   let newSticker = false;
   let woke = false;
-  let tomorrow = false; // the sticker dot has to wait for another day
+  let tomorrow = false; // it had its dot today, or a miss, so the next dot waits for another day
   if (game.attempts === 0) {
+    recordTry(true);
     game.firstTry++;
     game.streak++;
     state.weights[key] = 1 + (weightOf(key) - 1) * 0.6;
@@ -3061,7 +3103,7 @@ function onCorrect(answer) {
     if (game.missed.some(m => keyOf(m) === key)) {
       // practice only
     } else if (state.mastery[i] < STICKER_AT) {
-      if (state.mastery[i] === STICKER_AT - 1 && state.days[i] === day) tomorrow = true;
+      if (state.days[i] === day) tomorrow = true;
       else {
         state.mastery[i]++;
         state.days[i] = day;
@@ -3123,7 +3165,9 @@ function onCorrect(answer) {
     : woke
     ? pick(['Wake up, sticker! ☀️', 'Good morning, sticker! ⭐'])
     : tomorrow
-    ? 'Two dots today! Get it right tomorrow for the sticker! 🌙'
+    ? state.mastery[FACT_INDEX[key]] === STICKER_AT - 1
+      ? 'Two dots! Get it right tomorrow for the sticker! 🌙'
+      : 'One dot a day! Get it right tomorrow for the next one! 🌙'
     : game.attempts === 0
     ? pick(['Pawsome! 🐾', 'Woof woof! Correct!', 'You got it! ⭐', 'Super smart!', `Yay! +${cents}¢ for you!`, 'Wag wag! That\'s right!'])
     : pick(['You figured it out! 🐾', 'Yes! You kept trying!', 'That\'s it! 🐾']));
@@ -3133,6 +3177,31 @@ function onCorrect(answer) {
   later(nextQuestion, trick || newSticker || woke || tomorrow ? 1700 : game.attempts === 0 ? 1300 : 1900);
 }
 
+// A fact from a table the path hasn't reached, to find tables she already knows. It earns a dot like any fact.
+// Peeks stay with a table while she gets them right, and move on to the next table after a miss.
+// They leave out 0 facts, which say little about a table.
+function peekFact() {
+  if (game.path !== 'main' || game.guided) return null;
+  const peekable = s => PATH_NEW[s].filter(k => !hasZero(k) && canEarn(k));
+  const later = [];
+  for (let s = game.step + 1; s < PATH.length; s++) if (peekable(s).length) later.push(s);
+  if (!later.length) return null;
+  state.peekStep = later.find(s => s >= state.peekStep) ?? later[0];
+  return pick(peekable(state.peekStep));
+}
+
+// Facts she missed on the path today, the one missed longest ago first.
+function missedToday() {
+  return state.missedDay === today() ? state.missedKeys : [];
+}
+
+// Her first answer to a new times fact on the path, kept as '1' or '0' for the last few.
+function recordTry(right) {
+  if (!game.track) return;
+  game.track = false;
+  state.newTries = (state.newTries + (right ? '1' : '0')).slice(-RECENT_TRIES);
+}
+
 function onWrong(answer) {
   game.attempts++;
   const key = keyOf(game);
@@ -3140,11 +3209,19 @@ function onWrong(answer) {
   game.streak = 0;
   if (game.attempts === 1) {
     game.missed.push({ a: game.a, b: game.b, div: game.div });
-    // Not yet learned: lose one dot towards the sticker. Stickers she has earned stay.
+    recordTry(false);
+    if (game.redoNow || game.peekNow) game.freeMisses++;
+    // A missed sneak peek just waits for its table, and the next one tries the table after it.
+    if (game.peekNow) state.peekStep = PATH_NEW.findIndex(keys => keys.includes(key)) + 1;
+    else if (game.path === 'main' && MAIN_KEYS.includes(key)) {
+      state.missedKeys = [...missedToday().filter(k => k !== key), key];
+      state.missedDay = today();
+    }
     const i = FACT_INDEX[key];
-    if (state.mastery[i] < STICKER_AT) state.mastery[i] = Math.max(0, state.mastery[i] - 1);
-    else state.levels[i] = SLEEPY_NOW; // the sticker stays, but it is sleepy until she gets it in a later round
-    if (!game.retries.some(r => r.key === key)) game.retries.push({ a: game.a, b: game.b, div: game.div, key, at: game.index + 3 });
+    // A miss means it didn't stick yet, so its next dot waits for another day. The dots she has stay.
+    if (state.mastery[i] < STICKER_AT) state.days[i] = today();
+    if (state.mastery[i] >= STICKER_AT) state.levels[i] = SLEEPY_NOW; // sleepy until she gets it in a later round
+    if (!game.peekNow && !game.retries.some(r => r.key === key)) game.retries.push({ a: game.a, b: game.b, div: game.div, key, at: game.index + 3 });
   }
 
   saveState();
@@ -3355,7 +3432,7 @@ function showSummary() {
   say('summaryBubble', invite
     ? 'You learned all your times tables! 🎉 Want to learn dividing next?'
     : allAwake
-    ? 'You woke up every sleepy sticker! Come back tomorrow to check on them! 🐾'
+    ? 'You woke up every sleepy sticker! Ready for another round? 🐾'
     : stars === 3
     ? 'You\'re a superstar! 🐾'
     : stars === 2
@@ -3372,7 +3449,15 @@ function showSummary() {
     renderGems();
   }
   // A hard round makes the next path rounds teach 2 new facts instead of 3, until a strong round.
-  state.easyPath = firstTry < 7 || (firstTry < 8 && state.easyPath);
+  // A round of 9 or more, with 8 of her last 10 new facts right first time, makes the next one teach 4.
+  // Practice changes neither, and nor does missing a fact she already missed today.
+  if (game.path === 'main') {
+    const score = firstTry + game.freeMisses;
+    state.easyPath = score < 7 || (score < 8 && state.easyPath);
+    const right = state.newTries.split('').filter(c => c === '1').length;
+    state.fastPath = !state.easyPath && score >= 9 && state.newTries.length >= RECENT_TRIES && right >= FAST_RIGHT;
+  }
+  carried = game.retries.length ? { path: game.path, max: game.max, retries: game.retries } : null;
   $('statGems').textContent = `+${game.roundGems} 💎`;
   const list = facts => facts.map(f => `${stickerFor(keyOf(f))} ${questionText(f)}`).join('  ');
   $('newStickers').textContent = [
@@ -3390,11 +3475,11 @@ function showSummary() {
   };
   $('pathUp').textContent = times
     ? (step === PATH.length
-      ? `🐾 You learned ${learned(game.step, step)}! That's all the times tables! 🏆`
+      ? `🐾 You learned ${learned(game.step, step)}! That's all the times tables! 🏆${moreToGet(false)}`
       : `🐾 You learned ${learned(game.step, step)}! Next up: ${pathName(step)}`)
     : divide
     ? (divStep === PATH.length
-      ? `🐾 You learned ${learned(game.divStep, divStep, '÷')}! That's all your dividing! 🏆`
+      ? `🐾 You learned ${learned(game.divStep, divStep, '÷')}! That's all your dividing! 🏆${moreToGet(true)}`
       : `🐾 You learned ${learned(game.divStep, divStep, '÷')}! Next up: ${pathName(divStep, '÷')}`)
     : '';
   // A new division table starts with a few pictures.

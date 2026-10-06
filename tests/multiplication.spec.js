@@ -1311,11 +1311,11 @@ test('a fact missed earlier today never comes right after itself, nor after a fa
     };
     const same = ask('2x3'); // she was just asked 2 × 3
     const other = ask('2x4');
-    // With ×2 done, question 4 asks a division fact without a sticker, so question 5 is no redo
+    // With ×2 done, question 9 asks a division fact without a sticker, so question 10 is no redo
     const i = FACT_INDEX['2x6']; state.mastery[i] = STICKER_AT; state.levels[i] = 0;
     clearTimers();
     startRound('main');
-    Object.assign(game, { index: 3, peeked: true, redo: ['2x3'], divideAt: [3] });
+    Object.assign(game, { index: 8, peeked: true, redo: ['2x3'], divideAt: [8], divNewAt: [8] });
     nextQuestion();
     const afterDiv = [game.div, hasSticker(keyOf(game)), game.hardBefore];
     goHome();
@@ -1448,6 +1448,56 @@ test('after the times tables, Ms. Menna invites her to divide, and asks again 3 
   await page.reload();
   await expect(page.locator('#divideToggle')).toBeChecked();
   await expect(page.locator('#pathNow')).toHaveText('Learning ÷2 · 0 of 19 stickers');
+});
+
+test('outside division lessons, division comes after the new times facts, and question 9 teaches one', async ({ page }) => {
+  const out = await page.evaluate(() => {
+    const give = keys => { for (const k of keys) { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; } };
+    const fourth = () => Array.from({ length: 20 }, () => {
+      clearTimers();
+      startRound('main');
+      for (let i = 1; i <= 8; i++) { game.index = i; nextQuestion(); }
+      return keyOf(game);
+    });
+    state.divOn = true;
+    // ×2 is done, and every ÷2 fact has a sticker except 14 ÷ 2 and 14 ÷ 7
+    give(PATH_FACTS[0]);
+    give(DIVIDE_FACTS[0].filter(k => !['d2x7', 'd7x2'].includes(k)));
+    const during = new Set(fourth());
+    // Division leaves questions 4 and 7 for facts missed earlier today, after the peek on question 1
+    state.missedDay = today();
+    state.missedKeys = ['2x3', '2x4', '2x5'];
+    clearTimers();
+    startRound('main');
+    const kinds = [];
+    for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
+      game.index = i;
+      if (i) nextQuestion();
+      kinds.push(game.peekNow ? 'peek' : game.redoNow ? 'missed' : game.div ? 'div' : 'times');
+    }
+    state.missedKeys = [];
+    const layouts = [[false, false], [true, false], [false, true]].map(([easy, fast]) => {
+      state.easyPath = easy; state.fastPath = fast;
+      clearTimers();
+      startRound('main');
+      return [game.divideAt, game.divNewAt];
+    });
+    state.easyPath = state.fastPath = false;
+    // Every times and division table is done, with 14 ÷ 2 left over. ÷9 adds only 3 facts, so one left there
+    // would keep ÷9 under 80%.
+    give(PATH_FACTS.flat());
+    give(DIVIDE_FACTS.flat().filter(k => k !== 'd2x7'));
+    const after = new Set(fourth());
+    const guided = game.guided;
+    goHome();
+    return { during: [...during].sort(), after: [...after], guided, kinds, layouts };
+  });
+  expect(out.kinds).toEqual(['peek', 'times', 'div', 'missed', 'times', 'div', 'missed', 'times', 'div', 'times']);
+  // Normal, easier and 4 new facts: division right after new times facts, and one teaches, never the last question
+  expect(out.layouts).toEqual([[[2, 5, 8], [8]], [[3, 7, 9], [7]], [[2, 5, 9], [5]]]);
+  expect(out.during).toEqual(['d2x7', 'd7x2']);
+  expect(out.after).toEqual(['d2x7']);
+  expect(out.guided).toBe(false);
 });
 
 test('the path teaches division table by table, about half the round', async ({ page }) => {

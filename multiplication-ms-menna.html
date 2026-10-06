@@ -1275,7 +1275,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v29 - Updated 2026-10-06 18:44 EDT</p>
+    <p class="version">v30 - Updated 2026-10-06 23:20 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2647,7 +2647,12 @@ const PATH_NEW_AT_EASY = [2, 6]; // after a round with fewer than 7 first-try an
 const PATH_NEW_AT_FAST = [1, 4, 6, 8]; // after a round with 9 or more, when she also got most of her recent new facts
 const REDO_PER_ROUND = 3; // facts she missed earlier today, asked again on review questions: 2 with 4 new facts, 1 when easier
 const FAST_RIGHT = 8; // of those, how many she got right first time for 4 new facts a round
-const DIVIDE_AT = [3, 5, 9]; // division questions, once division is on and she has learned a table
+// Division questions, once division is on and she has learned a table. They come right after the new times facts,
+// which can't be followed by a fact missed earlier today anyway. One of them teaches a division fact without a sticker,
+// never the last question, which goes to retries first.
+const DIVIDE_AT = { all: [2, 5, 8], learn: 8 };
+const DIVIDE_AT_EASY = { all: [3, 7, 9], learn: 7 };
+const DIVIDE_AT_FAST = { all: [2, 5, 9], learn: 5 };
 const GUIDED_DIVIDE_AT = [1, 3, 5, 7, 9]; // division questions while the path teaches division
 const GUIDED_NEW_AT = [1, 5, 9]; // division questions that teach a fact without a sticker yet
 const GUIDED_NEW_AT_EASY = [3, 7];
@@ -2740,10 +2745,11 @@ function canEarn(key) {
 function pathPool() {
   if (game.divideAt.includes(game.index)) {
     if (game.guided) return mixOf(poolsOf(DIVIDE_FACTS, game.divStep, true), game.divNewAt);
-    // Division of every table she has learned, and any sleepy division sticker.
-    const keys = new Set(DIVIDE_FACTS.filter((_, s) => tableDone(PATH_NEW, s)).flat());
-    for (const key of MAIN_KEYS) if (key.startsWith('d') && isSleepy(FACT_INDEX[key])) keys.add(key);
-    if (keys.size) return [...keys];
+    // Division of every table she has learned, and any sleepy division sticker. Like the times tables, one
+    // question teaches a division fact without a sticker, so the last few get learned too.
+    const open = DIVIDE_FACTS.filter((_, s) => tableDone(PATH_NEW, s));
+    const pools = poolsOf(open, open.length - 1, true);
+    if (pools.known.length || pools.learning.length) return mixOf(pools, game.divNewAt);
   }
   return mixOf(poolsOf(PATH_FACTS, game.step, false), game.newAt);
 }
@@ -2881,6 +2887,7 @@ function startRound(path, max = 0) {
   }
   const guided = path === 'main' && guidedDivide();
   const easy = state.easyPath;
+  const divide = path === 'practice' ? DIVIDE_AT : easy ? DIVIDE_AT_EASY : state.fastPath ? DIVIDE_AT_FAST : DIVIDE_AT;
   game = {
     path,
     max,
@@ -2902,8 +2909,8 @@ function startRound(path, max = 0) {
     woken: [],
     newAt: path === 'practice' ? [] : guided ? GUIDED_TIMES_NEW_AT : easy ? PATH_NEW_AT_EASY
       : state.fastPath ? PATH_NEW_AT_FAST : PATH_NEW_AT,
-    divNewAt: easy ? GUIDED_NEW_AT_EASY : GUIDED_NEW_AT,
-    divideAt: !state.divOn ? [] : guided ? GUIDED_DIVIDE_AT : DIVIDE_AT,
+    divNewAt: path === 'practice' ? [] : guided ? (easy ? GUIDED_NEW_AT_EASY : GUIDED_NEW_AT) : [divide.learn],
+    divideAt: !state.divOn ? [] : guided ? GUIDED_DIVIDE_AT : divide.all,
     a: 0,
     b: 0,
     div: false,
@@ -2982,7 +2989,7 @@ function nextQuestion() {
   }
   // Questions that teach a new fact keep it: a retry waits for the next review question, or the last one.
   const teaching = game.newAt.includes(game.index) ||
-    (game.guided && game.divideAt.includes(game.index) && game.divNewAt.includes(game.index));
+    (game.divideAt.includes(game.index) && game.divNewAt.includes(game.index));
   const last = game.index === QUESTIONS_PER_ROUND - 1;
   const due = teaching && !last ? -1 : game.retries.findIndex(r => r.at <= game.index && r.key !== game.prevKey);
   const retry = due >= 0 ? game.retries.splice(due, 1)[0] : null;

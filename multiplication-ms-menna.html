@@ -1275,7 +1275,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v31 - Updated 2026-10-06 23:46 EDT</p>
+    <p class="version">v32 - Updated 2026-10-06 23:57 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -3272,9 +3272,9 @@ function onWrong(answer) {
 
 // ===== STRATEGY HINTS =====
 // A hard fact is built from easier ones she knows: 6 × 7 is 5 × 7 and one more 7. Teens, 11 and 12 start
-// from 10, and 9 is 10 take away one. When both factors can be split, the one earlier in SPLIT_ORDER is.
+// from 10, 20 is 10 and 10, and 9 is 10 take away one. When both factors can be split, the one earlier in SPLIT_ORDER is.
 const SPLITS = { 3: [2, 1], 4: [2, 2], 6: [5, 1], 7: [5, 2], 8: [4, 4], 9: [10, -1], 11: [10, 1], 12: [10, 2] };
-const SPLIT_ORDER = [13, 14, 15, 16, 17, 18, 19, 11, 12, 9, 3, 6, 4, 7, 8];
+const SPLIT_ORDER = [13, 14, 15, 16, 17, 18, 19, 11, 12, 9, 3, 6, 4, 7, 8, 20];
 const splitOf = n => (n > 12 ? [10, n - 10] : SPLITS[n]);
 
 // How the picture draws a × b: rows, dots per row, the split (p rows, then q more, or q = -1 to take one

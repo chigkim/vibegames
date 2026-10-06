@@ -992,6 +992,26 @@ test('strategy hints build hard facts from easier ones', async ({ page }) => {
   await expect(page.locator('#gameBubble')).toHaveText('40 − 4 = 36!', { timeout: 5000 });
 });
 
+test('every fact up to 20 has a picture that adds up, 20 × 20 too', async ({ page }) => {
+  const out = await page.evaluate(() => {
+    const bad = [];
+    for (const key of FACT_KEYS) {
+      const [a, b] = factsOf(key);
+      const div = key.startsWith('d');
+      try {
+        const { rows, cols, p, q } = hintPlan({ a, b, div });
+        const right = div ? rows === a && cols === b : rows * cols === a * b && (!p || (q < 0 ? p - 1 : p + q) === rows);
+        if (!right) bad.push(key);
+      } catch { bad.push(key + ' throws'); }
+    }
+    const { rows, cols, p, q, tip } = hintPlan({ a: 20, b: 20 });
+    return { bad, plan: [rows, cols, p, q], tip };
+  });
+  expect(out.bad).toEqual([]);
+  expect(out.plan).toEqual([20, 20, 10, 10]);
+  expect(out.tip).toBe('20 is 10 and 10. Find 10 × 20, then do it again!');
+});
+
 // v19: stickers are learned on 2 days, then come back sleepy for review visits.
 const setFact = (page, key, mastery, daysAgo, level = 0) => page.evaluate(([k, m, ago, lv]) => {
   const i = FACT_INDEX[k];

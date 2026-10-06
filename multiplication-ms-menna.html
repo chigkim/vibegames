@@ -1275,7 +1275,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v30 - Updated 2026-10-06 23:20 EDT</p>
+    <p class="version">v31 - Updated 2026-10-06 23:46 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1501,6 +1501,7 @@ const PAY_CONFIRM_DELAY = 1000; // ms before "Yes, paid" can be tapped
 const STORE_KEY = 'mennaMultiplication';
 const COOKIE_NAME = 'mennaMult';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 400; // Browsers cap cookie lifetime at 400 days.
+const COOKIE_MAX = 3900; // longest cookie copy, under the 4 KB browsers keep
 const COOKIE_LZ = 'lz'; // a v22 cookie is compressed and starts with this; older ones are plain JSON, starting with %7B
 const SAVE_VERSION = 25; // a save without this is in an older format and is saved again in the new one
 const SPLIT_VERSION = 25; // saves before this had one sticker for 3 × 7 and 7 × 3, and one for 56 ÷ 7 and 56 ÷ 8
@@ -2137,14 +2138,17 @@ function splitShared(state) {
 // One character per fact in FACT_KEYS order, in steps of 1/WEIGHT_STEPS above 1.
 const WEIGHT_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const WEIGHT_STEPS = 4;
-function encodeWeights() {
-  const steps = FACT_KEYS.map(k => Math.min(WEIGHT_CHARS.length - 1, Math.round(((state.weights[k] || 1) - 1) * WEIGHT_STEPS)));
+// `keep` leaves out the facts it returns false for, as if they were never played.
+function encodeWeights(keep = () => true) {
+  const steps = FACT_KEYS.map((k, i) => !keep(i) ? 0
+    : Math.min(WEIGHT_CHARS.length - 1, Math.round(((state.weights[k] || 1) - 1) * WEIGHT_STEPS)));
   return steps.map(s => WEIGHT_CHARS[s]).join('').replace(/0+$/, '');
 }
 
 // Three characters per fact: the day of its last dot or visit (0 is never), then its review level.
-function encodeReview() {
+function encodeReview(keep = () => true) {
   return FACT_KEYS.map((_, i) => {
+    if (!keep(i)) return '000';
     const d = Math.max(0, Math.min(62 * 62 - 1, state.days[i]));
     return WEIGHT_CHARS[Math.floor(d / 62)] + WEIGHT_CHARS[d % 62] + state.levels[i];
   }).join('').replace(/0+$/, '');
@@ -2208,17 +2212,24 @@ function saveState() {
   }
   state.weights = weights;
   keepRoomsOpen();
-  const json = JSON.stringify({
+  const save = {
     v: SAVE_VERSION, ...state, mastery: state.mastery.join(''), owned: encodeOwned(), weights: encodeWeights(),
     days: undefined, levels: undefined, review: encodeReview(),
     furniture: encodeOwned(FURNITURE, state.furniture), home: Object.values(state.home).join(','),
-  });
+  };
+  const json = JSON.stringify(save);
   try { localStorage.setItem(STORE_KEY, json); } catch { /* storage may be unavailable in private mode */ }
   if (window.indexedDB) SaveDB.write(json);
   const secure = location.protocol === 'https:' ? '; Secure' : '';
-  // A browser drops a cookie over 4 KB. If it is still too big, the cookie copy leaves out the payout list.
+  // A browser drops a cookie over 4 KB. If it is too big, the cookie copy leaves out the payout list, and then the
+  // review dates and picker weights of facts above 10. Every sticker, dot, coin, gem and item stays in it.
   let cookie = packCookie(json);
-  if (cookie.length > 3900) cookie = packCookie(JSON.stringify({ ...JSON.parse(json), payouts: [], partial: true }));
+  const partial = { ...save, payouts: [], partial: true };
+  if (cookie.length > COOKIE_MAX) cookie = packCookie(JSON.stringify(partial));
+  if (cookie.length > COOKIE_MAX) {
+    const upTo10 = i => Math.max(...factsOf(FACT_KEYS[i])) <= 10;
+    cookie = packCookie(JSON.stringify({ ...partial, weights: encodeWeights(upTo10), review: encodeReview(upTo10) }));
+  }
   document.cookie = `${COOKIE_NAME}=${cookie}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax${secure}`;
   savedBase = JSON.parse(JSON.stringify(state));
 }

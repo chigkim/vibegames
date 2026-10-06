@@ -476,25 +476,51 @@ test("Ms. Menna's Closet buys, wears, and saves outfits with gems only", async (
 
 test('saved progress still fits in the cookie mirror', async ({ page }) => {
   const cookie = await page.evaluate(() => {
-    FACT_KEYS.forEach(k => { state.weights[k] = 11.55; });
-    state.mastery = state.mastery.map(() => 3);
-    state.days = state.days.map(() => today());
-    state.levels = state.levels.map(() => SLEEPY_NOW);
-    state.payouts = Array.from({ length: MAX_PAYOUTS_KEPT }, () => ({ t: Date.now(), c: 12345 }));
+    // Random values, because the cookie is compressed and repeated ones would fit too easily
+    const rnd = n => Math.floor(Math.random() * n);
+    const playAll = keys => keys.forEach(k => {
+      const i = FACT_INDEX[k];
+      state.mastery[i] = rnd(STICKER_AT + 1); state.days[i] = today() - rnd(today() - 1); state.levels[i] = rnd(SLEEPY_NOW + 1);
+      state.weights[k] = 1.25 + rnd(44) / 4; // on the 0.25 steps the save keeps
+    });
+    const cookieNow = () => {
+      const raw = document.cookie.match(new RegExp('(?:^|; )' + COOKIE_NAME + '=([^;]*)'));
+      return { size: raw ? raw[0].length : 0, saved: raw && readCookie() };
+    };
+    state.payouts = Array.from({ length: MAX_PAYOUTS_KEPT }, (_, i) => ({ t: Date.now() - i * 86400000 - rnd(99999), c: 100 + rnd(2000) }));
     state.owned = Object.values(ITEMS).filter(i => i.price > 0).map(i => i.id);
     state.worn = { hat: 'crown.s', face: 'hearts', neck: 'medal', back: 'cape', fur: 'pink' };
     state.gems = 99999;
     state.furniture = FURNITURE.flatMap(f => Object.values(FURN).filter(p => p.base === f.id && p.price > 0).map(p => p.id));
+    // Every Learning Path fact played: the whole save fits, payouts and all
+    playAll(MAIN_KEYS);
     saveState();
-    // A full save can be too big for a cookie. Then the cookie drops only the payout list, which IndexedDB still has.
-    const raw = document.cookie.match(new RegExp('(?:^|; )' + COOKIE_NAME + '=([^;]*)'));
+    const path = cookieNow();
     const local = JSON.parse(localStorage.getItem(STORE_KEY));
-    const saved = raw && readCookie();
-    return { size: raw ? raw[0].length : 0, same: !!saved && saved.review === local.review && saved.mastery === local.mastery && saved.gems === local.gems };
+    const pathSame = !!path.saved && !path.saved.partial && path.saved.review === local.review
+      && path.saved.weights === local.weights && path.saved.mastery === local.mastery && path.saved.gems === local.gems;
+    // Every fact up to 20 played: the cookie leaves out review dates and weights above 10, and keeps the rest
+    playAll(FACT_KEYS);
+    state.gems = 4321;
+    saveState();
+    const all = cookieNow();
+    const full = JSON.parse(localStorage.getItem(STORE_KEY));
+    const fromCookie = parseSave(all.saved);
+    const high = FACT_KEYS.map((k, i) => i).filter(i => Math.max(...factsOf(FACT_KEYS[i])) > 10);
+    const low = MAIN_KEYS.map(k => FACT_INDEX[k]);
+    return {
+      path: path.size, pathSame, all: all.size, partial: all.saved.partial, gems: all.saved.gems, mastery: all.saved.mastery === full.mastery,
+      lowKept: low.every(i => fromCookie.days[i] === state.days[i] && fromCookie.levels[i] === state.levels[i]
+        && fromCookie.weights[FACT_KEYS[i]] === state.weights[FACT_KEYS[i]]),
+      // A sticker there gets a first visit soon, like stickers from before v19
+      highDropped: high.every(i => !fromCookie.weights[FACT_KEYS[i]]
+        && fromCookie.levels[i] === (state.mastery[i] >= STICKER_AT ? 2 : 0)),
+    };
   });
-  expect(cookie.size).toBeGreaterThan(0);
-  expect(cookie.size).toBeLessThan(4096);
-  expect(cookie.same).toBe(true);
+  expect(cookie.path).toBeLessThan(4096);
+  expect(cookie.pathSame).toBe(true);
+  expect(cookie.all).toBeLessThan(4096);
+  expect(cookie).toMatchObject({ partial: true, gems: 4321, mastery: true, lowKept: true, highDropped: true });
 });
 
 test('closet colors save compactly, and v12 saves keep their items', async ({ page }) => {
@@ -539,6 +565,30 @@ test('the IndexedDB copy brings back progress if localStorage and the cookie are
   await page.reload();
   await expect(page.locator('#startBankAmount')).toHaveText('$7.77');
   expect(await page.evaluate(() => state.gems)).toBe(42);
+});
+
+test('a trimmed cookie alone brings back every sticker, dot and gem', async ({ page }) => {
+  const before = await page.evaluate(async () => {
+    const rnd = n => Math.floor(Math.random() * n);
+    FACT_KEYS.forEach((k, i) => {
+      state.mastery[i] = rnd(STICKER_AT + 1); state.days[i] = today() - rnd(today() - 1); state.levels[i] = rnd(SLEEPY_NOW + 1);
+      state.weights[k] = 1.25 + rnd(44) / 4;
+    });
+    state.gems = 77; state.totalCents = 456;
+    saveState();
+    // Only the cookie is left
+    localStorage.clear();
+    (await SaveDB.open()).close();
+    await new Promise(resolve => { const req = indexedDB.deleteDatabase(STORE_KEY); req.onsuccess = req.onerror = resolve; });
+    return { partial: readCookie().partial, mastery: state.mastery.join(''), keep: MAIN_KEYS.map(k => state.days[FACT_INDEX[k]]) };
+  });
+  expect(before.partial).toBe(true);
+  await page.reload();
+  await expect(page.locator('#startBankAmount')).toHaveText('$4.56');
+  const after = await page.evaluate(() => ({
+    gems: state.gems, mastery: state.mastery.join(''), keep: MAIN_KEYS.map(k => state.days[FACT_INDEX[k]]),
+  }));
+  expect(after).toEqual({ gems: 77, mastery: before.mastery, keep: before.keep });
 });
 
 test('a cookie copy without payouts does not erase the payout list in IndexedDB', async ({ page }) => {

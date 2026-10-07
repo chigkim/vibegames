@@ -1289,7 +1289,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v33 - Updated 2026-10-06 20:50 EDT</p>
+    <p class="version">v34 - Updated 2026-10-06 20:55 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2604,12 +2604,21 @@ const POM_MOVES = {
   'act-munch': (tl, b) => { munch(tl, b, 0); swing(tl, b.tail, 18, 0.35, 4); },
 };
 
+// With Reduce Motion on, she only blinks: no body moves and no idle wag.
+const calmMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+calmMotion.addEventListener?.('change', () => document.querySelectorAll('.pom-container').forEach(el => {
+  if (!window.gsap || !el.body) return;
+  stopPom(el);
+  gsap.set(Object.values(el.body), POM_REST);
+  idlePom(el);
+}));
+
 // While nothing else moves her, she wags slowly and blinks every few seconds.
 function idlePom(el) {
   if (!window.gsap) return;
   const b = pomBody(el);
   if (el.idle) el.idle.kill();
-  el.idle = gsap.timeline()
+  el.idle = calmMotion.matches ? null : gsap.timeline()
     .to(b.tail, { rotation: -6, duration: 0.3 })
     .to(b.tail, { rotation: 6, duration: 0.9, ease: 'sine.inOut', yoyo: true, repeat: -1 });
   wakePom(el);
@@ -2635,13 +2644,13 @@ const POM_REST = { rotation: 0, x: 0, y: 0, scaleY: 1 };
 function stopPom(el) {
   if (el.move) el.move.kill();
   if (el.idle) el.idle.kill();
-  el.move = null;
+  el.move = el.idle = null;
   gsap.killTweensOf(Object.values(pomBody(el)));
 }
 
 // A new move first eases every part back from wherever the last move left it.
 function pomMove(el, name) {
-  if (!window.gsap || !POM_MOVES[name]) return;
+  if (!window.gsap || !POM_MOVES[name] || calmMotion.matches) return;
   const b = pomBody(el);
   stopPom(el);
   el.move = gsap.timeline({ onComplete: () => restPom(el) });

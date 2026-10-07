@@ -289,6 +289,21 @@ test('her body parts settle after every move, even one cut short, and wag only o
   expect(left).toEqual([]);
 });
 
+test('with Reduce Motion on, she only blinks, and wags again when it is turned off', async ({ page }) => {
+  // The page hears about the setting a moment after Playwright changes it.
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect.poll(() => page.evaluate(() => !!$('pomStart').idle)).toBe(false);
+  const calm = await page.evaluate(() => {
+    const el = $('pomStart');
+    pomMove(el, 'happy');
+    return { move: !!el.move, wag: !!el.idle, blink: !!el.blink };
+  });
+  expect(calm).toEqual({ move: false, wag: false, blink: true });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect.poll(() => page.evaluate(() => !!$('pomStart').idle && !$('pomStart').idle.paused())).toBe(true);
+  expect(await page.evaluate(() => { const el = $('pomStart'); pomMove(el, 'happy'); return !!el.move; })).toBe(true);
+});
+
 test('the sticker chart has times and divide pages, each with a 0–10 and an 11–20 view', async ({ page }) => {
   await page.evaluate(() => {
     for (const k of ['3x7', '4x17', '17x4', '0x0', 'd7x8', 'd2x2', 'd3x15']) state.mastery[FACT_INDEX[k]] = 3;

@@ -1169,9 +1169,13 @@
   .new-trick p { margin: 0; text-align: left; }
   #pomSummary { cursor: pointer; }
   #summaryScreen .btn[hidden] { display: none; }
-  .teach-trick { background: #FFF4D6; border: 3px solid #FFD166; border-radius: 22px; padding: 14px; margin: 0 0 14px; }
-  .teach-trick[hidden] { display: none; }
-  .teach-trick p { font-weight: 800; color: var(--dark-brown); margin-bottom: 10px; }
+  /* Below the mute button, so sound can still be turned off while she picks. */
+  .trick-modal { position: fixed; inset: 0; z-index: 15; display: flex; align-items: center; justify-content: center; padding: 16px;
+    background: rgba(74, 44, 20, 0.45); overscroll-behavior: contain; touch-action: none; }
+  .trick-modal[hidden] { display: none; }
+  .teach-trick { width: min(560px, 100%); background: #FFF4D6; border: 3px solid #FFD166; border-radius: 26px; padding: clamp(16px, 3vmin, 26px);
+    text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,0.25); touch-action: manipulation; animation: popIn 0.45s cubic-bezier(0.34,1.56,0.64,1); }
+  .teach-trick p { font-family: 'Baloo 2', cursive; font-weight: 800; font-size: clamp(1.2rem, 3vmin, 1.6rem); color: var(--dark-brown); margin-bottom: 14px; }
   .trick-choices { display: flex; gap: 10px; justify-content: center; }
   .trick-choice { flex: 1; max-width: 160px; min-height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 4px; padding: 10px 6px; border: 3px solid #FFD166; border-radius: 18px; background: white; color: var(--dark-brown);
@@ -1502,7 +1506,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v40 - Updated 2026-10-07 11:10 EDT</p>
+    <p class="version">v41 - Updated 2026-10-07 11:19 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1603,10 +1607,6 @@
     <!-- What she learned comes first, then the score and coins. -->
     <div class="new-stickers" id="newStickers"></div>
     <div class="new-stickers" id="pathUp"></div>
-    <div class="teach-trick" id="teachTrick" hidden>
-      <p>Pick a trick to teach Ms. Menna! 🐾</p>
-      <div class="trick-choices" id="trickChoices"></div>
-    </div>
     <div class="new-trick" id="newTrick">
       <div class="pom-container small" id="pomSummary" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
       <p id="newTrickText" hidden></p>
@@ -1627,6 +1627,14 @@
     <div class="practice-list" id="practiceList"></div>
     <button class="btn btn-primary" id="againBtn">Play Again! 🔁</button>
     <button class="btn btn-secondary" id="homeBtn">← Home</button>
+  </div>
+</div>
+
+<!-- Over the summary until she picks a trick. Outside the screen, so it covers the whole page. -->
+<div class="trick-modal" id="teachTrick" role="dialog" aria-modal="true" aria-labelledby="teachTitle" hidden>
+  <div class="teach-trick">
+    <p id="teachTitle">Pick a trick to teach Ms. Menna! 🐾</p>
+    <div class="trick-choices" id="trickChoices"></div>
   </div>
 </div>
 
@@ -2642,6 +2650,7 @@ const sleepyCount = (keys = FACT_KEYS) => keys.filter(k => isSleepy(FACT_INDEX[k
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
   document.body.classList.toggle('in-game', id === 'gameScreen');
+  if (id !== 'summaryScreen') $('teachTrick').hidden = true;
   document.querySelectorAll('.pom-container').forEach(wakePom);
   window.scrollTo(0, 0);
 }
@@ -4003,6 +4012,7 @@ function offerTrick() {
   $('teachTrick').hidden = !choices.length;
   $('trickChoices').innerHTML = choices.map(t =>
     `<button class="trick-choice" data-trick="${t.cls}"><span>${trickEmoji(t)}</span>${t.name[0].toUpperCase() + t.name.slice(1)}</button>`).join('');
+  if (choices.length) $('trickChoices').firstChild.focus({ preventScroll: true });
   $('againBtn').hidden = $('homeBtn').hidden = choices.length > 0;
   $('divideInvite').hidden = choices.length > 0 || !summaryInvite;
   return choices.length > 0;
@@ -5112,6 +5122,8 @@ function init() {
     const more = offerTrick();
     saveState();
     showLearned();
+    // The picker closes and she does it on the summary, scrolled into view.
+    $('pomSummary').scrollIntoView({ block: 'center', behavior: calmMotion.matches ? 'auto' : 'smooth' });
     showTrick($('pomSummary'), trick);
     say('summaryBubble', `I learned to ${trick.name}! ${more ? 'Pick one more trick to teach me! 🐾' : 'Thank you! 🎉'}`);
   });

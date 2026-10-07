@@ -964,6 +964,11 @@ test('finishing a table lets the child pick a trick to teach Ms. Menna, used in 
   await expect(page.locator('#againBtn')).toBeHidden();
   await expect(page.locator('#homeBtn')).toBeHidden();
   await expect(page.locator('#newTrickText')).toBeHidden();
+  // It covers the page, all but the mute button
+  expect(await page.evaluate(() => document.elementFromPoint(innerWidth / 2, 5).closest('#teachTrick') !== null)).toBe(true);
+  await page.locator('#muteBtn').click();
+  expect(await page.evaluate(() => state.muted)).toBe(true);
+  await page.locator('#muteBtn').click();
   await page.locator('.trick-choice', { hasText: 'Wave hello' }).click();
   await expect(page.locator('#pomSummary')).toHaveClass(/trick-wave/);
   await expect(page.locator('#teachTrick')).toBeHidden();

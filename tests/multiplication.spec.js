@@ -430,7 +430,7 @@ test('a save from v11 (numbers up to 13) keeps every sticker, coin, gem and clos
 
   // Loading saved it again in the newest format. It still starts with the v11 sticker string, so an old tab still open reads it right
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem(STORE_KEY)));
-  expect(saved.v).toBe(25);
+  expect(saved.v).toBe(26);
   expect(saved.mastery.slice(0, 91)).toBe(old);
   expect(saved.mastery).toHaveLength(841);
   await page.reload();
@@ -783,7 +783,7 @@ test('the Bedroom needs 20 stickers, but the Closet works before that', async ({
   await expect(page.locator('#furnItems')).toBeHidden();
   await page.locator('#closetBtn').click();
   await expect(page.locator('#closetScreen')).toHaveClass(/active/);
-  expect(await page.evaluate(() => ROOMS.map(r => r.need))).toEqual([20, 40, 60, 95, 121, 145, 171, 190, 215, 221]);
+  expect(await page.evaluate(() => ROOMS.map(r => r.need))).toEqual([20, 40, 60, 95, 121, 145, 171, 190, 205, 221]);
 });
 
 test('the five new rooms each have at least five pieces, and the surfboard rides a wave at the Beach', async ({ page }) => {
@@ -795,7 +795,7 @@ test('the five new rooms each have at least five pieces, and the surfboard rides
   expect(board.colors).toBeGreaterThan(1);
 
   await page.evaluate(() => {
-    for (let i = 0; i < 215; i++) state.mastery[i] = STICKER_AT;
+    for (let i = 0; i < 205; i++) state.mastery[i] = STICKER_AT;
     showHouse();
   });
   await expect(page.locator('.room-tab')).toHaveCount(10);
@@ -834,15 +834,18 @@ test('a v15 save keeps rooms with furniture open under the new sticker counts', 
   expect(await page.evaluate(() => roomOpen(ROOM.bedroom))).toBe(false);
 });
 
-test('an open room opens every room before it, so a Kitchen kept from an older save brings the Spa', async ({ page }) => {
-  // A v24 save opened the Kitchen at 30 stickers; the Spa came in v45 at 40
-  await page.evaluate(() => { state.rooms = ['kitchen']; state.mastery.fill(0); for (let i = 0; i < 30; i++) state.mastery[i] = STICKER_AT; showHouse(); });
-  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'spa', 'kitchen']);
-  await expect(page.locator('.room-tab[data-room="spa"]')).not.toHaveClass(/locked/);
+test('an open room opens every room before it, so a Spa kept from v45 brings the Kitchen', async ({ page }) => {
+  // v45 opened the Spa at 40 stickers, before the Kitchen; now the Kitchen comes first at 40 and the Spa needs 60
+  await page.evaluate(() => { state.rooms = ['spa']; state.mastery.fill(0); for (let i = 0; i < 30; i++) state.mastery[i] = STICKER_AT; showHouse(); });
+  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'kitchen', 'spa']);
+  await expect(page.locator('.room-tab[data-room="kitchen"]')).not.toHaveClass(/locked/);
   await expect(page.locator('.room-tab[data-room="music"]')).toHaveClass(/locked/);
+  // A v24 save opened the Kitchen at 30 stickers; it no longer brings the Spa, which now comes after it
+  await page.evaluate(() => { state.rooms = ['kitchen']; showHouse(); });
+  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'kitchen']);
   // Garden furniture from a v15 save opens the rooms now placed before the Garden
   await page.evaluate(() => { state.rooms = []; state.furniture = [FURNITURE.find(f => f.room === 'garden' && f.price > 0).id]; });
-  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'spa', 'kitchen', 'music', 'playroom', 'garden']);
+  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'kitchen', 'spa', 'music', 'playroom', 'garden']);
 });
 
 test('an open room stays open, and a v24 save keeps rooms opened at the old counts', async ({ page }) => {
@@ -860,10 +863,10 @@ test('an open room stays open, and a v24 save keeps rooms opened at the old coun
     document.cookie = `${COOKIE_NAME}=; max-age=0; path=/`;
   });
   await page.reload();
-  expect(await page.evaluate(() => [stickerCount(), ROOMS.filter(roomOpen).map(r => r.id)])).toEqual([70, ['bedroom', 'spa', 'kitchen']]);
+  expect(await page.evaluate(() => [stickerCount(), ROOMS.filter(roomOpen).map(r => r.id)])).toEqual([70, ['bedroom', 'kitchen', 'spa']]);
   // Losing the copied stickers does not close the Kitchen or the Spa
   await page.evaluate(() => { state.mastery.fill(0); });
-  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'spa', 'kitchen']);
+  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'kitchen', 'spa']);
 });
 
 test("Ms. Menna's House opens rooms with stickers and buys furniture colors with gems", async ({ page }) => {
@@ -1999,7 +2002,7 @@ test('an older plain cookie still loads, and is saved again compressed', async (
     divide: DIVIDE_KEYS.filter(hasSticker).length,
   }));
   // The 210 shared stickers are now 400: 20 squares like 3 × 3, and 190 pairs like 3 × 7 and 7 × 3
-  expect(saved).toEqual({ gems: 8, lz: true, cookie: 25, local: 25, times: 400, divide: 0 });
+  expect(saved).toEqual({ gems: 8, lz: true, cookie: 26, local: 26, times: 400, divide: 0 });
 });
 
 test('older stickers get spread-out first visits, and review dates survive a reload', async ({ page }) => {
@@ -2180,4 +2183,48 @@ test('a stale tab keeps the other tab\'s gifts, days and since-cash-out record',
   });
   const st = await page.evaluate(() => [state.gifts, state.playDays, state.playDay - today(), state.since]);
   expect(st).toEqual([2, 4, 0, { s: 1, w: 0, m: { '6x7': 1 } }]);
+});
+
+// v46: facts with 0, 1 or 10, and ÷ 1 or ÷ 10, need 2 days for a sticker.
+test('easy facts with 0, 1 or 10 earn their sticker on the second day', async ({ page }) => {
+  const easy = await page.evaluate(() => {
+    const main = FACT_KEYS.filter(k => Math.max(...factsOf(k)) <= 10);
+    return [main.filter(k => !k.startsWith('d') && isEasyFact(k)).length, main.filter(k => k.startsWith('d') && isEasyFact(k)).length,
+      ['0x7', '7x1', '10x4', 'd10x4', 'd1x8', 'd4x10', 'd7x1', '6x8'].map(isEasyFact)];
+  });
+  expect(easy).toEqual([57, 20, [true, true, true, true, true, false, false, false]]);
+
+  await page.locator('#pathBtn').click();
+  // A dot today: the next one waits, and the sticker is one day away
+  await setFact(page, '10x4', 1, 0);
+  await askFact(page, 10, 4);
+  await answer(page, true);
+  await expect(page.locator('#gameBubble')).toContainText('One dot! Get it right tomorrow for the sticker!');
+  expect(await page.evaluate(() => state.mastery[FACT_INDEX['10x4']])).toBe(1);
+  await page.waitForTimeout(1900);
+  // A dot yesterday: the second dot is the sticker
+  await setFact(page, '10x4', 1, 1);
+  await askFact(page, 10, 4);
+  await answer(page, true);
+  expect(await page.evaluate(() => [hasSticker('10x4'), game.newStickers.some(f => keyOf(f) === '10x4')])).toEqual([true, true]);
+});
+
+test('easy facts saved with 2 dots before v46 have their sticker, and other facts keep their dots', async ({ page }) => {
+  await page.evaluate(() => {
+    state.mastery[FACT_INDEX['1x6']] = 2; state.days[FACT_INDEX['1x6']] = today() - 3;
+    state.mastery[FACT_INDEX['6x8']] = 2; state.days[FACT_INDEX['6x8']] = today() - 3;
+    state.mastery[FACT_INDEX['0x9']] = 1;
+    saveState();
+    // Saved by v45, the last version before the 2-dot rule
+    const old = JSON.parse(localStorage.getItem(STORE_KEY));
+    localStorage.setItem(STORE_KEY, JSON.stringify({ ...old, v: 25, savedAt: Date.now() + 5000 }));
+    document.cookie = `${COOKIE_NAME}=; max-age=0; path=/`;
+  });
+  await page.reload();
+  const got = await page.evaluate(() => ['1x6', '6x8', '0x9'].map(k => [state.mastery[FACT_INDEX[k]] === STICKER_AT, state.mastery[FACT_INDEX[k]], isSleepy(FACT_INDEX[k])]));
+  expect(got).toEqual([[true, 3, false], [false, 2, false], [false, 1, false]]);
+  // A v46 save never holds an easy fact at 2 dots, but if one did, it would stay as saved
+  await page.evaluate(() => { state.mastery[FACT_INDEX['1x7']] = 2; saveState(); });
+  await page.reload();
+  expect(await page.evaluate(() => state.mastery[FACT_INDEX['1x7']])).toBe(2);
 });

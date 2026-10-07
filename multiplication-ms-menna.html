@@ -1628,7 +1628,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v45 - Updated 2026-10-07 09:11 EDT</p>
+    <p class="version">v46 - Updated 2026-10-07 15:55 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1793,7 +1793,7 @@
     <p class="sticker-count" id="stickerCount"></p>
     <div class="sticker-grid" id="stickerGrid"></div>
     <div class="sticker-grid" id="stickerGridMore" hidden></div>
-    <p class="sticker-help">Get a fact right on the first try on 3 different days to earn its sticker.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 each have a sticker!</span><br>💤 Sleepy stickers are still yours. They just want a visit. Get one right to wake it up!</p>
+    <p class="sticker-help">Get a fact right on the first try on 3 different days to earn its sticker. Facts with 0, 1 or 10, and ÷ 1 or ÷ 10, need just 2 days.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 each have a sticker!</span><br>💤 Sleepy stickers are still yours. They just want a visit. Get one right to wake it up!</p>
     <button class="btn btn-secondary" id="stickerBackBtn">← Back</button>
   </div>
 </div>
@@ -1878,8 +1878,9 @@ const COOKIE_NAME = 'mennaMult';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 400; // Browsers cap cookie lifetime at 400 days.
 const COOKIE_MAX = 3900; // longest cookie copy, under the 4 KB browsers keep
 const COOKIE_LZ = 'lz'; // a v22 cookie is compressed and starts with this; older ones are plain JSON, starting with %7B
-const SAVE_VERSION = 25; // a save without this is in an older format and is saved again in the new one
+const SAVE_VERSION = 26; // a save without this is in an older format and is saved again in the new one
 const SPLIT_VERSION = 25; // saves before this had one sticker for 3 × 7 and 7 × 3, and one for 56 ÷ 7 and 56 ÷ 8
+const EASY_VERSION = 26; // saves before this (v46) needed 3 dots for facts with 0, 1 or 10
 const PICK_COLORS = ['#FFB3C6', '#FFD6B0', '#FFE08A', '#C8F0B0', '#A8DAFF', '#C9B8FF', '#FFC4A8',
   '#B8F0E0', '#FFD1F0', '#D6E8FF', '#FFE9A8', '#D9C8FF', '#FFB8A8', '#B8E8C8', '#FFCFE0',
   '#C4E4FF', '#FFE2B8', '#E0D0FF', '#C8F5E8', '#FFD6B0'];
@@ -1926,6 +1927,15 @@ const ZERO_COLOR = '#EDE6DE'; // sticker chart heading for 0
 const FACT_INDEX = Object.fromEntries(FACT_KEYS.map((k, i) => [k, i]));
 const STICKER_AT = 3; // first-try right answers needed for a sticker
 // One dot a day, so every sticker is learned on 3 different days.
+// Facts with 0, 1 or 10, and ÷ 1 or ÷ 10, follow one easy rule, so they need 2 days. Their second dot sets the count to
+// STICKER_AT, so a sticker is always STICKER_AT in the save.
+const EASY_DOTS = 2;
+// Up here because loadState runs before factsOf is defined.
+const isEasyFact = key => {
+  const [a, b] = key.replace('d', '').split('x').map(Number);
+  return key.startsWith('d') ? a === 1 || a === 10 : [a, b].some(n => n === 0 || n === 1 || n === 10);
+};
+const dotsFor = key => (isEasyFact(key) ? EASY_DOTS : STICKER_AT);
 // A sticker then wants a visit after 1, 3, 7, 14 and 30 days. Once a visit is due it is sleepy 💤 until she gets it right again.
 const REVIEW_DAYS = [1, 3, 7, 14, 30];
 const SLEEPY_NOW = REVIEW_DAYS.length; // a sticker she just missed: sleepy right away, then starts again at 1 day
@@ -2122,14 +2132,14 @@ const DEFAULT_WORN = { hat: 'cap', fur: 'classic' };
 // `tab` is a shorter name for the room tab, and `deco` dresses the room with wall tiles, the sea or leaves.
 const ROOMS = [
   { id: 'bedroom', name: 'Bedroom', ico: '🛏️', need: 20, oldNeed: 10, wall: '#FFE6EE', floor: '#E8C49A', hello: 'My cozy bedroom! 🛏️' },
-  { id: 'spa', name: 'Spa', ico: '🧖', need: 40, wall: '#E2F5F3', floor: '#CFE3EE', deco: 'tiles', hello: 'Spa day! Bubbles and fluffy towels! 🫧' },
-  { id: 'kitchen', name: 'Kitchen', ico: '🍳', need: 60, oldNeed: 30, wall: '#FFF4D2', floor: '#EFD9BE', hello: 'My kitchen! Yum!' },
+  { id: 'kitchen', name: 'Kitchen', ico: '🍳', need: 40, oldNeed: 30, wall: '#FFF4D2', floor: '#EFD9BE', hello: 'My kitchen! Yum!' },
+  { id: 'spa', name: 'Spa', ico: '🧖', need: 60, wall: '#E2F5F3', floor: '#CFE3EE', deco: 'tiles', hello: 'Spa day! Bubbles and fluffy towels! 🫧' },
   { id: 'music', name: 'Music Room', tab: 'Music', ico: '🎵', need: 95, wall: '#F1E8FF', floor: '#D9B98F', hello: 'Let\'s make music! 🎵' },
   { id: 'playroom', name: 'Playroom', ico: '🧸', need: 121, oldNeed: 60, wall: '#E2F1FF', floor: '#BFE3C0', hello: 'The playroom! Let\'s play! 🧸' },
   { id: 'garden', name: 'Garden', ico: '🌻', need: 145, oldNeed: 150, outdoor: true, floor: '#86CC6A', hello: 'My pretty garden! 🌻' },
   { id: 'yard', name: 'Yard', ico: '🦴', need: 171, oldNeed: 100, outdoor: true, floor: '#9CDB7A', hello: 'My yard! 🦴' },
   { id: 'swimpool', name: 'Swimming Pool', tab: 'Pool', ico: '🏊', need: 190, outdoor: true, floor: '#D8EEF2', hello: 'Swim time! 🏊' },
-  { id: 'treehouse', name: 'Treehouse', tab: 'Tree', ico: '🌳', need: 215, wall: '#F3DCB4', floor: '#C49162', deco: 'leaves', hello: 'My secret treehouse! 🌳' },
+  { id: 'treehouse', name: 'Treehouse', tab: 'Tree', ico: '🌳', need: 205, wall: '#F3DCB4', floor: '#C49162', deco: 'leaves', hello: 'My secret treehouse! 🌳' },
   { id: 'beach', name: 'Beach', ico: '🏖️', need: 221, outdoor: true, floor: '#F5DFA0', deco: 'sea', hello: 'The beach! Waves and sand! 🌊' },
 ];
 const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
@@ -2164,19 +2174,19 @@ const FURNITURE = [
       `<path d="M4 2 Q20 30 6 58 L20 58 Q26 30 20 2 Z M76 2 Q60 30 74 58 L60 58 Q54 30 60 2 Z" fill="${m}"/>` +
       `<circle cx="13" cy="32" r="3" fill="${a}"/><circle cx="67" cy="32" r="3" fill="${a}"/>` },
 
-  { id: 'fridge', room: 'kitchen', name: 'Fridge', ico: '🧊', price: 35, x: 10, y: 30, w: 14, view: '50 100',
+  { id: 'fridge', room: 'kitchen', name: 'Fridge', ico: '🧊', price: 30, x: 10, y: 30, w: 14, view: '50 100',
     act: 'hop', fx: '🧀', say: 'Cheese, please! 🧀', classic: ['#E6F0F7', '#9FB4C4', '#FF7EB6'],
     paint: (m, d, a) => `<rect x="3" y="3" width="44" height="94" rx="7" fill="${m}" stroke="${d}" stroke-width="3"/><path d="M3 36 H47" stroke="${d}" stroke-width="3"/>` +
       `<rect x="38" y="14" width="4" height="14" rx="2" fill="${d}"/><rect x="38" y="44" width="4" height="22" rx="2" fill="${d}"/>` +
       `<circle cx="15" cy="20" r="4" fill="${a}"/><rect x="11" y="50" width="12" height="9" rx="2" fill="${a}"/>` },
-  { id: 'stove', room: 'kitchen', name: 'Stove', ico: '🍳', price: 25, x: 30, y: 30, w: 18, view: '60 64',
+  { id: 'stove', room: 'kitchen', name: 'Stove', ico: '🍳', price: 20, x: 30, y: 30, w: 18, view: '60 64',
     act: 'wiggle', fx: '🥞', say: 'I\'m cooking pancakes! 🥞', classic: ['#F2F2F2', '#8C8C99', '#FF9F43'],
     paint: (m, d, a) => `<rect x="3" y="14" width="54" height="48" rx="4" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<rect x="3" y="8" width="54" height="8" rx="3" fill="${d}"/>` +
       '<ellipse cx="18" cy="8" rx="9" ry="2.5" fill="#3D2B1F"/><ellipse cx="42" cy="8" rx="9" ry="2.5" fill="#3D2B1F"/>' +
       '<rect x="11" y="30" width="38" height="24" rx="3" fill="#3D2B1F" opacity="0.75"/>' +
       `<g fill="${a}"><circle cx="14" cy="22" r="2.5"/><circle cx="24" cy="22" r="2.5"/><circle cx="36" cy="22" r="2.5"/><circle cx="46" cy="22" r="2.5"/></g>` },
-  { id: 'table', room: 'kitchen', name: 'Table', ico: '🍽️', price: 20, x: 66, y: 12, w: 28, view: '90 50',
+  { id: 'table', room: 'kitchen', name: 'Table', ico: '🍽️', price: 15, x: 66, y: 12, w: 28, view: '90 50',
     act: 'hop', fx: '🍽️', say: 'Dinner time! 🍽️', classic: ['#C68B59', '#8B5E3C', '#FF9FBF'],
     paint: (m, d, a) => `<rect x="12" y="18" width="6" height="30" fill="${d}"/><rect x="72" y="18" width="6" height="30" fill="${d}"/>` +
       `<rect x="4" y="12" width="82" height="8" rx="3" fill="${m}" stroke="${d}" stroke-width="2"/>` +
@@ -2194,51 +2204,51 @@ const FURNITURE = [
       `<rect x="14" y="8" width="22" height="6" rx="2" fill="${d}"/><circle cx="25" cy="6" r="3" fill="${d}"/>` +
       `<rect x="16" y="17" width="18" height="5" rx="2" fill="${a}"/><circle cx="20" cy="29" r="4" fill="#C68B59"/><circle cx="30" cy="31" r="4" fill="#C68B59"/>` },
 
-  { id: 'toybox', room: 'playroom', name: 'Toy Box', ico: '🧸', price: 20, x: 12, y: 30, w: 17, view: '60 50',
+  { id: 'toybox', room: 'playroom', name: 'Toy Box', ico: '🧸', price: 15, x: 12, y: 30, w: 17, view: '60 50',
     act: 'hop', fx: '🧸', say: 'Peekaboo! So many toys!', classic: ['#FF9F43', '#D9771C', '#FFFFFF'],
     paint: (m, d, a) => '<text x="14" y="14" font-size="12">🧸</text>' +
       `<rect x="3" y="16" width="54" height="32" rx="4" fill="${m}" stroke="${d}" stroke-width="3"/><rect x="1" y="10" width="58" height="9" rx="3" fill="${d}"/>` +
       `<text x="30" y="40" font-size="16" text-anchor="middle" fill="${a}">★</text>` },
-  { id: 'slide', room: 'playroom', name: 'Slide', ico: '🛝', price: 50, x: 42, y: 28, w: 26, view: '100 70',
+  { id: 'slide', room: 'playroom', name: 'Slide', ico: '🛝', price: 45, x: 42, y: 28, w: 26, view: '100 70',
     act: 'spin', fx: '✨', say: 'Wheee! Down the slide!', classic: ['#FFD93D', '#D4A90C', '#4FA3E8'],
     paint: (m, d, a) => `<path d="M18 68 V8 M34 68 V8" stroke="${a}" stroke-width="4"/><path d="M18 22 H34 M18 36 H34 M18 50 H34 M18 64 H34" stroke="${a}" stroke-width="3"/>` +
       `<rect x="14" y="4" width="26" height="6" rx="2" fill="${d}"/>` +
       `<path d="M38 6 Q60 8 72 40 Q80 62 98 62 V70 H90 Q70 70 64 46 Q54 16 38 14 Z" fill="${m}" stroke="${d}" stroke-width="2"/>` },
-  { id: 'ballpit', room: 'playroom', name: 'Ball Pit', ico: '🔴', price: 40, x: 72, y: 5, w: 28, view: '90 44', py: 7,
+  { id: 'ballpit', room: 'playroom', name: 'Ball Pit', ico: '🔴', price: 35, x: 72, y: 5, w: 28, view: '90 44', py: 7,
     act: 'wiggle', fx: '🟡', say: 'Ball swim! 🔴🟡🔵', classic: ['#5CC46A', '#3A9447', '#FF7EB6'],
     paint: (m, d, a) => `<ellipse cx="45" cy="26" rx="43" ry="13" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       '<circle cx="22" cy="20" r="6" fill="#E94B4B"/><circle cx="36" cy="16" r="6" fill="#FFD93D"/><circle cx="50" cy="19" r="6" fill="#4FA3E8"/>' +
       `<circle cx="64" cy="16" r="6" fill="${a}"/><circle cx="72" cy="23" r="5" fill="#9B7BF0"/><circle cx="30" cy="25" r="5" fill="#FF9F43"/><circle cx="58" cy="25" r="5" fill="#fff"/>` +
       `<path d="M2 26 Q45 52 88 26 L88 32 Q45 58 2 32 Z" fill="${d}"/>` },
-  { id: 'easel', room: 'playroom', name: 'Paint Easel', short: 'Easel', ico: '🎨', price: 30, x: 90, y: 30, w: 11, view: '40 72', px: -6,
+  { id: 'easel', room: 'playroom', name: 'Paint Easel', short: 'Easel', ico: '🎨', price: 25, x: 90, y: 30, w: 11, view: '40 72', px: -6,
     act: 'wiggle', fx: '🎨', say: 'I\'m painting you! 🎨', classic: ['#4FA3E8', '#8B5E3C', '#FF7EB6'],
     paint: (m, d, a) => `<path d="M8 70 L18 6 M32 70 L22 6 M20 40 V70" stroke="${d}" stroke-width="3.5" stroke-linecap="round"/>` +
       `<rect x="4" y="10" width="32" height="28" rx="2" fill="#fff" stroke="${d}" stroke-width="2"/><circle cx="14" cy="22" r="5" fill="${m}"/>` +
       `<path d="M20 32 Q26 16 32 26" stroke="${a}" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="2" y="38" width="36" height="4" rx="2" fill="${d}"/>` },
-  { id: 'beanbag', room: 'playroom', name: 'Beanbag', ico: '🛋️', price: 25, x: 18, y: 3, w: 18, view: '60 36', py: 6,
+  { id: 'beanbag', room: 'playroom', name: 'Beanbag', ico: '🛋️', price: 20, x: 18, y: 3, w: 18, view: '60 36', py: 6,
     act: 'nap', fx: '😌', say: 'So squishy!', classic: ['#9B7BF0', '#6A4BC4', '#FFD166'],
     paint: (m, d, a) => `<path d="M6 34 Q0 18 14 10 Q30 0 46 10 Q60 18 54 34 Z" fill="${m}" stroke="${d}" stroke-width="3" stroke-linejoin="round"/>` +
       `<ellipse cx="24" cy="14" rx="8" ry="3" fill="#fff" opacity="0.45"/><path d="M18 30 Q30 22 42 30" stroke="${a}" stroke-width="2.5" fill="none"/>` },
 
-  { id: 'doghouse', room: 'yard', name: 'Doghouse', ico: '🏠', price: 60, x: 16, y: 36, w: 24, view: '80 72',
+  { id: 'doghouse', room: 'yard', name: 'Doghouse', ico: '🏠', price: 50, x: 16, y: 36, w: 24, view: '80 72',
     act: 'nap', fx: '💤', say: 'My little house! Zzz…', classic: ['#E94B4B', '#8B3A2A', '#FFD166'],
     paint: (m, d, a) => `<rect x="10" y="30" width="60" height="40" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<path d="M2 34 L40 4 L78 34 Z" fill="${d}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/><path d="M28 70 V52 Q40 38 52 52 V70 Z" fill="#3D2B1F"/>` +
       `<rect x="28" y="20" width="24" height="9" rx="3" fill="${a}"/><text x="40" y="27" font-size="6.5" text-anchor="middle" font-weight="800" fill="#3D2B1F">POM</text>` },
-  { id: 'fence', room: 'yard', name: 'Fence', ico: '🪵', price: 25, x: 75, y: 42, w: 46, view: '160 44', py: 16,
+  { id: 'fence', room: 'yard', name: 'Fence', ico: '🪵', price: 20, x: 75, y: 42, w: 46, view: '160 44', py: 16,
     act: 'hop', fx: '🐿️', say: 'Hi, squirrel! 🐿️', classic: ['#FFFFFF', '#C9B8A6', '#FF7EB6'],
     paint: (m, d, a) => `<rect x="0" y="16" width="160" height="5" fill="${d}"/><rect x="0" y="32" width="160" height="5" fill="${d}"/>` +
       Array.from({ length: 9 }, (_, i) => `<path d="M${4 + i * 18} 43 V10 L${10 + i * 18} 2 L${16 + i * 18} 10 V43 Z" fill="${m}" stroke="${d}" stroke-width="2"/>`).join('') +
       `<circle cx="28" cy="40" r="4" fill="${a}"/><circle cx="118" cy="39" r="4" fill="${a}"/>` },
-  { id: 'swing', room: 'yard', name: 'Swing', ico: '🪢', price: 45, x: 48, y: 36, w: 22, view: '70 80', py: 45,
+  { id: 'swing', room: 'yard', name: 'Swing', ico: '🪢', price: 40, x: 48, y: 36, w: 22, view: '70 80', py: 45,
     act: 'swing', fx: '🎶', say: 'Wheee! Higher, higher!', classic: ['#4FA3E8', '#8B5E3C', '#FFD166'],
     paint: (m, d, a) => `<path d="M6 78 L18 4 L30 78 M40 78 L52 4 L64 78" stroke="${d}" stroke-width="4" fill="none"/><rect x="14" y="2" width="42" height="6" rx="3" fill="${d}"/>` +
       `<path d="M27 6 V56 M43 6 V56" stroke="${a}" stroke-width="2"/><rect x="22" y="54" width="26" height="6" rx="3" fill="${m}" stroke="${d}" stroke-width="1.5"/>` },
-  { id: 'sandbox', room: 'yard', name: 'Sandbox', ico: '🏖️', price: 35, x: 80, y: 6, w: 24, view: '80 34', py: 9,
+  { id: 'sandbox', room: 'yard', name: 'Sandbox', ico: '🏖️', price: 30, x: 80, y: 6, w: 24, view: '80 34', py: 9,
     act: 'dig', fx: '🦴', say: 'Dig dig! A bone! 🦴', classic: ['#5CC46A', '#3A9447', '#FF6FA8'],
     paint: (m, d, a) => `<rect x="2" y="8" width="76" height="24" rx="4" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<rect x="7" y="11" width="66" height="10" rx="3" fill="#F5D98A"/><path d="M18 15 Q25 7 32 15 Z" fill="#E8C46A"/><path d="M56 2 L68 2 L66 16 L58 16 Z" fill="${a}"/>` },
-  { id: 'pool', room: 'yard', name: 'Kiddie Pool', short: 'Pool', ico: '🏊', price: 45, x: 36, y: 3, w: 28, view: '90 32', py: 4,
+  { id: 'pool', room: 'yard', name: 'Kiddie Pool', short: 'Pool', ico: '🏊', price: 40, x: 36, y: 3, w: 28, view: '90 32', py: 4,
     act: 'wiggle', fx: '💦', say: 'Splish splash! 💦', classic: ['#FF7EB6', '#E0457F', '#FFD93D'],
     paint: (m, d, a) => `<ellipse cx="45" cy="18" rx="43" ry="13" fill="${m}" stroke="${d}" stroke-width="3"/><ellipse cx="45" cy="17" rx="35" ry="8" fill="#7FD0F5"/>` +
       `<path d="M24 16 Q30 13 36 16 M50 19 Q56 16 62 19" stroke="#fff" stroke-width="2" fill="none"/><ellipse cx="68" cy="15" rx="7" ry="3.5" fill="none" stroke="${a}" stroke-width="3"/>` },
@@ -2250,13 +2260,13 @@ const FURNITURE = [
         `<g fill="${m}"><circle cx="${x - 4}" cy="${y}" r="4"/><circle cx="${x + 4}" cy="${y}" r="4"/><circle cx="${x}" cy="${y - 4}" r="4"/><circle cx="${x}" cy="${y + 4}" r="4"/></g>` +
         `<circle cx="${x}" cy="${y}" r="2.5" fill="${a}"/>`).join('') +
       `<rect x="2" y="30" width="86" height="12" rx="6" fill="${d}"/>` },
-  { id: 'tree', room: 'garden', name: 'Apple Tree', short: 'Tree', ico: '🌳', price: 45, x: 86, y: 38, w: 22, view: '70 100', px: -4, py: 16,
+  { id: 'tree', room: 'garden', name: 'Apple Tree', short: 'Tree', ico: '🌳', price: 40, x: 86, y: 38, w: 22, view: '70 100', px: -4, py: 16,
     act: 'nap', fx: '🍎', say: 'Nap time! 🍎', classic: ['#5CC46A', '#3A9447', '#E94B4B'],
     paint: (m, d, a) => '<rect x="30" y="56" width="10" height="42" rx="3" fill="#8B5E3C"/>' +
       `<g fill="${m}"><circle cx="35" cy="32" r="24"/><circle cx="17" cy="46" r="15"/><circle cx="53" cy="46" r="15"/></g>` +
       `<circle cx="27" cy="26" r="9" fill="${d}" opacity="0.35"/>` +
       `<g fill="${a}"><circle cx="22" cy="44" r="3.5"/><circle cx="44" cy="24" r="3.5"/><circle cx="50" cy="48" r="3.5"/><circle cx="34" cy="46" r="3.5"/></g>` },
-  { id: 'fountain', room: 'garden', name: 'Fountain', ico: '⛲', price: 65, x: 52, y: 34, w: 20, view: '70 70',
+  { id: 'fountain', room: 'garden', name: 'Fountain', ico: '⛲', price: 55, x: 52, y: 34, w: 20, view: '70 70',
     act: 'wiggle', fx: '💦', say: 'Splash! 💦', classic: ['#D9E3EA', '#9FB4C4', '#4FA3E8'],
     paint: (m, d, a) => '<path d="M35 20 Q22 0 10 22 M35 20 Q48 0 60 22" stroke="#7FD0F5" stroke-width="3" fill="none" stroke-linecap="round"/>' +
       `<rect x="31" y="20" width="8" height="30" fill="${d}"/><ellipse cx="35" cy="22" rx="12" ry="4" fill="${m}" stroke="${d}" stroke-width="2"/>` +
@@ -2267,13 +2277,13 @@ const FURNITURE = [
     paint: (m, d, a) => `<path d="M10 2 V37 M60 2 V37" stroke="${d}" stroke-width="4"/>` +
       `<g fill="${m}" stroke="${d}" stroke-width="1.5"><rect x="6" y="2" width="58" height="6" rx="2"/><rect x="6" y="11" width="58" height="6" rx="2"/>` +
       '<rect x="2" y="20" width="66" height="7" rx="2"/></g>' + `<circle cx="35" cy="5" r="2" fill="${a}"/>` },
-  { id: 'birdhouse', room: 'garden', name: 'Birdhouse', ico: '🐦', price: 35, x: 68, y: 40, w: 8, view: '34 80', py: 16,
+  { id: 'birdhouse', room: 'garden', name: 'Birdhouse', ico: '🐦', price: 30, x: 68, y: 40, w: 8, view: '34 80', py: 16,
     act: 'hop', fx: '🐦', say: 'Tweet tweet! Hi, little bird!', classic: ['#FFD93D', '#E94B4B', '#4FA3E8'],
     paint: (m, d, a) => '<rect x="15" y="34" width="4" height="46" fill="#8B5E3C"/>' +
       `<rect x="5" y="14" width="24" height="22" rx="2" fill="${m}" stroke="${d}" stroke-width="2"/><path d="M1 16 L17 2 L33 16 Z" fill="${d}"/>` +
       `<circle cx="17" cy="24" r="4" fill="#3D2B1F"/><rect x="13" y="30" width="8" height="2.5" fill="${a}"/>` },
 
-  { id: 'towels', room: 'spa', name: 'Towel Rack', short: 'Towels', ico: '🧺', price: 10, x: 10, y: 32, w: 12, view: '40 70', px: 6,
+  { id: 'towels', room: 'spa', name: 'Towel Rack', short: 'Towels', ico: '🧺', price: 15, x: 10, y: 32, w: 12, view: '40 70', px: 6,
     act: 'wiggle', fx: '✨', say: 'Dry and fluffy! ✨', classic: ['#7FD0F5', '#8C8C99', '#FFFFFF'],
     paint: (m, d, a) => `<path d="M6 68 V6 M34 68 V6" stroke="${d}" stroke-width="3.5" stroke-linecap="round"/><path d="M4 6 H36" stroke="${d}" stroke-width="4" stroke-linecap="round"/>` +
       `<rect x="8" y="8" width="24" height="30" rx="3" fill="${m}"/><path d="M8 30 H32" stroke="${a}" stroke-width="3"/>` +
@@ -2283,12 +2293,12 @@ const FURNITURE = [
     paint: (m, d, a) => `<ellipse cx="25" cy="30" rx="22" ry="27" fill="${m}" stroke="${d}" stroke-width="3"/><ellipse cx="25" cy="30" rx="16" ry="21" fill="#DDF3FF"/>` +
       '<path d="M16 22 Q20 14 28 13" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>' +
       `<circle cx="25" cy="3" r="3" fill="${a}"/><circle cx="6" cy="30" r="2.5" fill="${a}"/><circle cx="44" cy="30" r="2.5" fill="${a}"/>` },
-  { id: 'duckshelf', room: 'spa', name: 'Duck Shelf', short: 'Ducks', ico: '🦆', price: 15, x: 66, y: 64, w: 20, view: '70 30', py: 12,
+  { id: 'duckshelf', room: 'spa', name: 'Duck Shelf', short: 'Ducks', ico: '🦆', price: 20, x: 66, y: 64, w: 20, view: '70 30', py: 12,
     act: 'hop', fx: '🦆', say: 'Quack quack! 🦆', classic: ['#FFFFFF', '#C9B8A6', '#FFD93D'],
     paint: (m, d, a) => [10, 30, 50].map(x => `<ellipse cx="${x + 2}" cy="17" rx="8" ry="5" fill="${a}"/><circle cx="${x + 6}" cy="10" r="4.5" fill="${a}"/>` +
       `<path d="M${x + 10} 10 L${x + 14} 11 L${x + 10} 12.5 Z" fill="#FF9F43"/><circle cx="${x + 7}" cy="9" r="1" fill="#3D2B1F"/>`).join('') +
       `<rect x="2" y="21" width="66" height="6" rx="2" fill="${m}" stroke="${d}" stroke-width="2"/>` },
-  { id: 'tub', room: 'spa', name: 'Bubble Bath', short: 'Bath', ico: '🛁', price: 30, x: 68, y: 22, w: 34, view: '120 64', py: 30,
+  { id: 'tub', room: 'spa', name: 'Bubble Bath', short: 'Bath', ico: '🛁', price: 35, x: 68, y: 22, w: 34, view: '120 64', py: 30,
     act: 'wiggle', fx: '🫧', say: 'Bubble bath! Rub-a-dub! 🫧', sound: 'splash', classic: ['#FFFFFF', '#9FB4C4', '#FF9FBF'],
     paint: (m, d, a) => '<g fill="#fff" stroke="#BDE6FF" stroke-width="1.5"><circle cx="30" cy="20" r="9"/><circle cx="46" cy="14" r="11"/><circle cx="64" cy="18" r="10"/><circle cx="82" cy="15" r="9"/><circle cx="96" cy="21" r="7"/></g>' +
       `<path d="M104 24 V8 Q104 2 110 2 Q116 2 116 8" stroke="${d}" stroke-width="3" fill="none"/>` +
@@ -2298,12 +2308,12 @@ const FURNITURE = [
     act: 'spin', fx: '🫧', say: 'Squishy toes!', classic: ['#9B7BF0', '#6A4BC4', '#FFFFFF'],
     paint: (m, d, a) => `<rect x="2" y="3" width="86" height="20" rx="10" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<g fill="${a}"><circle cx="18" cy="13" r="3"/><circle cx="32" cy="13" r="3"/><circle cx="46" cy="13" r="3"/><circle cx="60" cy="13" r="3"/><circle cx="74" cy="13" r="3"/></g>` },
-  { id: 'fern', room: 'spa', name: 'Potted Fern', short: 'Fern', ico: '🪴', price: 10, x: 93, y: 30, w: 9, view: '30 60', px: -6,
+  { id: 'fern', room: 'spa', name: 'Potted Fern', short: 'Fern', ico: '🪴', price: 15, x: 93, y: 30, w: 9, view: '30 60', px: -6,
     act: 'hop', fx: '🌿', say: 'Hello, little plant! 🌿', classic: ['#FF9F43', '#C4651C', '#5CC46A'],
     paint: (m, d, a) => `<g stroke="${a}" stroke-width="4" stroke-linecap="round" fill="none"><path d="M15 38 Q4 26 2 12"/><path d="M15 38 Q15 18 15 2"/><path d="M15 38 Q26 26 28 12"/><path d="M15 38 Q8 30 4 28"/><path d="M15 38 Q22 30 26 28"/></g>` +
       `<path d="M4 38 H26 L23 58 H7 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/><rect x="3" y="36" width="24" height="5" rx="2" fill="${d}"/>` },
 
-  { id: 'piano', room: 'music', name: 'Piano', ico: '🎹', price: 55, x: 20, y: 30, w: 30, view: '100 80',
+  { id: 'piano', room: 'music', name: 'Piano', ico: '🎹', price: 45, x: 20, y: 30, w: 30, view: '100 80',
     act: 'wiggle', fx: '🎵', say: 'Plink plonk! 🎹', sound: 'piano', classic: ['#3D2B1F', '#1E140E', '#FFD166'],
     paint: (m, d, a) => `<rect x="4" y="4" width="92" height="40" rx="4" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<rect x="40" y="10" width="20" height="12" rx="2" fill="#fff" stroke="${a}" stroke-width="2"/><path d="M44 14 H56 M44 18 H52" stroke="#8B5E3C" stroke-width="1.5"/>` +
@@ -2318,24 +2328,24 @@ const FURNITURE = [
       ['#E94B4B', '#FF9F43', '#FFD93D', '#5CC46A', '#4FA3E8', '#9B7BF0', '#FF7EB6'].map((c, i) =>
         `<rect x="${7 + i * 10}" y="${6 + i * 1.2}" width="8" height="${30 - i * 2.4}" rx="2" fill="${c}" stroke="${d}" stroke-width="1"/>`).join('') +
       `<path d="M58 4 L70 -6 M64 6 L76 -2" stroke="${m}" stroke-width="2.5" stroke-linecap="round"/><circle cx="70" cy="-6" r="3" fill="${a}"/><circle cx="76" cy="-2" r="3" fill="${a}"/>` },
-  { id: 'notesrug', room: 'music', name: 'Music Rug', short: 'Rug', ico: '🎵', price: 20, x: 30, y: 2, w: 30, view: '100 30', py: 5,
+  { id: 'notesrug', room: 'music', name: 'Music Rug', short: 'Rug', ico: '🎵', price: 15, x: 30, y: 2, w: 30, view: '100 30', py: 5,
     act: 'spin', fx: '🎵', say: 'Dance party! 🎶', classic: ['#FFD93D', '#D4A90C', '#9B7BF0'],
     paint: (m, d, a) => `<rect x="2" y="2" width="96" height="26" rx="8" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<g fill="${a}" font-size="16" font-weight="800"><text x="14" y="22">♪</text><text x="38" y="21">♫</text><text x="62" y="22">♪</text><text x="82" y="21">♫</text></g>` },
-  { id: 'drum', room: 'music', name: 'Drum', ico: '🥁', price: 35, x: 86, y: 6, w: 14, view: '50 50',
+  { id: 'drum', room: 'music', name: 'Drum', ico: '🥁', price: 30, x: 86, y: 6, w: 14, view: '50 50',
     act: 'hop', fx: '🥁', say: 'Boom boom bap! 🥁', sound: 'drum', classic: ['#E94B4B', '#B83232', '#FFD166'],
     paint: (m, d, a) => `<path d="M4 16 V40 Q25 50 46 40 V16" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<path d="M4 18 L14 40 L25 18 L36 40 L46 18" stroke="${a}" stroke-width="2.5" fill="none"/>` +
       `<ellipse cx="25" cy="16" rx="21" ry="7" fill="#FFF8EE" stroke="${d}" stroke-width="3"/>` +
       `<path d="M12 2 L22 13 M40 2 L30 13" stroke="#C68B59" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="2" r="3" fill="${a}"/><circle cx="40" cy="2" r="3" fill="${a}"/>` },
-  { id: 'guitar', room: 'music', name: 'Guitar Stand', short: 'Guitar', ico: '🎸', price: 45, x: 90, y: 30, w: 10, view: '36 90', px: -7,
+  { id: 'guitar', room: 'music', name: 'Guitar Stand', short: 'Guitar', ico: '🎸', price: 40, x: 90, y: 30, w: 10, view: '36 90', px: -7,
     act: 'wiggle', fx: '🎸', say: 'Strum strum! 🎸', sound: 'guitar', classic: ['#FF9F43', '#C4651C', '#FFF3B0'],
     paint: (m, d, a) => '<path d="M6 88 L18 64 L30 88" stroke="#5C3D1E" stroke-width="3" fill="none"/>' +
       `<rect x="15" y="4" width="6" height="40" fill="${d}"/><rect x="13" y="0" width="10" height="7" rx="2" fill="${d}"/>` +
       `<path d="M18 40 Q4 40 6 54 Q8 60 5 66 Q2 82 18 82 Q34 82 31 66 Q28 60 30 54 Q32 40 18 40 Z" fill="${m}" stroke="${d}" stroke-width="2.5"/>` +
       `<circle cx="18" cy="60" r="5" fill="#3D2B1F"/><path d="M16.5 6 V74 M19.5 6 V74" stroke="${a}" stroke-width="0.8"/><rect x="12" y="72" width="12" height="3" fill="#3D2B1F"/>` },
 
-  { id: 'lounger', room: 'swimpool', name: 'Lounge Chair', short: 'Chair', ico: '😎', price: 40, x: 14, y: 30, w: 22, view: '80 40', py: 34,
+  { id: 'lounger', room: 'swimpool', name: 'Lounge Chair', short: 'Chair', ico: '😎', price: 35, x: 14, y: 30, w: 22, view: '80 40', py: 34,
     act: 'nap', fx: '😎', say: 'Sunbathing… ☀️', classic: ['#4FA3E8', '#8C8C99', '#FFFFFF'],
     paint: (m, d, a) => `<path d="M10 38 V26 M70 38 V26 M24 38 V26" stroke="${d}" stroke-width="3"/>` +
       `<path d="M4 26 H50 L74 6" stroke="${d}" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` +
@@ -2346,47 +2356,47 @@ const FURNITURE = [
     paint: (m, d, a) => '<circle cx="15" cy="15" r="13" fill="#fff"/>' +
       `<path d="M15 2 Q4 15 15 28 Q8 15 15 2 Z M15 2 Q26 15 15 28 Q22 15 15 2" fill="${m}"/><path d="M2 15 Q15 8 28 15 Q15 12 2 15" fill="${a}"/>` +
       `<circle cx="15" cy="15" r="13" fill="none" stroke="${d}" stroke-width="2"/>` },
-  { id: 'poolslide', room: 'swimpool', name: 'Pool Slide', short: 'Slide', ico: '🛝', price: 65, x: 70, y: 30, w: 20, view: '70 60',
+  { id: 'poolslide', room: 'swimpool', name: 'Pool Slide', short: 'Slide', ico: '🛝', price: 55, x: 70, y: 30, w: 20, view: '70 60',
     act: 'spin', fx: '💦', say: 'Wheee! Splash! 💦', sound: 'splash', classic: ['#FFD93D', '#D4A90C', '#4FA3E8'],
     paint: (m, d, a) => `<path d="M8 58 V6 M20 58 V6" stroke="#9FB4C4" stroke-width="3"/><path d="M8 16 H20 M8 28 H20 M8 40 H20 M8 52 H20" stroke="#9FB4C4" stroke-width="2.5"/>` +
       `<path d="M22 6 Q44 4 52 32 Q56 48 68 50 V58 Q50 58 44 36 Q38 14 22 14 Z" fill="${m}" stroke="${d}" stroke-width="2"/>` +
       `<path d="M26 9 Q44 9 48 30" stroke="${a}" stroke-width="2.5" fill="none" stroke-linecap="round"/>` },
-  { id: 'bigpool', room: 'swimpool', name: 'Big Pool', short: 'Pool', ico: '🏊', price: 75, x: 48, y: 4, w: 54, view: '180 50', py: 9,
+  { id: 'bigpool', room: 'swimpool', name: 'Big Pool', short: 'Pool', ico: '🏊', price: 65, x: 48, y: 4, w: 54, view: '180 50', py: 9,
     act: 'wiggle', fx: '💦', say: 'Cannonball! 💦', sound: 'splash', classic: ['#4FB3E8', '#2C7FB8', '#FFFFFF'],
     paint: (m, d, a) => '<rect x="2" y="2" width="176" height="46" rx="6" fill="#E6F0F7" stroke="#9FB4C4" stroke-width="3"/>' +
       `<rect x="10" y="8" width="160" height="34" rx="3" fill="${m}" stroke="${d}" stroke-width="2"/>` +
       `<path d="M12 19 H168 M12 31 H168" stroke="${a}" stroke-width="2.5" stroke-dasharray="6 5"/>` +
       '<path d="M30 14 Q38 10 46 14 M110 36 Q118 32 126 36" stroke="#fff" stroke-width="2" fill="none" opacity="0.8"/>' +
       '<path d="M154 0 V16 M164 0 V16 M154 6 H164 M154 12 H164" stroke="#C0C8D0" stroke-width="2.5"/>' },
-  { id: 'divingboard', room: 'swimpool', name: 'Diving Board', short: 'Board', ico: '🤿', price: 40, x: 88, y: 4, w: 16, view: '60 40', py: 14,
+  { id: 'divingboard', room: 'swimpool', name: 'Diving Board', short: 'Board', ico: '🤿', price: 35, x: 88, y: 4, w: 16, view: '60 40', py: 14,
     act: 'hop', fx: '💦', say: 'One, two, three… jump! 💦', sound: 'splash', classic: ['#FFFFFF', '#9FB4C4', '#E94B4B'],
     paint: (m, d, a) => `<rect x="38" y="16" width="16" height="22" rx="2" fill="${d}"/><path d="M38 38 H58" stroke="${d}" stroke-width="3"/>` +
       `<rect x="2" y="10" width="54" height="7" rx="3.5" fill="${m}" stroke="${d}" stroke-width="2"/><path d="M8 13.5 H20" stroke="${a}" stroke-width="3" stroke-linecap="round"/>` },
-  { id: 'poolfloat', room: 'swimpool', name: 'Pool Float', short: 'Float', ico: '🛟', price: 25, x: 12, y: 3, w: 16, view: '50 26', py: 5,
+  { id: 'poolfloat', room: 'swimpool', name: 'Pool Float', short: 'Float', ico: '🛟', price: 20, x: 12, y: 3, w: 16, view: '50 26', py: 5,
     act: 'nap', fx: '💤', say: 'Floaty nap… 💤', classic: ['#FF7EB6', '#E0457F', '#FFFFFF'],
     paint: (m, d, a) => `<ellipse cx="25" cy="13" rx="23" ry="10" fill="${m}" stroke="${d}" stroke-width="2.5"/><ellipse cx="25" cy="13" rx="10" ry="4" fill="#7FD0F5"/>` +
       `<path d="M6 8 Q10 4 16 5 M34 21 Q40 22 44 18" stroke="${a}" stroke-width="3" fill="none" stroke-linecap="round"/>` },
 
-  { id: 'umbrella', room: 'beach', name: 'Beach Umbrella', short: 'Umbrella', ico: '⛱️', price: 45, x: 14, y: 14, w: 22, view: '70 80',
+  { id: 'umbrella', room: 'beach', name: 'Beach Umbrella', short: 'Umbrella', ico: '⛱️', price: 40, x: 14, y: 14, w: 22, view: '70 80',
     act: 'hop', fx: '⛱️', say: 'Shady and cool! 😎', classic: ['#E94B4B', '#B83232', '#FFFFFF'],
     paint: (m, d, a) => '<path d="M36 18 L40 78" stroke="#8B5E3C" stroke-width="3"/>' +
       `<path d="M2 26 Q30 -6 68 18 Z" fill="${m}" stroke="${d}" stroke-width="2.5" stroke-linejoin="round"/>` +
       `<path d="M24 22 Q26 8 36 4 Q36 14 34 21 Z M46 19 Q50 8 54 9 Q56 14 56 19 Z" fill="${a}"/>` },
-  { id: 'beachtowel', room: 'beach', name: 'Beach Towel', short: 'Towel', ico: '🏖️', price: 25, x: 22, y: 2, w: 26, view: '90 28', py: 4,
+  { id: 'beachtowel', room: 'beach', name: 'Beach Towel', short: 'Towel', ico: '🏖️', price: 20, x: 22, y: 2, w: 26, view: '90 28', py: 4,
     act: 'nap', fx: '☀️', say: 'Sun nap… ☀️', classic: ['#4FA3E8', '#2C7FB8', '#FFD93D'],
     paint: (m, d, a) => `<path d="M8 4 H86 L82 24 H4 Z" fill="${m}" stroke="${d}" stroke-width="2.5" stroke-linejoin="round"/>` +
       `<path d="M22 4 L18 24 M40 4 L36 24 M58 4 L54 24 M76 4 L72 24" stroke="${a}" stroke-width="5"/>` },
-  { id: 'sandcastle', room: 'beach', name: 'Sand Castle', short: 'Castle', ico: '🏰', price: 35, x: 48, y: 6, w: 16, view: '60 50',
+  { id: 'sandcastle', room: 'beach', name: 'Sand Castle', short: 'Castle', ico: '🏰', price: 30, x: 48, y: 6, w: 16, view: '60 50',
     act: 'dig', fx: '🏰', say: 'My sand castle! 🏰', classic: ['#E8C46A', '#B8923A', '#E94B4B'],
     paint: (m, d, a) => `<g fill="${m}" stroke="${d}" stroke-width="2"><rect x="4" y="24" width="52" height="24" rx="2"/><rect x="6" y="14" width="12" height="12"/><rect x="42" y="14" width="12" height="12"/><rect x="22" y="8" width="16" height="18"/></g>` +
       `<path d="M6 14 v-4 h4 v4 M14 14 v-4 h4 v4 M42 14 v-4 h4 v4 M50 14 v-4 h4 v4" fill="${m}" stroke="${d}" stroke-width="1.5"/>` +
       `<path d="M26 40 Q30 32 34 40 V48 H26 Z" fill="${d}"/><path d="M30 8 V-2" stroke="#8B5E3C" stroke-width="1.5"/><path d="M30 -2 L40 1 L30 4 Z" fill="${a}"/>` },
-  { id: 'lifeguard', room: 'beach', name: 'Lifeguard Chair', short: 'Lookout', ico: '🛟', price: 75, x: 64, y: 34, w: 13, view: '50 80',
+  { id: 'lifeguard', room: 'beach', name: 'Lifeguard Chair', short: 'Lookout', ico: '🛟', price: 65, x: 64, y: 34, w: 13, view: '50 80',
     act: 'hop', fx: '👀', say: 'I\'m watching the waves! 👀', classic: ['#FFFFFF', '#C9B8A6', '#E94B4B'],
     paint: (m, d, a) => `<path d="M8 78 L16 30 M42 78 L34 30" stroke="${d}" stroke-width="4" stroke-linecap="round"/><path d="M12 54 H38 M10 66 H40" stroke="${d}" stroke-width="3"/>` +
       `<rect x="10" y="26" width="30" height="7" rx="2" fill="${m}" stroke="${d}" stroke-width="2"/><rect x="12" y="4" width="26" height="22" rx="3" fill="${m}" stroke="${d}" stroke-width="2"/>` +
       `<path d="M18 15 H32 M25 8 V22" stroke="${a}" stroke-width="4"/>` },
-  { id: 'surfboard', room: 'beach', name: 'Surfboard', ico: '🏄', price: 100, x: 76, y: 4, w: 22, view: '90 24', py: 5,
+  { id: 'surfboard', room: 'beach', name: 'Surfboard', ico: '🏄', price: 90, x: 76, y: 4, w: 22, view: '90 24', py: 5,
     act: 'surf', fx: '🌊', say: 'Surf\'s up! Ride the wave! 🌊', sound: 'surf', classic: ['#4FA3E8', '#2C7FB8', '#FFD93D'],
     paint: (m, d, a) => `<path d="M4 12 Q4 3 30 3 H70 Q88 4 88 12 Q88 20 70 21 H30 Q4 21 4 12 Z" fill="${m}" stroke="${d}" stroke-width="2.5"/>` +
       `<path d="M10 12 H82" stroke="${a}" stroke-width="3" stroke-linecap="round"/><path d="M60 7 L70 12 L60 17" stroke="#fff" stroke-width="2" fill="none"/>` },
@@ -2395,7 +2405,7 @@ const FURNITURE = [
     paint: (m, d, a) => '<text x="4" y="14" font-size="11">🐚</text>' +
       `<path d="M4 4 Q18 -6 32 4" stroke="${d}" stroke-width="2" fill="none"/><path d="M4 12 H32 L28 38 H8 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` +
       `<path d="M6 22 H30" stroke="${a}" stroke-width="3"/>` },
-  { id: 'palm', room: 'beach', name: 'Palm Tree', short: 'Palm', ico: '🌴', price: 60, x: 90, y: 34, w: 18, view: '60 100', px: -4,
+  { id: 'palm', room: 'beach', name: 'Palm Tree', short: 'Palm', ico: '🌴', price: 50, x: 90, y: 34, w: 18, view: '60 100', px: -4,
     act: 'wiggle', fx: '🥥', say: 'Coconut! 🥥', classic: ['#5CC46A', '#3A9447', '#8B5E3C'],
     paint: (m, d, a) => '<path d="M28 98 Q34 60 30 26" stroke="#B5784A" stroke-width="7" fill="none" stroke-linecap="round"/>' +
       '<path d="M28 90 H34 M30 76 H36 M31 62 H37 M31 48 H37" stroke="#8B5E3C" stroke-width="2"/>' +
@@ -2407,14 +2417,14 @@ const FURNITURE = [
     act: 'swing', fx: '🍃', say: 'Climb, climb, climb!', classic: ['#E8C46A', '#B8923A', '#8B5E3C'],
     paint: (m, d, a) => `<path d="M8 0 Q6 60 8 118 M28 0 Q30 60 28 118" stroke="${d}" stroke-width="3" fill="none"/>` +
       Array.from({ length: 7 }, (_, i) => `<rect x="5" y="${10 + i * 16}" width="26" height="6" rx="2" fill="${m}" stroke="${a}" stroke-width="1.5"/>`).join('') },
-  { id: 'bookshelf', room: 'treehouse', name: 'Bookshelf', short: 'Books', ico: '📚', price: 55, x: 24, y: 30, w: 18, view: '60 80',
+  { id: 'bookshelf', room: 'treehouse', name: 'Bookshelf', short: 'Books', ico: '📚', price: 45, x: 24, y: 30, w: 18, view: '60 80',
     act: 'hop', fx: '📖', say: 'Story time! 📖', classic: ['#C68B59', '#8B5E3C', '#4FA3E8'],
     paint: (m, d, a) => `<rect x="3" y="3" width="54" height="74" rx="3" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<path d="M3 28 H57 M3 52 H57" stroke="${d}" stroke-width="3"/>` +
       [[8, 8, '#E94B4B'], [15, 11, a], [22, 7, '#5CC46A'], [36, 10, '#FFD93D'], [43, 8, a], [9, 33, '#9B7BF0'], [16, 31, '#FF9F43'], [30, 34, a], [37, 32, '#E94B4B'], [10, 57, a], [17, 56, '#5CC46A']].map(([x, y, c]) =>
         `<rect x="${x}" y="${y}" width="6" height="${(y < 28 ? 26 : y < 52 ? 50 : 74) - y}" rx="1" fill="${c}"/>`).join('') +
       '<text x="34" y="72" font-size="14">🧸</text>' },
-  { id: 'hammock', room: 'treehouse', name: 'Hammock', ico: '🌙', price: 70, x: 52, y: 30, w: 30, view: '100 50', py: 34,
+  { id: 'hammock', room: 'treehouse', name: 'Hammock', ico: '🌙', price: 60, x: 52, y: 30, w: 30, view: '100 50', py: 34,
     act: 'nap', fx: '💤', say: 'Swing and snooze… 💤', classic: ['#FF9FBF', '#E0689A', '#FFFFFF'],
     paint: (m, d, a) => '<path d="M4 2 V48 M96 2 V48" stroke="#8B5E3C" stroke-width="5" stroke-linecap="round"/>' +
       `<path d="M4 10 Q50 52 96 10 Q50 34 4 10 Z" fill="${m}" stroke="${d}" stroke-width="2"/>` +
@@ -2424,12 +2434,12 @@ const FURNITURE = [
     paint: (m, d, a) => '<path d="M2 2 H48" stroke="#8B5E3C" stroke-width="3" stroke-linecap="round"/>' +
       [6, 18, 30].map((x, i) => `<path d="M${x} 3 H${x + 12} L${x + 6} ${i === 1 ? 22 : 18} Z" fill="${i === 1 ? a : m}" stroke="${d}" stroke-width="1.5"/>`).join('') +
       `<path d="M42 3 V38" stroke="#8B5E3C" stroke-width="2"/><path d="M42 4 L48 8 L42 12" fill="${m}"/>` },
-  { id: 'lantern', room: 'treehouse', name: 'Lantern', ico: '🏮', price: 35, x: 74, y: 60, w: 7, view: '26 50', py: 12,
+  { id: 'lantern', room: 'treehouse', name: 'Lantern', ico: '🏮', price: 30, x: 74, y: 60, w: 7, view: '26 50', py: 12,
     act: 'hop', fx: '✨', say: 'Glow, glow! ✨', classic: ['#FFD166', '#B8923A', '#FFF3B0'],
     paint: (m, d, a) => `<path d="M13 0 V8" stroke="${d}" stroke-width="2"/><path d="M8 8 H18 L20 12 H6 Z" fill="${d}"/>` +
       `<rect x="5" y="12" width="16" height="28" rx="5" fill="${m}" stroke="${d}" stroke-width="2"/><ellipse cx="13" cy="26" rx="4.5" ry="7" fill="${a}"/>` +
       `<path d="M6 40 H20 L18 46 H8 Z" fill="${d}"/>` },
-  { id: 'telescope', room: 'treehouse', name: 'Telescope', ico: '🔭', price: 80, x: 86, y: 30, w: 14, view: '50 70', px: -6,
+  { id: 'telescope', room: 'treehouse', name: 'Telescope', ico: '🔭', price: 70, x: 86, y: 30, w: 14, view: '50 70', px: -6,
     act: 'wiggle', fx: '⭐', say: 'I see a star! ⭐', classic: ['#4FA3E8', '#2C7FB8', '#FFD93D'],
     paint: (m, d, a) => `<path d="M25 36 L10 68 M25 36 L40 68 M25 36 V68" stroke="${d}" stroke-width="3" stroke-linecap="round"/>` +
       `<g transform="rotate(-30 25 30)"><rect x="4" y="24" width="40" height="12" rx="3" fill="${m}" stroke="${d}" stroke-width="2"/>` +
@@ -2606,6 +2616,11 @@ function parseSave(saved) {
     }
   }
   if (!(saved.v >= SPLIT_VERSION)) splitShared(state);
+  // Easy facts already at 2 dots from before v46 have their sticker now. They come in like any new sticker, with no visit
+  // due before tomorrow, and count toward the next free treat.
+  if (!(saved.v >= EASY_VERSION)) FACT_KEYS.forEach((key, i) => {
+    if (state.mastery[i] < STICKER_AT && state.mastery[i] >= dotsFor(key)) { state.mastery[i] = STICKER_AT; state.levels[i] = 0; state.days[i] = today(); }
+  });
   // Stickers from before v19 have no visit dates. Their first visit comes in 1 to 7 days, spread out so they don't all get sleepy at once.
   const day = today();
   state.mastery.forEach((m, i) => {
@@ -4108,6 +4123,7 @@ function onCorrect(answer) {
       if (state.days[i] === day) tomorrow = true;
       else {
         state.mastery[i]++;
+        if (state.mastery[i] >= dotsFor(key)) state.mastery[i] = STICKER_AT;
         state.days[i] = day;
         newSticker = state.mastery[i] === STICKER_AT;
         if (newSticker) {
@@ -4179,8 +4195,8 @@ function onCorrect(answer) {
     : fixed
     ? `You fixed ${questionText(fact)}! 🌟`
     : tomorrow
-    ? state.mastery[FACT_INDEX[key]] === STICKER_AT - 1
-      ? 'Two dots! Get it right tomorrow for the sticker! 🌙'
+    ? state.mastery[FACT_INDEX[key]] === dotsFor(key) - 1
+      ? state.mastery[FACT_INDEX[key]] === 1 ? 'One dot! Get it right tomorrow for the sticker! 🌙' : 'Two dots! Get it right tomorrow for the sticker! 🌙'
       : 'One dot a day! Get it right tomorrow for the next one! 🌙'
     : game.attempts === 0
     ? pick(['Pawsome! 🐾', 'Woof woof! Correct!', 'You got it! ⭐', `You remembered ${questionText(fact)}!`, 'You knew that one right away!', 'Wag wag! That\'s right!'])

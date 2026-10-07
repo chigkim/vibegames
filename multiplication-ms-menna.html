@@ -734,6 +734,29 @@
   @keyframes bankDrop { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 
   .bank-label { font-size: 0.9rem; font-weight: 700; color: var(--brown); margin: 8px 0 18px; }
+  .days-total { font-weight: 800; color: var(--dark-brown); margin: -10px 0 14px; }
+  .days-total[hidden] { display: none; }
+
+  /* Sleepy stickers snooze under a patchwork quilt on the start screen */
+  .quilt { margin: 4px auto 14px; max-width: 320px; }
+  .quilt[hidden] { display: none; }
+  .quilt-friends { display: flex; justify-content: center; gap: 4px; font-size: clamp(1.4rem, 5vmin, 1.9rem); line-height: 1; margin-bottom: -0.45em; }
+  .quilt-friends span { display: inline-block; filter: saturate(0.6); animation: snooze 3s ease-in-out infinite; transform-origin: bottom; }
+  .quilt-friends span:nth-child(2n) { animation-delay: -1.5s; }
+  .quilt-friends span:nth-child(3n) { animation-delay: -0.8s; }
+  @keyframes snooze { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06, 0.96) translateY(2px); } }
+  .quilt-cover {
+    position: relative;
+    padding: 10px 12px 8px;
+    border-radius: 18px 18px 12px 12px;
+    background: repeating-conic-gradient(#FFD6E0 0 25%, #D6ECFF 0 50%) 0 0 / 28px 28px;
+    outline: 3px dashed white;
+    outline-offset: -7px;
+    box-shadow: 0 3px 0 #E8C4D0;
+    font-weight: 800;
+    color: var(--dark-brown);
+    text-shadow: 0 1px 0 white, 0 0 6px white;
+  }
 
   /* ===== BUTTONS ===== */
   .btn {
@@ -1089,6 +1112,14 @@
     100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
   }
 
+  .banner .stretch { display: inline-block; transform-origin: bottom; animation: stickerStretch 1.3s ease-in-out 0.2s both; }
+  @keyframes stickerStretch {
+    0%, 100% { transform: none; }
+    30% { transform: scale(0.85, 1.35); }
+    50% { transform: scale(1.1, 0.9) rotate(-10deg); }
+    70% { transform: rotate(10deg); }
+  }
+
   .banner {
     position: fixed;
     left: 50%;
@@ -1217,6 +1248,8 @@
   .new-stickers { font-weight: 800; color: var(--dark-brown); margin: -6px 0 14px; white-space: pre-line; }
   .new-trick { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0 0 14px; font-weight: 800; color: var(--dark-brown); }
   .new-trick[hidden] { display: none; }
+  .gift-note { font-weight: 800; color: var(--dark-brown); background: #FFF0F5; border: 3px dashed #FFB3C7; border-radius: 18px; padding: 8px 12px; margin: -6px 0 14px; animation: starPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 1.6s both; }
+  .gift-note[hidden] { display: none; }
   .new-trick p { margin: 0; text-align: left; }
   #pomSummary { cursor: pointer; }
   #summaryScreen .btn[hidden] { display: none; }
@@ -1338,6 +1371,8 @@
   .house-head h1 { margin: 0; white-space: nowrap; font-size: clamp(1.3rem, 6.5vw, 2.2rem); }
   .house-head .gem-badge { position: static; transform: none; display: inline-block; }
   .room-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
+  .room-tab { padding: 4px 2px; }
+  .room-tab .ico { font-size: 1.3em; }
   .room-tab .need { display: block; font-size: 0.8em; color: var(--brown); }
   .room-tab.locked { opacity: 0.6; border-style: dashed; }
   .room {
@@ -1359,6 +1394,11 @@
   .room .sun { position: absolute; right: 6%; top: 6%; font-size: 9cqw; line-height: 1; }
   .room .cloud { position: absolute; top: 12%; font-size: 8cqw; line-height: 1; animation: cloudDrift 28s linear infinite; }
   @keyframes cloudDrift { from { left: -15%; } to { left: 105%; } }
+  .room .deco-tiles { position: absolute; left: 0; right: 0; top: 0; height: 60%; background-image: linear-gradient(rgba(255,255,255,0.7) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.7) 2px, transparent 2px); background-size: 8% 10.67%; }
+  .room .deco-sea { position: absolute; left: 0; right: 0; top: 44%; height: 11%; background: linear-gradient(#3FA7E0, #8FD6F5); }
+  .room .deco-sea::after { content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 8px; background: radial-gradient(circle at 50% 0, #fff 45%, transparent 50%) 0 0 / 6% 100% repeat-x; animation: seaLap 3s ease-in-out infinite alternate; }
+  @keyframes seaLap { to { transform: translateX(3%); } }
+  .room .deco-leaf { position: absolute; top: 2%; font-size: 7cqw; line-height: 1; }
   .room { container-type: inline-size; }
   .room.locked > :not(.lock-note) { filter: grayscale(1) opacity(0.45); }
   .lock-note { position: absolute; inset: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-family: 'Baloo 2', cursive; font-weight: 800; font-size: clamp(1rem, 4.5cqw, 1.6rem); color: var(--dark-brown); }
@@ -1406,6 +1446,15 @@
     50% { opacity: 1; transform: translate(calc(-50% + var(--dx) / 2), -180%); }
     100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), 0) rotate(160deg); }
   }
+  /* Surf rides up and over two waves on the board, leaning into each one. */
+  .pom-container.act-surf > svg { animation: pomSurf 1.2s ease-in-out 2; transform-origin: 50% 100%; }
+  @keyframes pomSurf {
+    25% { transform: translate(calc(-6px * var(--s)), calc(-10px * var(--s))) rotate(-9deg); }
+    50% { transform: translateY(calc(-16px * var(--s))); }
+    75% { transform: translate(calc(6px * var(--s)), calc(-8px * var(--s))) rotate(9deg); }
+  }
+  .wave-fx { position: absolute; left: 50%; bottom: -12%; font-size: clamp(1.4rem, 7cqw, 2.8rem); line-height: 1; pointer-events: none; animation: waveRide 1.2s ease-in-out 2; transform: translateX(-50%); }
+  @keyframes waveRide { 50% { transform: translate(-50%, -18%) scale(1.15); } }
   .pom-container.act-munch > svg { animation: pomMunch 0.3s ease-in-out 5; }
   .pom-container.act-munch .pom-mouth-o { animation: mouthOpen 0.3s step-end 5; }
   .pom-container.act-munch .pom-mouth-happy { animation: mouthShut 0.3s step-end 5; }
@@ -1427,6 +1476,10 @@
   .pay-confirm .row { display: flex; gap: 10px; }
   .pay-confirm .btn { flex: 1; margin: 0; padding-left: 8px; padding-right: 8px; }
   .btn-no { background: linear-gradient(135deg, #EEE, #D8D8D8); color: var(--dark-brown); }
+  .parent-note { background: #F1F8FF; border: 3px solid #B8D8F5; border-radius: 20px; padding: 10px 14px; margin: 0 0 14px; text-align: left; font-weight: 700; color: var(--dark-brown); }
+  .parent-note[hidden] { display: none; }
+  .parent-note h2 { font-family: 'Baloo 2', cursive; font-size: 1.1rem; color: var(--brown); margin: 0 0 4px; text-align: center; }
+  .parent-note p { margin: 4px 0; }
   .payout-list { margin: 16px 0 4px; text-align: left; font-weight: 700; color: var(--dark-brown); }
   .payout-list h2 { font-family: 'Baloo 2', cursive; font-size: 1.1rem; color: var(--brown); margin-bottom: 6px; text-align: center; }
   .payout-row { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 2px dashed var(--peach); }
@@ -1575,13 +1628,19 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v44 - Updated 2026-10-07 11:45 EDT</p>
+    <p class="version">v45 - Updated 2026-10-07 09:11 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
+    <p class="days-total" id="daysTotal" hidden></p>
 
     <div class="speech-bubble below" id="startBubble" aria-live="polite">
       Woof! Let's practice! 🐾
+    </div>
+
+    <div class="quilt" id="quilt" hidden>
+      <div class="quilt-friends" id="quiltFriends"></div>
+      <div class="quilt-cover" id="quiltCount"></div>
     </div>
 
     <button class="btn btn-path" id="pathBtn">
@@ -1676,6 +1735,7 @@
     <!-- What she learned comes first, then the score and coins. -->
     <div class="new-stickers" id="newStickers"></div>
     <div class="new-stickers" id="pathUp"></div>
+    <div class="gift-note" id="giftNote" hidden></div>
     <div class="new-trick" id="newTrick">
       <div class="pom-container small" id="pomSummary" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
       <p id="newTrickText" hidden></p>
@@ -1775,6 +1835,7 @@
 <div class="screen" id="cashoutScreen">
   <div class="card">
     <h1>Cash Out 💵</h1>
+    <div class="parent-note" id="parentNote" hidden></div>
     <div class="bank" id="cashBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="cashBankAmount">$0.00</span></div>
     <p class="bank-label">in the piggy bank right now</p>
     <p class="pay-rates">Pay per right answer:<br><span>×0 or ×1 → 1¢</span> · <span>×2 or ×10 → 2¢</span> · <span>harder facts → up to 10¢</span><br><span>Right after a picture hint → 1¢</span> · <span>Wrong answers never cost money</span></p>
@@ -1882,6 +1943,8 @@ const GEMS_PER_ANSWER = 1; // each first-try right answer
 const GEMS_PER_STICKER = 2;
 const GEMS_PER_WAKE = 1; // waking a sleepy sticker
 const GEMS_FOR_STARS = [0, 0, 1, 3]; // round bonus by stars
+const GIFT_EVERY = 10; // every 10th sticker brings a free treat, given at the end of the round
+const TRICKY_KEPT = 12; // facts kept in the count of misses since the last cash-out
 
 const CLOSET_SLOTS = [
   { id: 'hat', ico: '🎩', name: 'Hats' },
@@ -1920,42 +1983,42 @@ const CLOSET = [
     '<circle cx="65" cy="4" r="4" fill="#FF6FA8"/>',
     paint: (m, d, a) => `<polygon points="65,3 53,31 77,31" fill="${m}"/><path d="M57.5 21 L72.5 21 M60.5 13 L69.5 13" stroke="${a}" stroke-width="3.5"/>` +
       `<circle cx="65" cy="4" r="4" fill="${d}"/>` },
-  { id: 'bow', slot: 'hat', name: 'Hair Bow', ico: '🎀', price: 8, svg:
+  { id: 'bow', slot: 'hat', name: 'Hair Bow', ico: '🎀', price: 15, svg:
     '<path d="M80 24 L69 16 Q66 24 69 32 Z M80 24 L91 16 Q94 24 91 32 Z" fill="#FF6FA8" stroke="#E0457F" stroke-width="1.5" stroke-linejoin="round"/>' +
     '<circle cx="80" cy="24" r="4" fill="#E0457F"/>',
     paint: (m, d) => `<path d="M80 24 L69 16 Q66 24 69 32 Z M80 24 L91 16 Q94 24 91 32 Z" fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"/>` +
       `<circle cx="80" cy="24" r="4" fill="${d}"/>` },
-  { id: 'chef', slot: 'hat', name: 'Chef Hat', ico: '👨‍🍳', price: 15, svg:
+  { id: 'chef', slot: 'hat', name: 'Chef Hat', ico: '👨‍🍳', price: 30, svg:
     '<g fill="#fff" stroke="#E5DCD2" stroke-width="1.5"><circle cx="55" cy="17" r="8"/><circle cx="75" cy="17" r="8"/>' +
     '<circle cx="65" cy="12" r="10"/><rect x="52" y="20" width="26" height="12" rx="3"/></g>',
     paint: (m, d) => `<g fill="${m}" stroke="${d}" stroke-width="1.5"><circle cx="55" cy="17" r="8"/><circle cx="75" cy="17" r="8"/>` +
       '<circle cx="65" cy="12" r="10"/><rect x="52" y="20" width="26" height="12" rx="3"/></g>' },
-  { id: 'cowboy', slot: 'hat', name: 'Cowboy Hat', ico: '🤠', price: 20, svg:
+  { id: 'cowboy', slot: 'hat', name: 'Cowboy Hat', ico: '🤠', price: 40, svg:
     '<path d="M50 28 Q49 12 57 12 Q65 16 73 12 Q81 12 80 28 Z" fill="#B5784A"/><rect x="50" y="22" width="30" height="5" fill="#5C3D1E"/>' +
     '<path d="M36 28 Q65 40 94 28 Q90 25 80 27 L50 27 Q40 25 36 28 Z" fill="#A0673A"/>',
     paint: (m, d, a) => `<path d="M50 28 Q49 12 57 12 Q65 16 73 12 Q81 12 80 28 Z" fill="${m}"/><rect x="50" y="22" width="30" height="5" fill="${a}"/>` +
       `<path d="M36 28 Q65 40 94 28 Q90 25 80 27 L50 27 Q40 25 36 28 Z" fill="${d}"/>` },
-  { id: 'wizard', slot: 'hat', name: 'Wizard Hat', ico: '🧙', price: 30, svg:
+  { id: 'wizard', slot: 'hat', name: 'Wizard Hat', ico: '🧙', price: 60, svg:
     '<path d="M52 29 L69 3 Q71 0 72 4 L78 29 Z" fill="#7B5BE0"/><ellipse cx="65" cy="30" rx="24" ry="4.5" fill="#5B3FB0"/>' +
     '<text x="59" y="25" font-size="9" fill="#FFD166">★</text><text x="67" y="15" font-size="6" fill="#FFD166">★</text>',
     paint: (m, d, a) => `<path d="M52 29 L69 3 Q71 0 72 4 L78 29 Z" fill="${m}"/><ellipse cx="65" cy="30" rx="24" ry="4.5" fill="${d}"/>` +
       `<text x="59" y="25" font-size="9" fill="${a}">★</text><text x="67" y="15" font-size="6" fill="${a}">★</text>` },
-  { id: 'crown', slot: 'hat', name: 'Crown', ico: '👑', price: 45, svg:
+  { id: 'crown', slot: 'hat', name: 'Crown', ico: '👑', price: 90, svg:
     '<path d="M48 30 L48 14 L56 22 L65 9 L74 22 L82 14 L82 30 Z" fill="#FFD166" stroke="#E0A800" stroke-width="2" stroke-linejoin="round"/>' +
     '<circle cx="65" cy="24" r="3" fill="#FF6B6B"/><circle cx="55" cy="26" r="2" fill="#6FC3F2"/><circle cx="75" cy="26" r="2" fill="#6FC3F2"/>',
     paint: (m, d, a) => `<path d="M48 30 L48 14 L56 22 L65 9 L74 22 L82 14 L82 30 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` +
       `<circle cx="65" cy="24" r="3" fill="${a}"/><circle cx="55" cy="26" r="2" fill="#fff"/><circle cx="75" cy="26" r="2" fill="#fff"/>` },
-  { id: 'specs', slot: 'face', name: 'Smart Glasses', short: 'Glasses', ico: '👓', price: 10, svg:
+  { id: 'specs', slot: 'face', name: 'Smart Glasses', short: 'Glasses', ico: '👓', price: 20, svg:
     '<g stroke="#3D2B1F" stroke-width="2"><circle cx="57" cy="50" r="7" fill="rgba(255,255,255,0.25)"/>' +
     '<circle cx="73" cy="50" r="7" fill="rgba(255,255,255,0.25)"/><path d="M64 49 Q65 47 66 49" fill="none"/></g>',
     paint: (m, d) => `<g stroke-width="2.5"><circle cx="57" cy="50" r="7" fill="rgba(255,255,255,0.25)" stroke="${m}"/>` +
       `<circle cx="73" cy="50" r="7" fill="rgba(255,255,255,0.25)" stroke="${m}"/><path d="M64 49 Q65 47 66 49" fill="none" stroke="${d}"/></g>` },
-  { id: 'shades', slot: 'face', name: 'Sunglasses', ico: '🕶️', price: 15, svg:
+  { id: 'shades', slot: 'face', name: 'Sunglasses', ico: '🕶️', price: 30, svg:
     '<rect x="49" y="44" width="15" height="11" rx="4" fill="#222"/><rect x="66" y="44" width="15" height="11" rx="4" fill="#222"/>' +
     '<rect x="63" y="47" width="4" height="2" fill="#222"/><path d="M52 47 L56 47 M69 47 L73 47" stroke="#fff" stroke-width="1.5" opacity="0.6"/>',
     paint: (m, d) => `<rect x="49" y="44" width="15" height="11" rx="4" fill="${m}"/><rect x="66" y="44" width="15" height="11" rx="4" fill="${m}"/>` +
       `<rect x="63" y="47" width="4" height="2" fill="${d}"/><path d="M52 47 L56 47 M69 47 L73 47" stroke="#fff" stroke-width="1.5" opacity="0.6"/>` },
-  { id: 'hearts', slot: 'face', name: 'Heart Glasses', ico: '😍', price: 20, svg:
+  { id: 'hearts', slot: 'face', name: 'Heart Glasses', ico: '😍', price: 40, svg:
     '<path d="M57 57 C46 50 49 41 57 46 C65 41 68 50 57 57 Z M73 57 C62 50 65 41 73 46 C81 41 84 50 73 57 Z" fill="#FF4F8B" opacity="0.92"/>' +
     '<path d="M63 48 L67 48" stroke="#E0457F" stroke-width="2"/>',
     paint: (m, d) => `<path d="M57 57 C46 50 49 41 57 46 C65 41 68 50 57 57 Z M73 57 C62 50 65 41 73 46 C81 41 84 50 73 57 Z" fill="${m}" opacity="0.92"/>` +
@@ -1965,50 +2028,50 @@ const CLOSET = [
     '<g fill="#fff"><circle cx="58" cy="75" r="1.5"/><circle cx="72" cy="75" r="1.5"/><circle cx="65" cy="81" r="1.5"/></g>',
     paint: m => `<path d="M44 67 Q65 77 86 67 L65 88 Z" fill="${m}"/>` +
       '<g fill="#fff"><circle cx="58" cy="75" r="1.5"/><circle cx="72" cy="75" r="1.5"/><circle cx="65" cy="81" r="1.5"/></g>' },
-  { id: 'bowtie', slot: 'neck', name: 'Bow Tie', ico: '🎀', price: 10, svg:
+  { id: 'bowtie', slot: 'neck', name: 'Bow Tie', ico: '🎀', price: 20, svg:
     '<path d="M65 72 L54 66 L54 78 Z M65 72 L76 66 L76 78 Z" fill="#3E8FC9" stroke="#2A6FA0" stroke-width="1.5" stroke-linejoin="round"/>' +
     '<circle cx="65" cy="72" r="3" fill="#2A6FA0"/>',
     paint: (m, d) => `<path d="M65 72 L54 66 L54 78 Z M65 72 L76 66 L76 78 Z" fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"/>` +
       `<circle cx="65" cy="72" r="3" fill="${d}"/>` },
-  { id: 'scarf', slot: 'neck', name: 'Cozy Scarf', short: 'Scarf', ico: '🧣', price: 12, svg:
+  { id: 'scarf', slot: 'neck', name: 'Cozy Scarf', short: 'Scarf', ico: '🧣', price: 25, svg:
     '<rect x="72" y="72" width="8" height="22" rx="3" fill="#52B060"/><path d="M44 66 Q65 78 86 66 L86 73 Q65 85 44 73 Z" fill="#6BCB77"/>' +
     '<path d="M72 88 L80 88" stroke="#FFD166" stroke-width="2"/>',
     paint: (m, d, a) => `<rect x="72" y="72" width="8" height="22" rx="3" fill="${d}"/><path d="M44 66 Q65 78 86 66 L86 73 Q65 85 44 73 Z" fill="${m}"/>` +
       `<path d="M72 88 L80 88" stroke="${a}" stroke-width="2"/>` },
-  { id: 'medal', slot: 'neck', name: 'Gold Medal', short: 'Medal', ico: '🏅', price: 35, svg:
+  { id: 'medal', slot: 'neck', name: 'Gold Medal', short: 'Medal', ico: '🏅', price: 70, svg:
     '<path d="M54 66 L65 82 L76 66" stroke="#3E8FC9" stroke-width="4" fill="none"/>' +
     '<circle cx="65" cy="86" r="7" fill="#FFD166" stroke="#E0A800" stroke-width="2"/>' +
     '<text x="65" y="89.5" font-size="9" text-anchor="middle" fill="#E0A800">★</text>',
     paint: (m, d, a) => `<path d="M54 66 L65 82 L76 66" stroke="${d}" stroke-width="4" fill="none"/>` +
       `<circle cx="65" cy="86" r="7" fill="${m}" stroke="${d}" stroke-width="2"/>` +
       `<text x="65" y="89.5" font-size="9" text-anchor="middle" fill="${a}">★</text>` },
-  { id: 'wings', slot: 'back', name: 'Fairy Wings', short: 'Wings', ico: '🧚', price: 40, svg:
+  { id: 'wings', slot: 'back', name: 'Fairy Wings', short: 'Wings', ico: '🧚', price: 80, svg:
     '<g fill="#C9B8FF" stroke="#A994F5" stroke-width="1.5" opacity="0.9">' +
     '<ellipse cx="30" cy="64" rx="18" ry="11" transform="rotate(-30 30 64)"/><ellipse cx="32" cy="84" rx="12" ry="7" transform="rotate(20 32 84)"/>' +
     '<ellipse cx="100" cy="64" rx="18" ry="11" transform="rotate(30 100 64)"/><ellipse cx="98" cy="84" rx="12" ry="7" transform="rotate(-20 98 84)"/></g>',
     paint: (m, d) => `<g fill="${m}" stroke="${d}" stroke-width="1.5" opacity="0.9">` +
       '<ellipse cx="30" cy="64" rx="18" ry="11" transform="rotate(-30 30 64)"/><ellipse cx="32" cy="84" rx="12" ry="7" transform="rotate(20 32 84)"/>' +
       '<ellipse cx="100" cy="64" rx="18" ry="11" transform="rotate(30 100 64)"/><ellipse cx="98" cy="84" rx="12" ry="7" transform="rotate(-20 98 84)"/></g>' },
-  { id: 'cape', slot: 'back', name: 'Super Cape', short: 'Cape', ico: '🦸', price: 50, svg:
+  { id: 'cape', slot: 'back', name: 'Super Cape', short: 'Cape', ico: '🦸', price: 100, svg:
     '<path d="M45 66 Q26 100 30 120 L100 120 Q104 100 85 66 Z" fill="#E94B4B" stroke="#C43A3A" stroke-width="2"/>',
     paint: (m, d) => `<path d="M45 66 Q26 100 30 120 L100 120 Q104 100 85 66 Z" fill="${m}" stroke="${d}" stroke-width="2"/>` },
   { id: 'classic', slot: 'fur', name: 'Classic', price: 0, fur: ['#E8A85A', '#F0B870', '#F5C27A', '#D4924A', '#C0824A'] },
-  { id: 'cream', slot: 'fur', name: 'Cream', price: 25, fur: ['#EADBC0', '#F3E8D4', '#FAF3E6', '#D9C5A3', '#C9B38E'] },
-  { id: 'choc', slot: 'fur', name: 'Chocolate', price: 25, fur: ['#8B5A35', '#9C6A42', '#B07D52', '#6E4527', '#5E3A20'] },
-  { id: 'pink', slot: 'fur', name: 'Cotton Candy', price: 40, fur: ['#F4A3C4', '#F7B7D2', '#FBCDE1', '#E888B0', '#D9739E'] },
-  { id: 'blue', slot: 'fur', name: 'Blueberry', price: 40, fur: ['#8FBCEB', '#A5CBF0', '#BEDAF5', '#729FD6', '#5F8BC2'] },
-  { id: 'mint', slot: 'fur', name: 'Mint', price: 40, fur: ['#8FD8B8', '#A6E2C8', '#C2EDDA', '#6FC29E', '#5AAE8A'] },
-  { id: 'lavender', slot: 'fur', name: 'Lavender', price: 40, fur: ['#BBA6EE', '#CAB9F2', '#DDD1F7', '#9F88DC', '#8B74C8'] },
-  { id: 'lemon', slot: 'fur', name: 'Lemon', price: 40, fur: ['#F2D35E', '#F6DE7E', '#FAEAAA', '#DDBB45', '#C9A633'] },
-  { id: 'snow', slot: 'fur', name: 'Snow White', price: 50, fur: ['#E6EAF0', '#F0F3F7', '#FFFFFF', '#CFD6E0', '#BCC4D2'] },
-  { id: 'midnight', slot: 'fur', name: 'Midnight Black', price: 50, fur: ['#4A4A5C', '#5A5A6E', '#8C8CA4', '#3A3A4A', '#2C2C3A'] },
+  { id: 'cream', slot: 'fur', name: 'Cream', price: 50, fur: ['#EADBC0', '#F3E8D4', '#FAF3E6', '#D9C5A3', '#C9B38E'] },
+  { id: 'choc', slot: 'fur', name: 'Chocolate', price: 50, fur: ['#8B5A35', '#9C6A42', '#B07D52', '#6E4527', '#5E3A20'] },
+  { id: 'pink', slot: 'fur', name: 'Cotton Candy', price: 80, fur: ['#F4A3C4', '#F7B7D2', '#FBCDE1', '#E888B0', '#D9739E'] },
+  { id: 'blue', slot: 'fur', name: 'Blueberry', price: 80, fur: ['#8FBCEB', '#A5CBF0', '#BEDAF5', '#729FD6', '#5F8BC2'] },
+  { id: 'mint', slot: 'fur', name: 'Mint', price: 80, fur: ['#8FD8B8', '#A6E2C8', '#C2EDDA', '#6FC29E', '#5AAE8A'] },
+  { id: 'lavender', slot: 'fur', name: 'Lavender', price: 80, fur: ['#BBA6EE', '#CAB9F2', '#DDD1F7', '#9F88DC', '#8B74C8'] },
+  { id: 'lemon', slot: 'fur', name: 'Lemon', price: 80, fur: ['#F2D35E', '#F6DE7E', '#FAEAAA', '#DDBB45', '#C9A633'] },
+  { id: 'snow', slot: 'fur', name: 'Snow White', price: 100, fur: ['#E6EAF0', '#F0F3F7', '#FFFFFF', '#CFD6E0', '#BCC4D2'] },
+  { id: 'midnight', slot: 'fur', name: 'Midnight Black', price: 100, fur: ['#4A4A5C', '#5A5A6E', '#8C8CA4', '#3A3A4A', '#2C2C3A'] },
   // Toys are kept, not worn. Pom plays with them when tapped and during streak tricks.
-  { id: 'ball', slot: 'toy', name: 'Bouncy Ball', short: 'Ball', ico: '⚽', price: 10, say: 'Fetch! I got it! 🐾' },
-  { id: 'duck', slot: 'toy', name: 'Squeaky Duck', short: 'Duck', ico: '🐤', price: 12, say: 'Squeak squeak! Hee hee!' },
-  { id: 'rope', slot: 'toy', name: 'Tug Yarn', short: 'Yarn', ico: '🧶', price: 15, say: 'Grrr! Tug of war! 💪' },
-  { id: 'frisbee', slot: 'toy', name: 'Flying Disc', short: 'Disc', ico: '🥏', price: 25, say: 'Wheee! Nice catch, me! ✨' },
-  { id: 'bubbles', slot: 'toy', name: 'Bubbles', ico: '🧼', price: 30, say: 'Pop! Pop! I love bubbles!' },
-  { id: 'box', slot: 'toy', name: 'Hidey Box', short: 'Box', ico: '📦', price: 40, say: 'Peekaboo!' },
+  { id: 'ball', slot: 'toy', name: 'Bouncy Ball', short: 'Ball', ico: '⚽', price: 20, say: 'Fetch! I got it! 🐾' },
+  { id: 'duck', slot: 'toy', name: 'Squeaky Duck', short: 'Duck', ico: '🐤', price: 25, say: 'Squeak squeak! Hee hee!' },
+  { id: 'rope', slot: 'toy', name: 'Tug Yarn', short: 'Yarn', ico: '🧶', price: 30, say: 'Grrr! Tug of war! 💪' },
+  { id: 'frisbee', slot: 'toy', name: 'Flying Disc', short: 'Disc', ico: '🥏', price: 50, say: 'Wheee! Nice catch, me! ✨' },
+  { id: 'bubbles', slot: 'toy', name: 'Bubbles', ico: '🧼', price: 60, say: 'Pop! Pop! I love bubbles!' },
+  { id: 'box', slot: 'toy', name: 'Hidey Box', short: 'Box', ico: '📦', price: 80, say: 'Peekaboo!' },
 ];
 
 // Every accessory and toy also comes in these colors, and each color is its own item to buy.
@@ -2054,13 +2117,20 @@ const DEFAULT_WORN = { hat: 'cap', fur: 'classic' };
 // ===== POM'S HOUSE =====
 // Stickers open rooms (they are never spent), and an open room stays open. Gems buy furniture, and each piece has its own spot in its room.
 // The 0–10 path has 121 times and 100 division stickers: the Playroom opens with all the times facts, the Garden with everything.
-// `oldNeed` is what a room needed up to v24, when flipped facts shared a sticker, so a room open then stays open.
+// The Swimming Pool and Beach are their own rooms, apart from the Yard's Kiddie Pool and Sandbox.
+// `oldNeed` is what a room needed up to v24, when flipped facts shared a sticker, so a room open then stays open. Rooms added in v45 have none.
+// `tab` is a shorter name for the room tab, and `deco` dresses the room with wall tiles, the sea or leaves.
 const ROOMS = [
   { id: 'bedroom', name: 'Bedroom', ico: '🛏️', need: 20, oldNeed: 10, wall: '#FFE6EE', floor: '#E8C49A', hello: 'My cozy bedroom! 🛏️' },
+  { id: 'spa', name: 'Spa', ico: '🧖', need: 40, wall: '#E2F5F3', floor: '#CFE3EE', deco: 'tiles', hello: 'Spa day! Bubbles and fluffy towels! 🫧' },
   { id: 'kitchen', name: 'Kitchen', ico: '🍳', need: 60, oldNeed: 30, wall: '#FFF4D2', floor: '#EFD9BE', hello: 'My kitchen! Yum!' },
+  { id: 'music', name: 'Music Room', tab: 'Music', ico: '🎵', need: 95, wall: '#F1E8FF', floor: '#D9B98F', hello: 'Let\'s make music! 🎵' },
   { id: 'playroom', name: 'Playroom', ico: '🧸', need: 121, oldNeed: 60, wall: '#E2F1FF', floor: '#BFE3C0', hello: 'The playroom! Let\'s play! 🧸' },
+  { id: 'garden', name: 'Garden', ico: '🌻', need: 145, oldNeed: 150, outdoor: true, floor: '#86CC6A', hello: 'My pretty garden! 🌻' },
   { id: 'yard', name: 'Yard', ico: '🦴', need: 171, oldNeed: 100, outdoor: true, floor: '#9CDB7A', hello: 'My yard! 🦴' },
-  { id: 'garden', name: 'Garden', ico: '🌻', need: 221, oldNeed: 150, outdoor: true, floor: '#86CC6A', hello: 'My pretty garden! 🌻' },
+  { id: 'swimpool', name: 'Swimming Pool', tab: 'Pool', ico: '🏊', need: 190, outdoor: true, floor: '#D8EEF2', hello: 'Swim time! 🏊' },
+  { id: 'treehouse', name: 'Treehouse', tab: 'Tree', ico: '🌳', need: 215, wall: '#F3DCB4', floor: '#C49162', deco: 'leaves', hello: 'My secret treehouse! 🌳' },
+  { id: 'beach', name: 'Beach', ico: '🏖️', need: 221, outdoor: true, floor: '#F5DFA0', deco: 'sea', hello: 'The beach! Waves and sand! 🌊' },
 ];
 const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
 
@@ -2072,7 +2142,7 @@ const FURNITURE = [
     paint: (m, d, a) => `<rect x="8" y="84" width="8" height="6" fill="${d}"/><rect x="44" y="84" width="8" height="6" fill="${d}"/>` +
       `<rect x="3" y="3" width="54" height="82" rx="6" fill="${m}" stroke="${d}" stroke-width="3"/><path d="M30 6 V82" stroke="${d}" stroke-width="2.5"/>` +
       `<circle cx="25" cy="46" r="3" fill="${a}"/><circle cx="35" cy="46" r="3" fill="${a}"/><text x="30" y="30" font-size="14" text-anchor="middle">🎀</text>` },
-  { id: 'bed', room: 'bedroom', name: 'Bed', ico: '🛏️', price: 10, x: 72, y: 24, w: 34, view: '120 64', px: 3, py: 36,
+  { id: 'bed', room: 'bedroom', name: 'Bed', ico: '🛏️', price: 15, x: 72, y: 24, w: 34, view: '120 64', px: 3, py: 36,
     act: 'nap', fx: '💤', say: 'Nap time! Zzz… 💤', classic: ['#7FB3E8', '#4F82B8', '#FFD166'],
     paint: (m, d, a) => `<rect x="2" y="4" width="16" height="56" rx="5" fill="${d}"/><rect x="104" y="26" width="12" height="34" rx="4" fill="${d}"/>` +
       '<rect x="8" y="30" width="104" height="18" rx="6" fill="#fff" stroke="#E5DCD2" stroke-width="2"/>' +
@@ -2082,11 +2152,11 @@ const FURNITURE = [
     act: 'spin', fx: '✨', say: 'Roll roll roll!', classic: ['#FF9FBF', '#E0689A', '#FFE08A'],
     paint: (m, d, a) => `<ellipse cx="50" cy="15" rx="48" ry="13" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<ellipse cx="50" cy="15" rx="34" ry="8" fill="none" stroke="${a}" stroke-width="3" stroke-dasharray="6 4"/>` },
-  { id: 'lamp', room: 'bedroom', name: 'Lamp', ico: '💡', price: 8, x: 94, y: 30, w: 8, view: '30 80', px: -6,
+  { id: 'lamp', room: 'bedroom', name: 'Lamp', ico: '💡', price: 10, x: 94, y: 30, w: 8, view: '30 80', px: -6,
     act: 'wiggle', fx: '💡', say: 'Click! So bright! 💡', classic: ['#FFD166', '#D4A90C', '#FFF3B0'],
     paint: (m, d, a) => `<rect x="13.5" y="28" width="3" height="46" fill="${d}"/><ellipse cx="15" cy="76" rx="11" ry="3.5" fill="${d}"/>` +
       `<circle cx="15" cy="31" r="6" fill="${a}"/><path d="M3 32 L27 32 L21 6 L9 6 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` },
-  { id: 'window', room: 'bedroom', name: 'Window', ico: '🪟', price: 10, x: 42, y: 58, w: 22, view: '80 64', py: 12,
+  { id: 'window', room: 'bedroom', name: 'Window', ico: '🪟', price: 15, x: 42, y: 58, w: 22, view: '80 64', py: 12,
     act: 'hop', fx: '☀️', say: 'Hello, sunshine! ☀️', classic: ['#FF9F43', '#D9771C', '#FFD166'],
     paint: (m, d, a) => '<rect x="10" y="6" width="60" height="46" rx="4" fill="#BDE6FF" stroke="#fff" stroke-width="5"/>' +
       '<circle cx="56" cy="18" r="6" fill="#FFE08A"/><path d="M40 6 V52 M10 29 H70" stroke="#fff" stroke-width="4"/>' +
@@ -2094,19 +2164,19 @@ const FURNITURE = [
       `<path d="M4 2 Q20 30 6 58 L20 58 Q26 30 20 2 Z M76 2 Q60 30 74 58 L60 58 Q54 30 60 2 Z" fill="${m}"/>` +
       `<circle cx="13" cy="32" r="3" fill="${a}"/><circle cx="67" cy="32" r="3" fill="${a}"/>` },
 
-  { id: 'fridge', room: 'kitchen', name: 'Fridge', ico: '🧊', price: 20, x: 10, y: 30, w: 14, view: '50 100',
+  { id: 'fridge', room: 'kitchen', name: 'Fridge', ico: '🧊', price: 35, x: 10, y: 30, w: 14, view: '50 100',
     act: 'hop', fx: '🧀', say: 'Cheese, please! 🧀', classic: ['#E6F0F7', '#9FB4C4', '#FF7EB6'],
     paint: (m, d, a) => `<rect x="3" y="3" width="44" height="94" rx="7" fill="${m}" stroke="${d}" stroke-width="3"/><path d="M3 36 H47" stroke="${d}" stroke-width="3"/>` +
       `<rect x="38" y="14" width="4" height="14" rx="2" fill="${d}"/><rect x="38" y="44" width="4" height="22" rx="2" fill="${d}"/>` +
       `<circle cx="15" cy="20" r="4" fill="${a}"/><rect x="11" y="50" width="12" height="9" rx="2" fill="${a}"/>` },
-  { id: 'stove', room: 'kitchen', name: 'Stove', ico: '🍳', price: 15, x: 30, y: 30, w: 18, view: '60 64',
+  { id: 'stove', room: 'kitchen', name: 'Stove', ico: '🍳', price: 25, x: 30, y: 30, w: 18, view: '60 64',
     act: 'wiggle', fx: '🥞', say: 'I\'m cooking pancakes! 🥞', classic: ['#F2F2F2', '#8C8C99', '#FF9F43'],
     paint: (m, d, a) => `<rect x="3" y="14" width="54" height="48" rx="4" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<rect x="3" y="8" width="54" height="8" rx="3" fill="${d}"/>` +
       '<ellipse cx="18" cy="8" rx="9" ry="2.5" fill="#3D2B1F"/><ellipse cx="42" cy="8" rx="9" ry="2.5" fill="#3D2B1F"/>' +
       '<rect x="11" y="30" width="38" height="24" rx="3" fill="#3D2B1F" opacity="0.75"/>' +
       `<g fill="${a}"><circle cx="14" cy="22" r="2.5"/><circle cx="24" cy="22" r="2.5"/><circle cx="36" cy="22" r="2.5"/><circle cx="46" cy="22" r="2.5"/></g>` },
-  { id: 'table', room: 'kitchen', name: 'Table', ico: '🍽️', price: 12, x: 66, y: 12, w: 28, view: '90 50',
+  { id: 'table', room: 'kitchen', name: 'Table', ico: '🍽️', price: 20, x: 66, y: 12, w: 28, view: '90 50',
     act: 'hop', fx: '🍽️', say: 'Dinner time! 🍽️', classic: ['#C68B59', '#8B5E3C', '#FF9FBF'],
     paint: (m, d, a) => `<rect x="12" y="18" width="6" height="30" fill="${d}"/><rect x="72" y="18" width="6" height="30" fill="${d}"/>` +
       `<rect x="4" y="12" width="82" height="8" rx="3" fill="${m}" stroke="${d}" stroke-width="2"/>` +
@@ -2117,91 +2187,254 @@ const FURNITURE = [
     paint: (m, d, a) => '<g fill="#B5784A"><circle cx="13" cy="6" r="3"/><circle cx="20" cy="5" r="3"/><circle cx="27" cy="6" r="3"/></g>' +
       `<path d="M3 7 H37 L32 19 H8 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` +
       `<text x="20" y="16" font-size="6" text-anchor="middle" font-weight="800" fill="${a}">POM</text>` },
-  { id: 'cookiejar', room: 'kitchen', name: 'Cookie Jar', short: 'Jar', ico: '🍪', price: 10, x: 88, y: 58, w: 13, view: '50 44', py: 14,
+  { id: 'cookiejar', room: 'kitchen', name: 'Cookie Jar', short: 'Jar', ico: '🍪', price: 15, x: 88, y: 58, w: 13, view: '50 44', py: 14,
     act: 'hop', fx: '🍪', say: 'Just one cookie? 👀', classic: ['#BDE6FF', '#6FA8CF', '#FFD166'],
     paint: (m, d, a) => '<rect x="2" y="38" width="46" height="5" rx="2" fill="#B5784A"/>' +
       `<path d="M12 14 H38 V34 Q38 38 34 38 H16 Q12 38 12 34 Z" fill="${m}" stroke="${d}" stroke-width="2"/>` +
       `<rect x="14" y="8" width="22" height="6" rx="2" fill="${d}"/><circle cx="25" cy="6" r="3" fill="${d}"/>` +
       `<rect x="16" y="17" width="18" height="5" rx="2" fill="${a}"/><circle cx="20" cy="29" r="4" fill="#C68B59"/><circle cx="30" cy="31" r="4" fill="#C68B59"/>` },
 
-  { id: 'toybox', room: 'playroom', name: 'Toy Box', ico: '🧸', price: 10, x: 12, y: 30, w: 17, view: '60 50',
+  { id: 'toybox', room: 'playroom', name: 'Toy Box', ico: '🧸', price: 20, x: 12, y: 30, w: 17, view: '60 50',
     act: 'hop', fx: '🧸', say: 'Peekaboo! So many toys!', classic: ['#FF9F43', '#D9771C', '#FFFFFF'],
     paint: (m, d, a) => '<text x="14" y="14" font-size="12">🧸</text>' +
       `<rect x="3" y="16" width="54" height="32" rx="4" fill="${m}" stroke="${d}" stroke-width="3"/><rect x="1" y="10" width="58" height="9" rx="3" fill="${d}"/>` +
       `<text x="30" y="40" font-size="16" text-anchor="middle" fill="${a}">★</text>` },
-  { id: 'slide', room: 'playroom', name: 'Slide', ico: '🛝', price: 25, x: 42, y: 28, w: 26, view: '100 70',
+  { id: 'slide', room: 'playroom', name: 'Slide', ico: '🛝', price: 50, x: 42, y: 28, w: 26, view: '100 70',
     act: 'spin', fx: '✨', say: 'Wheee! Down the slide!', classic: ['#FFD93D', '#D4A90C', '#4FA3E8'],
     paint: (m, d, a) => `<path d="M18 68 V8 M34 68 V8" stroke="${a}" stroke-width="4"/><path d="M18 22 H34 M18 36 H34 M18 50 H34 M18 64 H34" stroke="${a}" stroke-width="3"/>` +
       `<rect x="14" y="4" width="26" height="6" rx="2" fill="${d}"/>` +
       `<path d="M38 6 Q60 8 72 40 Q80 62 98 62 V70 H90 Q70 70 64 46 Q54 16 38 14 Z" fill="${m}" stroke="${d}" stroke-width="2"/>` },
-  { id: 'ballpit', room: 'playroom', name: 'Ball Pit', ico: '🔴', price: 20, x: 72, y: 5, w: 28, view: '90 44', py: 7,
+  { id: 'ballpit', room: 'playroom', name: 'Ball Pit', ico: '🔴', price: 40, x: 72, y: 5, w: 28, view: '90 44', py: 7,
     act: 'wiggle', fx: '🟡', say: 'Ball swim! 🔴🟡🔵', classic: ['#5CC46A', '#3A9447', '#FF7EB6'],
     paint: (m, d, a) => `<ellipse cx="45" cy="26" rx="43" ry="13" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       '<circle cx="22" cy="20" r="6" fill="#E94B4B"/><circle cx="36" cy="16" r="6" fill="#FFD93D"/><circle cx="50" cy="19" r="6" fill="#4FA3E8"/>' +
       `<circle cx="64" cy="16" r="6" fill="${a}"/><circle cx="72" cy="23" r="5" fill="#9B7BF0"/><circle cx="30" cy="25" r="5" fill="#FF9F43"/><circle cx="58" cy="25" r="5" fill="#fff"/>` +
       `<path d="M2 26 Q45 52 88 26 L88 32 Q45 58 2 32 Z" fill="${d}"/>` },
-  { id: 'easel', room: 'playroom', name: 'Paint Easel', short: 'Easel', ico: '🎨', price: 15, x: 90, y: 30, w: 11, view: '40 72', px: -6,
+  { id: 'easel', room: 'playroom', name: 'Paint Easel', short: 'Easel', ico: '🎨', price: 30, x: 90, y: 30, w: 11, view: '40 72', px: -6,
     act: 'wiggle', fx: '🎨', say: 'I\'m painting you! 🎨', classic: ['#4FA3E8', '#8B5E3C', '#FF7EB6'],
     paint: (m, d, a) => `<path d="M8 70 L18 6 M32 70 L22 6 M20 40 V70" stroke="${d}" stroke-width="3.5" stroke-linecap="round"/>` +
       `<rect x="4" y="10" width="32" height="28" rx="2" fill="#fff" stroke="${d}" stroke-width="2"/><circle cx="14" cy="22" r="5" fill="${m}"/>` +
       `<path d="M20 32 Q26 16 32 26" stroke="${a}" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="2" y="38" width="36" height="4" rx="2" fill="${d}"/>` },
-  { id: 'beanbag', room: 'playroom', name: 'Beanbag', ico: '🛋️', price: 12, x: 18, y: 3, w: 18, view: '60 36', py: 6,
+  { id: 'beanbag', room: 'playroom', name: 'Beanbag', ico: '🛋️', price: 25, x: 18, y: 3, w: 18, view: '60 36', py: 6,
     act: 'nap', fx: '😌', say: 'So squishy!', classic: ['#9B7BF0', '#6A4BC4', '#FFD166'],
     paint: (m, d, a) => `<path d="M6 34 Q0 18 14 10 Q30 0 46 10 Q60 18 54 34 Z" fill="${m}" stroke="${d}" stroke-width="3" stroke-linejoin="round"/>` +
       `<ellipse cx="24" cy="14" rx="8" ry="3" fill="#fff" opacity="0.45"/><path d="M18 30 Q30 22 42 30" stroke="${a}" stroke-width="2.5" fill="none"/>` },
 
-  { id: 'doghouse', room: 'yard', name: 'Doghouse', ico: '🏠', price: 25, x: 16, y: 36, w: 24, view: '80 72',
+  { id: 'doghouse', room: 'yard', name: 'Doghouse', ico: '🏠', price: 60, x: 16, y: 36, w: 24, view: '80 72',
     act: 'nap', fx: '💤', say: 'My little house! Zzz…', classic: ['#E94B4B', '#8B3A2A', '#FFD166'],
     paint: (m, d, a) => `<rect x="10" y="30" width="60" height="40" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<path d="M2 34 L40 4 L78 34 Z" fill="${d}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/><path d="M28 70 V52 Q40 38 52 52 V70 Z" fill="#3D2B1F"/>` +
       `<rect x="28" y="20" width="24" height="9" rx="3" fill="${a}"/><text x="40" y="27" font-size="6.5" text-anchor="middle" font-weight="800" fill="#3D2B1F">POM</text>` },
-  { id: 'fence', room: 'yard', name: 'Fence', ico: '🪵', price: 10, x: 75, y: 42, w: 46, view: '160 44', py: 16,
+  { id: 'fence', room: 'yard', name: 'Fence', ico: '🪵', price: 25, x: 75, y: 42, w: 46, view: '160 44', py: 16,
     act: 'hop', fx: '🐿️', say: 'Hi, squirrel! 🐿️', classic: ['#FFFFFF', '#C9B8A6', '#FF7EB6'],
     paint: (m, d, a) => `<rect x="0" y="16" width="160" height="5" fill="${d}"/><rect x="0" y="32" width="160" height="5" fill="${d}"/>` +
       Array.from({ length: 9 }, (_, i) => `<path d="M${4 + i * 18} 43 V10 L${10 + i * 18} 2 L${16 + i * 18} 10 V43 Z" fill="${m}" stroke="${d}" stroke-width="2"/>`).join('') +
       `<circle cx="28" cy="40" r="4" fill="${a}"/><circle cx="118" cy="39" r="4" fill="${a}"/>` },
-  { id: 'swing', room: 'yard', name: 'Swing', ico: '🪢', price: 20, x: 48, y: 36, w: 22, view: '70 80', py: 45,
+  { id: 'swing', room: 'yard', name: 'Swing', ico: '🪢', price: 45, x: 48, y: 36, w: 22, view: '70 80', py: 45,
     act: 'swing', fx: '🎶', say: 'Wheee! Higher, higher!', classic: ['#4FA3E8', '#8B5E3C', '#FFD166'],
     paint: (m, d, a) => `<path d="M6 78 L18 4 L30 78 M40 78 L52 4 L64 78" stroke="${d}" stroke-width="4" fill="none"/><rect x="14" y="2" width="42" height="6" rx="3" fill="${d}"/>` +
       `<path d="M27 6 V56 M43 6 V56" stroke="${a}" stroke-width="2"/><rect x="22" y="54" width="26" height="6" rx="3" fill="${m}" stroke="${d}" stroke-width="1.5"/>` },
-  { id: 'sandbox', room: 'yard', name: 'Sandbox', ico: '🏖️', price: 15, x: 80, y: 6, w: 24, view: '80 34', py: 9,
+  { id: 'sandbox', room: 'yard', name: 'Sandbox', ico: '🏖️', price: 35, x: 80, y: 6, w: 24, view: '80 34', py: 9,
     act: 'dig', fx: '🦴', say: 'Dig dig! A bone! 🦴', classic: ['#5CC46A', '#3A9447', '#FF6FA8'],
     paint: (m, d, a) => `<rect x="2" y="8" width="76" height="24" rx="4" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<rect x="7" y="11" width="66" height="10" rx="3" fill="#F5D98A"/><path d="M18 15 Q25 7 32 15 Z" fill="#E8C46A"/><path d="M56 2 L68 2 L66 16 L58 16 Z" fill="${a}"/>` },
-  { id: 'pool', room: 'yard', name: 'Kiddie Pool', short: 'Pool', ico: '🏊', price: 20, x: 36, y: 3, w: 28, view: '90 32', py: 4,
+  { id: 'pool', room: 'yard', name: 'Kiddie Pool', short: 'Pool', ico: '🏊', price: 45, x: 36, y: 3, w: 28, view: '90 32', py: 4,
     act: 'wiggle', fx: '💦', say: 'Splish splash! 💦', classic: ['#FF7EB6', '#E0457F', '#FFD93D'],
     paint: (m, d, a) => `<ellipse cx="45" cy="18" rx="43" ry="13" fill="${m}" stroke="${d}" stroke-width="3"/><ellipse cx="45" cy="17" rx="35" ry="8" fill="#7FD0F5"/>` +
       `<path d="M24 16 Q30 13 36 16 M50 19 Q56 16 62 19" stroke="#fff" stroke-width="2" fill="none"/><ellipse cx="68" cy="15" rx="7" ry="3.5" fill="none" stroke="${a}" stroke-width="3"/>` },
 
-  { id: 'flowers', room: 'garden', name: 'Flower Bed', short: 'Flowers', ico: '🌷', price: 8, x: 17, y: 38, w: 26, view: '90 44', py: 18,
+  { id: 'flowers', room: 'garden', name: 'Flower Bed', short: 'Flowers', ico: '🌷', price: 15, x: 17, y: 38, w: 26, view: '90 44', py: 18,
     act: 'hop', fx: '🌸', say: 'Sniff sniff! 🌸', classic: ['#FF7EB6', '#8B5E3C', '#FFD93D'],
     paint: (m, d, a) => '<path d="M15 32 V16 M33 32 V12 M51 32 V18 M69 32 V12 M80 32 V20" stroke="#3A9447" stroke-width="2.5"/>' +
       [[15, 16], [33, 12], [51, 18], [69, 12], [80, 20]].map(([x, y]) =>
         `<g fill="${m}"><circle cx="${x - 4}" cy="${y}" r="4"/><circle cx="${x + 4}" cy="${y}" r="4"/><circle cx="${x}" cy="${y - 4}" r="4"/><circle cx="${x}" cy="${y + 4}" r="4"/></g>` +
         `<circle cx="${x}" cy="${y}" r="2.5" fill="${a}"/>`).join('') +
       `<rect x="2" y="30" width="86" height="12" rx="6" fill="${d}"/>` },
-  { id: 'tree', room: 'garden', name: 'Apple Tree', short: 'Tree', ico: '🌳', price: 20, x: 86, y: 38, w: 22, view: '70 100', px: -4, py: 16,
+  { id: 'tree', room: 'garden', name: 'Apple Tree', short: 'Tree', ico: '🌳', price: 45, x: 86, y: 38, w: 22, view: '70 100', px: -4, py: 16,
     act: 'nap', fx: '🍎', say: 'Nap time! 🍎', classic: ['#5CC46A', '#3A9447', '#E94B4B'],
     paint: (m, d, a) => '<rect x="30" y="56" width="10" height="42" rx="3" fill="#8B5E3C"/>' +
       `<g fill="${m}"><circle cx="35" cy="32" r="24"/><circle cx="17" cy="46" r="15"/><circle cx="53" cy="46" r="15"/></g>` +
       `<circle cx="27" cy="26" r="9" fill="${d}" opacity="0.35"/>` +
       `<g fill="${a}"><circle cx="22" cy="44" r="3.5"/><circle cx="44" cy="24" r="3.5"/><circle cx="50" cy="48" r="3.5"/><circle cx="34" cy="46" r="3.5"/></g>` },
-  { id: 'fountain', room: 'garden', name: 'Fountain', ico: '⛲', price: 30, x: 52, y: 34, w: 20, view: '70 70',
+  { id: 'fountain', room: 'garden', name: 'Fountain', ico: '⛲', price: 65, x: 52, y: 34, w: 20, view: '70 70',
     act: 'wiggle', fx: '💦', say: 'Splash! 💦', classic: ['#D9E3EA', '#9FB4C4', '#4FA3E8'],
     paint: (m, d, a) => '<path d="M35 20 Q22 0 10 22 M35 20 Q48 0 60 22" stroke="#7FD0F5" stroke-width="3" fill="none" stroke-linecap="round"/>' +
       `<rect x="31" y="20" width="8" height="30" fill="${d}"/><ellipse cx="35" cy="22" rx="12" ry="4" fill="${m}" stroke="${d}" stroke-width="2"/>` +
       `<ellipse cx="35" cy="56" rx="33" ry="11" fill="${m}" stroke="${d}" stroke-width="3"/><ellipse cx="35" cy="54" rx="26" ry="6" fill="#7FD0F5"/>` +
       `<circle cx="35" cy="18" r="2.5" fill="${a}"/>` },
-  { id: 'bench', room: 'garden', name: 'Bench', ico: '🪑', price: 12, x: 28, y: 4, w: 24, view: '70 38', py: 9,
+  { id: 'bench', room: 'garden', name: 'Bench', ico: '🪑', price: 25, x: 28, y: 4, w: 24, view: '70 38', py: 9,
     act: 'nap', fx: '😊', say: 'Let\'s sit and rest. 🌸', classic: ['#C68B59', '#5C3D1E', '#FFD166'],
     paint: (m, d, a) => `<path d="M10 2 V37 M60 2 V37" stroke="${d}" stroke-width="4"/>` +
       `<g fill="${m}" stroke="${d}" stroke-width="1.5"><rect x="6" y="2" width="58" height="6" rx="2"/><rect x="6" y="11" width="58" height="6" rx="2"/>` +
       '<rect x="2" y="20" width="66" height="7" rx="2"/></g>' + `<circle cx="35" cy="5" r="2" fill="${a}"/>` },
-  { id: 'birdhouse', room: 'garden', name: 'Birdhouse', ico: '🐦', price: 15, x: 68, y: 40, w: 8, view: '34 80', py: 16,
+  { id: 'birdhouse', room: 'garden', name: 'Birdhouse', ico: '🐦', price: 35, x: 68, y: 40, w: 8, view: '34 80', py: 16,
     act: 'hop', fx: '🐦', say: 'Tweet tweet! Hi, little bird!', classic: ['#FFD93D', '#E94B4B', '#4FA3E8'],
     paint: (m, d, a) => '<rect x="15" y="34" width="4" height="46" fill="#8B5E3C"/>' +
       `<rect x="5" y="14" width="24" height="22" rx="2" fill="${m}" stroke="${d}" stroke-width="2"/><path d="M1 16 L17 2 L33 16 Z" fill="${d}"/>` +
       `<circle cx="17" cy="24" r="4" fill="#3D2B1F"/><rect x="13" y="30" width="8" height="2.5" fill="${a}"/>` },
+
+  { id: 'towels', room: 'spa', name: 'Towel Rack', short: 'Towels', ico: '🧺', price: 10, x: 10, y: 32, w: 12, view: '40 70', px: 6,
+    act: 'wiggle', fx: '✨', say: 'Dry and fluffy! ✨', classic: ['#7FD0F5', '#8C8C99', '#FFFFFF'],
+    paint: (m, d, a) => `<path d="M6 68 V6 M34 68 V6" stroke="${d}" stroke-width="3.5" stroke-linecap="round"/><path d="M4 6 H36" stroke="${d}" stroke-width="4" stroke-linecap="round"/>` +
+      `<rect x="8" y="8" width="24" height="30" rx="3" fill="${m}"/><path d="M8 30 H32" stroke="${a}" stroke-width="3"/>` +
+      `<rect x="10" y="44" width="20" height="14" rx="3" fill="${a}" stroke="${d}" stroke-width="1.5"/><ellipse cx="20" cy="68" rx="18" ry="2.5" fill="${d}"/>` },
+  { id: 'mirror', room: 'spa', name: 'Mirror', ico: '🪞', price: 15, x: 32, y: 50, w: 14, view: '50 64', py: 12,
+    act: 'spin', fx: '💖', say: 'Who\'s that cute puppy? 💖', classic: ['#FFD166', '#D4A90C', '#FF7EB6'],
+    paint: (m, d, a) => `<ellipse cx="25" cy="30" rx="22" ry="27" fill="${m}" stroke="${d}" stroke-width="3"/><ellipse cx="25" cy="30" rx="16" ry="21" fill="#DDF3FF"/>` +
+      '<path d="M16 22 Q20 14 28 13" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+      `<circle cx="25" cy="3" r="3" fill="${a}"/><circle cx="6" cy="30" r="2.5" fill="${a}"/><circle cx="44" cy="30" r="2.5" fill="${a}"/>` },
+  { id: 'duckshelf', room: 'spa', name: 'Duck Shelf', short: 'Ducks', ico: '🦆', price: 15, x: 66, y: 64, w: 20, view: '70 30', py: 12,
+    act: 'hop', fx: '🦆', say: 'Quack quack! 🦆', classic: ['#FFFFFF', '#C9B8A6', '#FFD93D'],
+    paint: (m, d, a) => [10, 30, 50].map(x => `<ellipse cx="${x + 2}" cy="17" rx="8" ry="5" fill="${a}"/><circle cx="${x + 6}" cy="10" r="4.5" fill="${a}"/>` +
+      `<path d="M${x + 10} 10 L${x + 14} 11 L${x + 10} 12.5 Z" fill="#FF9F43"/><circle cx="${x + 7}" cy="9" r="1" fill="#3D2B1F"/>`).join('') +
+      `<rect x="2" y="21" width="66" height="6" rx="2" fill="${m}" stroke="${d}" stroke-width="2"/>` },
+  { id: 'tub', room: 'spa', name: 'Bubble Bath', short: 'Bath', ico: '🛁', price: 30, x: 68, y: 22, w: 34, view: '120 64', py: 30,
+    act: 'wiggle', fx: '🫧', say: 'Bubble bath! Rub-a-dub! 🫧', sound: 'splash', classic: ['#FFFFFF', '#9FB4C4', '#FF9FBF'],
+    paint: (m, d, a) => '<g fill="#fff" stroke="#BDE6FF" stroke-width="1.5"><circle cx="30" cy="20" r="9"/><circle cx="46" cy="14" r="11"/><circle cx="64" cy="18" r="10"/><circle cx="82" cy="15" r="9"/><circle cx="96" cy="21" r="7"/></g>' +
+      `<path d="M104 24 V8 Q104 2 110 2 Q116 2 116 8" stroke="${d}" stroke-width="3" fill="none"/>` +
+      `<path d="M4 24 H116 V36 Q116 54 96 54 H24 Q4 54 4 36 Z" fill="${m}" stroke="${d}" stroke-width="3"/><path d="M10 32 H110" stroke="${a}" stroke-width="3"/>` +
+      `<path d="M22 54 L16 62 M98 54 L104 62" stroke="${d}" stroke-width="4" stroke-linecap="round"/>` },
+  { id: 'bathmat', room: 'spa', name: 'Bath Mat', short: 'Mat', ico: '🟦', price: 6, x: 38, y: 3, w: 26, view: '90 26', py: 5,
+    act: 'spin', fx: '🫧', say: 'Squishy toes!', classic: ['#9B7BF0', '#6A4BC4', '#FFFFFF'],
+    paint: (m, d, a) => `<rect x="2" y="3" width="86" height="20" rx="10" fill="${m}" stroke="${d}" stroke-width="3"/>` +
+      `<g fill="${a}"><circle cx="18" cy="13" r="3"/><circle cx="32" cy="13" r="3"/><circle cx="46" cy="13" r="3"/><circle cx="60" cy="13" r="3"/><circle cx="74" cy="13" r="3"/></g>` },
+  { id: 'fern', room: 'spa', name: 'Potted Fern', short: 'Fern', ico: '🪴', price: 10, x: 93, y: 30, w: 9, view: '30 60', px: -6,
+    act: 'hop', fx: '🌿', say: 'Hello, little plant! 🌿', classic: ['#FF9F43', '#C4651C', '#5CC46A'],
+    paint: (m, d, a) => `<g stroke="${a}" stroke-width="4" stroke-linecap="round" fill="none"><path d="M15 38 Q4 26 2 12"/><path d="M15 38 Q15 18 15 2"/><path d="M15 38 Q26 26 28 12"/><path d="M15 38 Q8 30 4 28"/><path d="M15 38 Q22 30 26 28"/></g>` +
+      `<path d="M4 38 H26 L23 58 H7 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/><rect x="3" y="36" width="24" height="5" rx="2" fill="${d}"/>` },
+
+  { id: 'piano', room: 'music', name: 'Piano', ico: '🎹', price: 55, x: 20, y: 30, w: 30, view: '100 80',
+    act: 'wiggle', fx: '🎵', say: 'Plink plonk! 🎹', sound: 'piano', classic: ['#3D2B1F', '#1E140E', '#FFD166'],
+    paint: (m, d, a) => `<rect x="4" y="4" width="92" height="40" rx="4" fill="${m}" stroke="${d}" stroke-width="3"/>` +
+      `<rect x="40" y="10" width="20" height="12" rx="2" fill="#fff" stroke="${a}" stroke-width="2"/><path d="M44 14 H56 M44 18 H52" stroke="#8B5E3C" stroke-width="1.5"/>` +
+      '<rect x="4" y="44" width="92" height="12" fill="#fff" stroke="#3D2B1F" stroke-width="2"/>' +
+      Array.from({ length: 11 }, (_, i) => `<path d="M${12 + i * 7.6} 44 V56" stroke="#3D2B1F" stroke-width="1"/>`).join('') +
+      [0, 1, 3, 4, 5, 7, 8, 10].map(i => `<rect x="${10 + i * 7.6}" y="44" width="4" height="7" fill="#3D2B1F"/>`).join('') +
+      `<rect x="4" y="56" width="92" height="8" fill="${m}" stroke="${d}" stroke-width="2"/><path d="M10 64 V78 M90 64 V78" stroke="${d}" stroke-width="5"/>` +
+      `<text x="80" y="20" font-size="10" fill="${a}">♪</text>` },
+  { id: 'xylophone', room: 'music', name: 'Xylophone', short: 'Xylo', ico: '🎶', price: 25, x: 60, y: 14, w: 22, view: '80 40',
+    act: 'hop', fx: '🎶', say: 'Ding ding ding! 🎶', sound: 'xylo', classic: ['#C68B59', '#8B5E3C', '#E94B4B'],
+    paint: (m, d, a) => `<path d="M4 12 L76 18 M4 32 L76 26" stroke="${d}" stroke-width="4" stroke-linecap="round"/>` +
+      ['#E94B4B', '#FF9F43', '#FFD93D', '#5CC46A', '#4FA3E8', '#9B7BF0', '#FF7EB6'].map((c, i) =>
+        `<rect x="${7 + i * 10}" y="${6 + i * 1.2}" width="8" height="${30 - i * 2.4}" rx="2" fill="${c}" stroke="${d}" stroke-width="1"/>`).join('') +
+      `<path d="M58 4 L70 -6 M64 6 L76 -2" stroke="${m}" stroke-width="2.5" stroke-linecap="round"/><circle cx="70" cy="-6" r="3" fill="${a}"/><circle cx="76" cy="-2" r="3" fill="${a}"/>` },
+  { id: 'notesrug', room: 'music', name: 'Music Rug', short: 'Rug', ico: '🎵', price: 20, x: 30, y: 2, w: 30, view: '100 30', py: 5,
+    act: 'spin', fx: '🎵', say: 'Dance party! 🎶', classic: ['#FFD93D', '#D4A90C', '#9B7BF0'],
+    paint: (m, d, a) => `<rect x="2" y="2" width="96" height="26" rx="8" fill="${m}" stroke="${d}" stroke-width="3"/>` +
+      `<g fill="${a}" font-size="16" font-weight="800"><text x="14" y="22">♪</text><text x="38" y="21">♫</text><text x="62" y="22">♪</text><text x="82" y="21">♫</text></g>` },
+  { id: 'drum', room: 'music', name: 'Drum', ico: '🥁', price: 35, x: 86, y: 6, w: 14, view: '50 50',
+    act: 'hop', fx: '🥁', say: 'Boom boom bap! 🥁', sound: 'drum', classic: ['#E94B4B', '#B83232', '#FFD166'],
+    paint: (m, d, a) => `<path d="M4 16 V40 Q25 50 46 40 V16" fill="${m}" stroke="${d}" stroke-width="3"/>` +
+      `<path d="M4 18 L14 40 L25 18 L36 40 L46 18" stroke="${a}" stroke-width="2.5" fill="none"/>` +
+      `<ellipse cx="25" cy="16" rx="21" ry="7" fill="#FFF8EE" stroke="${d}" stroke-width="3"/>` +
+      `<path d="M12 2 L22 13 M40 2 L30 13" stroke="#C68B59" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="2" r="3" fill="${a}"/><circle cx="40" cy="2" r="3" fill="${a}"/>` },
+  { id: 'guitar', room: 'music', name: 'Guitar Stand', short: 'Guitar', ico: '🎸', price: 45, x: 90, y: 30, w: 10, view: '36 90', px: -7,
+    act: 'wiggle', fx: '🎸', say: 'Strum strum! 🎸', sound: 'guitar', classic: ['#FF9F43', '#C4651C', '#FFF3B0'],
+    paint: (m, d, a) => '<path d="M6 88 L18 64 L30 88" stroke="#5C3D1E" stroke-width="3" fill="none"/>' +
+      `<rect x="15" y="4" width="6" height="40" fill="${d}"/><rect x="13" y="0" width="10" height="7" rx="2" fill="${d}"/>` +
+      `<path d="M18 40 Q4 40 6 54 Q8 60 5 66 Q2 82 18 82 Q34 82 31 66 Q28 60 30 54 Q32 40 18 40 Z" fill="${m}" stroke="${d}" stroke-width="2.5"/>` +
+      `<circle cx="18" cy="60" r="5" fill="#3D2B1F"/><path d="M16.5 6 V74 M19.5 6 V74" stroke="${a}" stroke-width="0.8"/><rect x="12" y="72" width="12" height="3" fill="#3D2B1F"/>` },
+
+  { id: 'lounger', room: 'swimpool', name: 'Lounge Chair', short: 'Chair', ico: '😎', price: 40, x: 14, y: 30, w: 22, view: '80 40', py: 34,
+    act: 'nap', fx: '😎', say: 'Sunbathing… ☀️', classic: ['#4FA3E8', '#8C8C99', '#FFFFFF'],
+    paint: (m, d, a) => `<path d="M10 38 V26 M70 38 V26 M24 38 V26" stroke="${d}" stroke-width="3"/>` +
+      `<path d="M4 26 H50 L74 6" stroke="${d}" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `<path d="M4 22 H50 L72 4" stroke="${m}" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` +
+      `<path d="M10 22 H16 M24 22 H30 M38 22 H44 M56 15 L60 12" stroke="${a}" stroke-width="7"/>` },
+  { id: 'beachball', room: 'swimpool', name: 'Beach Ball', short: 'Ball', ico: '🏐', price: 20, x: 40, y: 34, w: 8, view: '30 30',
+    act: 'hop', fx: '🎉', say: 'Bounce, bounce! 🎉', classic: ['#E94B4B', '#B83232', '#FFD93D'],
+    paint: (m, d, a) => '<circle cx="15" cy="15" r="13" fill="#fff"/>' +
+      `<path d="M15 2 Q4 15 15 28 Q8 15 15 2 Z M15 2 Q26 15 15 28 Q22 15 15 2" fill="${m}"/><path d="M2 15 Q15 8 28 15 Q15 12 2 15" fill="${a}"/>` +
+      `<circle cx="15" cy="15" r="13" fill="none" stroke="${d}" stroke-width="2"/>` },
+  { id: 'poolslide', room: 'swimpool', name: 'Pool Slide', short: 'Slide', ico: '🛝', price: 65, x: 70, y: 30, w: 20, view: '70 60',
+    act: 'spin', fx: '💦', say: 'Wheee! Splash! 💦', sound: 'splash', classic: ['#FFD93D', '#D4A90C', '#4FA3E8'],
+    paint: (m, d, a) => `<path d="M8 58 V6 M20 58 V6" stroke="#9FB4C4" stroke-width="3"/><path d="M8 16 H20 M8 28 H20 M8 40 H20 M8 52 H20" stroke="#9FB4C4" stroke-width="2.5"/>` +
+      `<path d="M22 6 Q44 4 52 32 Q56 48 68 50 V58 Q50 58 44 36 Q38 14 22 14 Z" fill="${m}" stroke="${d}" stroke-width="2"/>` +
+      `<path d="M26 9 Q44 9 48 30" stroke="${a}" stroke-width="2.5" fill="none" stroke-linecap="round"/>` },
+  { id: 'bigpool', room: 'swimpool', name: 'Big Pool', short: 'Pool', ico: '🏊', price: 75, x: 48, y: 4, w: 54, view: '180 50', py: 9,
+    act: 'wiggle', fx: '💦', say: 'Cannonball! 💦', sound: 'splash', classic: ['#4FB3E8', '#2C7FB8', '#FFFFFF'],
+    paint: (m, d, a) => '<rect x="2" y="2" width="176" height="46" rx="6" fill="#E6F0F7" stroke="#9FB4C4" stroke-width="3"/>' +
+      `<rect x="10" y="8" width="160" height="34" rx="3" fill="${m}" stroke="${d}" stroke-width="2"/>` +
+      `<path d="M12 19 H168 M12 31 H168" stroke="${a}" stroke-width="2.5" stroke-dasharray="6 5"/>` +
+      '<path d="M30 14 Q38 10 46 14 M110 36 Q118 32 126 36" stroke="#fff" stroke-width="2" fill="none" opacity="0.8"/>' +
+      '<path d="M154 0 V16 M164 0 V16 M154 6 H164 M154 12 H164" stroke="#C0C8D0" stroke-width="2.5"/>' },
+  { id: 'divingboard', room: 'swimpool', name: 'Diving Board', short: 'Board', ico: '🤿', price: 40, x: 88, y: 4, w: 16, view: '60 40', py: 14,
+    act: 'hop', fx: '💦', say: 'One, two, three… jump! 💦', sound: 'splash', classic: ['#FFFFFF', '#9FB4C4', '#E94B4B'],
+    paint: (m, d, a) => `<rect x="38" y="16" width="16" height="22" rx="2" fill="${d}"/><path d="M38 38 H58" stroke="${d}" stroke-width="3"/>` +
+      `<rect x="2" y="10" width="54" height="7" rx="3.5" fill="${m}" stroke="${d}" stroke-width="2"/><path d="M8 13.5 H20" stroke="${a}" stroke-width="3" stroke-linecap="round"/>` },
+  { id: 'poolfloat', room: 'swimpool', name: 'Pool Float', short: 'Float', ico: '🛟', price: 25, x: 12, y: 3, w: 16, view: '50 26', py: 5,
+    act: 'nap', fx: '💤', say: 'Floaty nap… 💤', classic: ['#FF7EB6', '#E0457F', '#FFFFFF'],
+    paint: (m, d, a) => `<ellipse cx="25" cy="13" rx="23" ry="10" fill="${m}" stroke="${d}" stroke-width="2.5"/><ellipse cx="25" cy="13" rx="10" ry="4" fill="#7FD0F5"/>` +
+      `<path d="M6 8 Q10 4 16 5 M34 21 Q40 22 44 18" stroke="${a}" stroke-width="3" fill="none" stroke-linecap="round"/>` },
+
+  { id: 'umbrella', room: 'beach', name: 'Beach Umbrella', short: 'Umbrella', ico: '⛱️', price: 45, x: 14, y: 14, w: 22, view: '70 80',
+    act: 'hop', fx: '⛱️', say: 'Shady and cool! 😎', classic: ['#E94B4B', '#B83232', '#FFFFFF'],
+    paint: (m, d, a) => '<path d="M36 18 L40 78" stroke="#8B5E3C" stroke-width="3"/>' +
+      `<path d="M2 26 Q30 -6 68 18 Z" fill="${m}" stroke="${d}" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M24 22 Q26 8 36 4 Q36 14 34 21 Z M46 19 Q50 8 54 9 Q56 14 56 19 Z" fill="${a}"/>` },
+  { id: 'beachtowel', room: 'beach', name: 'Beach Towel', short: 'Towel', ico: '🏖️', price: 25, x: 22, y: 2, w: 26, view: '90 28', py: 4,
+    act: 'nap', fx: '☀️', say: 'Sun nap… ☀️', classic: ['#4FA3E8', '#2C7FB8', '#FFD93D'],
+    paint: (m, d, a) => `<path d="M8 4 H86 L82 24 H4 Z" fill="${m}" stroke="${d}" stroke-width="2.5" stroke-linejoin="round"/>` +
+      `<path d="M22 4 L18 24 M40 4 L36 24 M58 4 L54 24 M76 4 L72 24" stroke="${a}" stroke-width="5"/>` },
+  { id: 'sandcastle', room: 'beach', name: 'Sand Castle', short: 'Castle', ico: '🏰', price: 35, x: 48, y: 6, w: 16, view: '60 50',
+    act: 'dig', fx: '🏰', say: 'My sand castle! 🏰', classic: ['#E8C46A', '#B8923A', '#E94B4B'],
+    paint: (m, d, a) => `<g fill="${m}" stroke="${d}" stroke-width="2"><rect x="4" y="24" width="52" height="24" rx="2"/><rect x="6" y="14" width="12" height="12"/><rect x="42" y="14" width="12" height="12"/><rect x="22" y="8" width="16" height="18"/></g>` +
+      `<path d="M6 14 v-4 h4 v4 M14 14 v-4 h4 v4 M42 14 v-4 h4 v4 M50 14 v-4 h4 v4" fill="${m}" stroke="${d}" stroke-width="1.5"/>` +
+      `<path d="M26 40 Q30 32 34 40 V48 H26 Z" fill="${d}"/><path d="M30 8 V-2" stroke="#8B5E3C" stroke-width="1.5"/><path d="M30 -2 L40 1 L30 4 Z" fill="${a}"/>` },
+  { id: 'lifeguard', room: 'beach', name: 'Lifeguard Chair', short: 'Lookout', ico: '🛟', price: 75, x: 64, y: 34, w: 13, view: '50 80',
+    act: 'hop', fx: '👀', say: 'I\'m watching the waves! 👀', classic: ['#FFFFFF', '#C9B8A6', '#E94B4B'],
+    paint: (m, d, a) => `<path d="M8 78 L16 30 M42 78 L34 30" stroke="${d}" stroke-width="4" stroke-linecap="round"/><path d="M12 54 H38 M10 66 H40" stroke="${d}" stroke-width="3"/>` +
+      `<rect x="10" y="26" width="30" height="7" rx="2" fill="${m}" stroke="${d}" stroke-width="2"/><rect x="12" y="4" width="26" height="22" rx="3" fill="${m}" stroke="${d}" stroke-width="2"/>` +
+      `<path d="M18 15 H32 M25 8 V22" stroke="${a}" stroke-width="4"/>` },
+  { id: 'surfboard', room: 'beach', name: 'Surfboard', ico: '🏄', price: 100, x: 76, y: 4, w: 22, view: '90 24', py: 5,
+    act: 'surf', fx: '🌊', say: 'Surf\'s up! Ride the wave! 🌊', sound: 'surf', classic: ['#4FA3E8', '#2C7FB8', '#FFD93D'],
+    paint: (m, d, a) => `<path d="M4 12 Q4 3 30 3 H70 Q88 4 88 12 Q88 20 70 21 H30 Q4 21 4 12 Z" fill="${m}" stroke="${d}" stroke-width="2.5"/>` +
+      `<path d="M10 12 H82" stroke="${a}" stroke-width="3" stroke-linecap="round"/><path d="M60 7 L70 12 L60 17" stroke="#fff" stroke-width="2" fill="none"/>` },
+  { id: 'shellbucket', room: 'beach', name: 'Shell Bucket', short: 'Shells', ico: '🐚', price: 6, x: 93, y: 6, w: 8, view: '36 40', px: -5,
+    act: 'hop', fx: '🐚', say: 'A pretty shell! 🐚', classic: ['#5CC46A', '#3A9447', '#FFD93D'],
+    paint: (m, d, a) => '<text x="4" y="14" font-size="11">🐚</text>' +
+      `<path d="M4 4 Q18 -6 32 4" stroke="${d}" stroke-width="2" fill="none"/><path d="M4 12 H32 L28 38 H8 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` +
+      `<path d="M6 22 H30" stroke="${a}" stroke-width="3"/>` },
+  { id: 'palm', room: 'beach', name: 'Palm Tree', short: 'Palm', ico: '🌴', price: 60, x: 90, y: 34, w: 18, view: '60 100', px: -4,
+    act: 'wiggle', fx: '🥥', say: 'Coconut! 🥥', classic: ['#5CC46A', '#3A9447', '#8B5E3C'],
+    paint: (m, d, a) => '<path d="M28 98 Q34 60 30 26" stroke="#B5784A" stroke-width="7" fill="none" stroke-linecap="round"/>' +
+      '<path d="M28 90 H34 M30 76 H36 M31 62 H37 M31 48 H37" stroke="#8B5E3C" stroke-width="2"/>' +
+      `<g fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"><path d="M30 26 Q12 10 2 26 Q16 18 30 26 Z"/><path d="M30 26 Q48 8 58 24 Q44 18 30 26 Z"/>` +
+      '<path d="M30 26 Q18 22 8 40 Q22 28 30 26 Z"/><path d="M30 26 Q44 26 52 42 Q40 30 30 26 Z"/><path d="M30 26 Q28 8 38 2 Q34 14 30 26 Z"/></g>' +
+      `<circle cx="27" cy="30" r="4" fill="${a}"/><circle cx="34" cy="31" r="4" fill="${a}"/>` },
+
+  { id: 'ladder', room: 'treehouse', name: 'Rope Ladder', short: 'Ladder', ico: '🪜', price: 25, x: 8, y: 30, w: 10, view: '36 120', px: 6,
+    act: 'swing', fx: '🍃', say: 'Climb, climb, climb!', classic: ['#E8C46A', '#B8923A', '#8B5E3C'],
+    paint: (m, d, a) => `<path d="M8 0 Q6 60 8 118 M28 0 Q30 60 28 118" stroke="${d}" stroke-width="3" fill="none"/>` +
+      Array.from({ length: 7 }, (_, i) => `<rect x="5" y="${10 + i * 16}" width="26" height="6" rx="2" fill="${m}" stroke="${a}" stroke-width="1.5"/>`).join('') },
+  { id: 'bookshelf', room: 'treehouse', name: 'Bookshelf', short: 'Books', ico: '📚', price: 55, x: 24, y: 30, w: 18, view: '60 80',
+    act: 'hop', fx: '📖', say: 'Story time! 📖', classic: ['#C68B59', '#8B5E3C', '#4FA3E8'],
+    paint: (m, d, a) => `<rect x="3" y="3" width="54" height="74" rx="3" fill="${m}" stroke="${d}" stroke-width="3"/>` +
+      `<path d="M3 28 H57 M3 52 H57" stroke="${d}" stroke-width="3"/>` +
+      [[8, 8, '#E94B4B'], [15, 11, a], [22, 7, '#5CC46A'], [36, 10, '#FFD93D'], [43, 8, a], [9, 33, '#9B7BF0'], [16, 31, '#FF9F43'], [30, 34, a], [37, 32, '#E94B4B'], [10, 57, a], [17, 56, '#5CC46A']].map(([x, y, c]) =>
+        `<rect x="${x}" y="${y}" width="6" height="${(y < 28 ? 26 : y < 52 ? 50 : 74) - y}" rx="1" fill="${c}"/>`).join('') +
+      '<text x="34" y="72" font-size="14">🧸</text>' },
+  { id: 'hammock', room: 'treehouse', name: 'Hammock', ico: '🌙', price: 70, x: 52, y: 30, w: 30, view: '100 50', py: 34,
+    act: 'nap', fx: '💤', say: 'Swing and snooze… 💤', classic: ['#FF9FBF', '#E0689A', '#FFFFFF'],
+    paint: (m, d, a) => '<path d="M4 2 V48 M96 2 V48" stroke="#8B5E3C" stroke-width="5" stroke-linecap="round"/>' +
+      `<path d="M4 10 Q50 52 96 10 Q50 34 4 10 Z" fill="${m}" stroke="${d}" stroke-width="2"/>` +
+      `<path d="M20 20 Q50 38 80 20" stroke="${a}" stroke-width="2.5" fill="none" stroke-dasharray="5 4"/>` },
+  { id: 'fortflag', room: 'treehouse', name: 'Fort Flags', short: 'Flags', ico: '🚩', price: 20, x: 50, y: 64, w: 14, view: '50 40', py: 12,
+    act: 'spin', fx: '🚩', say: 'This is MY fort! 🚩', classic: ['#E94B4B', '#B83232', '#FFD93D'],
+    paint: (m, d, a) => '<path d="M2 2 H48" stroke="#8B5E3C" stroke-width="3" stroke-linecap="round"/>' +
+      [6, 18, 30].map((x, i) => `<path d="M${x} 3 H${x + 12} L${x + 6} ${i === 1 ? 22 : 18} Z" fill="${i === 1 ? a : m}" stroke="${d}" stroke-width="1.5"/>`).join('') +
+      `<path d="M42 3 V38" stroke="#8B5E3C" stroke-width="2"/><path d="M42 4 L48 8 L42 12" fill="${m}"/>` },
+  { id: 'lantern', room: 'treehouse', name: 'Lantern', ico: '🏮', price: 35, x: 74, y: 60, w: 7, view: '26 50', py: 12,
+    act: 'hop', fx: '✨', say: 'Glow, glow! ✨', classic: ['#FFD166', '#B8923A', '#FFF3B0'],
+    paint: (m, d, a) => `<path d="M13 0 V8" stroke="${d}" stroke-width="2"/><path d="M8 8 H18 L20 12 H6 Z" fill="${d}"/>` +
+      `<rect x="5" y="12" width="16" height="28" rx="5" fill="${m}" stroke="${d}" stroke-width="2"/><ellipse cx="13" cy="26" rx="4.5" ry="7" fill="${a}"/>` +
+      `<path d="M6 40 H20 L18 46 H8 Z" fill="${d}"/>` },
+  { id: 'telescope', room: 'treehouse', name: 'Telescope', ico: '🔭', price: 80, x: 86, y: 30, w: 14, view: '50 70', px: -6,
+    act: 'wiggle', fx: '⭐', say: 'I see a star! ⭐', classic: ['#4FA3E8', '#2C7FB8', '#FFD93D'],
+    paint: (m, d, a) => `<path d="M25 36 L10 68 M25 36 L40 68 M25 36 V68" stroke="${d}" stroke-width="3" stroke-linecap="round"/>` +
+      `<g transform="rotate(-30 25 30)"><rect x="4" y="24" width="40" height="12" rx="3" fill="${m}" stroke="${d}" stroke-width="2"/>` +
+      `<rect x="40" y="21" width="8" height="18" rx="2" fill="${d}"/><rect x="0" y="27" width="6" height="6" rx="1" fill="${d}"/><path d="M16 24 V36" stroke="${a}" stroke-width="3"/></g>` +
+      `<text x="38" y="8" font-size="9" fill="${a}">✦</text>` },
 ];
 
 // Furniture comes in the same colors as the closet. A color is its own thing to buy, like 'bed.r'.
@@ -2238,6 +2471,9 @@ function defaultState() {
     divPics: 0, // new division questions left that show their picture right away
     rooms: [], // rooms she has opened, which stay open
     tricks: '', // the tricks she has taught Ms. Menna, in the order she taught them (see TEACHABLE)
+    since: { s: 0, w: 0, m: {} }, // since the last cash-out: new stickers, stickers woken, and misses by fact
+    gifts: 0, // free treats given, one for every GIFT_EVERY stickers
+    playDays: 0, playDay: 0, // days with a finished round, and the last of them
   };
 }
 
@@ -2432,6 +2668,22 @@ function parseSave(saved) {
       if (ITEMS[id] && ITEMS[id].slot === slot && slot !== 'toy' && (ITEMS[id].price === 0 || state.owned.includes(id))) state.worn[slot] = id;
     }
   }
+  if (saved.since && typeof saved.since === 'object') {
+    const { s, w, m } = saved.since;
+    if (Number.isInteger(s) && s > 0) state.since.s = s;
+    if (Number.isInteger(w) && w > 0) state.since.w = w;
+    if (m && typeof m === 'object') {
+      for (const [key, n] of Object.entries(m)) if (key in FACT_INDEX && Number.isInteger(n) && n > 0) state.since.m[key] = n;
+    }
+  }
+  // A save from before v45 gets no gifts for the stickers it already has, and counts as 1 day so far.
+  const old = Object.keys(saved).length > 0;
+  state.gifts = Number.isInteger(saved.gifts) && saved.gifts >= 0 ? saved.gifts
+    : Math.floor(state.mastery.filter(m => m >= STICKER_AT).length / GIFT_EVERY);
+  if (Number.isInteger(saved.playDays) && saved.playDays >= 0) {
+    state.playDays = saved.playDays;
+    if (Number.isInteger(saved.playDay)) state.playDay = saved.playDay;
+  } else if (old) [state.playDays, state.playDay] = [1, today()];
   state.savedAt = saved.savedAt || 0;
   return state;
 }
@@ -2503,6 +2755,17 @@ function mergeNewer(stored) {
   else if (stored.missedDay === state.missedDay) state.missedKeys = [...new Set([...stored.missedKeys, ...state.missedKeys])];
   state.rooms = [...new Set([...stored.rooms, ...state.rooms])];
   state.tricks = [...new Set(stored.tricks + state.tricks)].join('');
+  // A cash-out in either tab clears what came before it, and each tab adds what it saw after.
+  state.since.s = add(stored.since.s, state.since.s, base.since.s);
+  state.since.w = add(stored.since.w, state.since.w, base.since.w);
+  for (const key of new Set([...Object.keys(stored.since.m), ...Object.keys(state.since.m)])) {
+    const n = add(stored.since.m[key] || 0, state.since.m[key] || 0, base.since.m[key] || 0);
+    if (n) state.since.m[key] = n;
+    else delete state.since.m[key];
+  }
+  state.gifts = Math.max(stored.gifts, state.gifts);
+  state.playDays = Math.max(stored.playDays, state.playDays);
+  state.playDay = Math.max(stored.playDay, state.playDay);
   // Choices like the outfit, toys, furniture spots and the room go to this tab, the one saving now.
   // A payout row is lost only if the newest copy is the cookie without the list; paidCents is still right.
 }
@@ -2539,13 +2802,21 @@ function saveState() {
   if (window.indexedDB) SaveDB.write(json);
   const secure = location.protocol === 'https:' ? '; Secure' : '';
   // A browser drops a cookie over 4 KB. If it is too big, the cookie copy leaves out the payout list, and then the
-  // review dates and picker weights of facts above 10. Every sticker, dot, coin, gem and item stays in it.
-  let cookie = packCookie(json);
+  // review dates and picker weights of facts above 10, then all picker weights, then all review dates.
+  // Every sticker, dot, coin, gem, item and piece of furniture always stays in it.
   const partial = { ...save, payouts: [], partial: true };
-  if (cookie.length > COOKIE_MAX) cookie = packCookie(JSON.stringify(partial));
-  if (cookie.length > COOKIE_MAX) {
-    const upTo10 = i => Math.max(...factsOf(FACT_KEYS[i])) <= 10;
-    cookie = packCookie(JSON.stringify({ ...partial, weights: encodeWeights(upTo10), review: encodeReview(upTo10) }));
+  const upTo10 = i => Math.max(...factsOf(FACT_KEYS[i])) <= 10;
+  const trims = [
+    save,
+    partial,
+    { ...partial, weights: encodeWeights(upTo10), review: encodeReview(upTo10) },
+    { ...partial, weights: '', review: encodeReview(upTo10) },
+    { ...partial, weights: '', review: '' },
+  ];
+  let cookie;
+  for (const copy of trims) {
+    cookie = packCookie(copy === save ? json : JSON.stringify(copy));
+    if (cookie.length <= COOKIE_MAX) break;
   }
   document.cookie = `${COOKIE_NAME}=${cookie}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax${secure}`;
   savedBase = JSON.parse(JSON.stringify(state));
@@ -2651,6 +2922,15 @@ const sfx = {
   sticker() {
     [784, 1047, 1319, 1568].forEach((f, i) => tone(f, { at: i * 0.07, dur: 0.7, vol: 0.2 }));
   },
+  // a sleepy yawn, then a bright wake-up chime
+  wake() {
+    tone(392, { voice: 'soft', dur: 0.5, vol: 0.18, glide: 1.25 });
+    [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, { at: 0.45 + i * 0.1, voice: 'bell', dur: 1, vol: 0.16 }));
+  },
+  gift() {
+    [659, 784, 988, 1319].forEach((f, i) => tone(f, { at: i * 0.09, voice: 'marimba', dur: 0.4, vol: 0.22 }));
+    tone(1568, { at: 0.42, voice: 'bell', dur: 1.2, vol: 0.18 });
+  },
   gem() {
     tone(1319, { dur: 0.4, vol: 0.16 });
     tone(1568, { at: 0.07, dur: 0.6, vol: 0.16 });
@@ -2667,6 +2947,18 @@ const sfx = {
     box() {
       [330, 294].forEach((f, i) => tone(f, { at: i * 0.2, voice: 'soft', dur: 0.3, vol: 0.2 }));
       [784, 1047, 1319].forEach((f, i) => tone(f, { at: 0.9 + i * 0.07, dur: 0.6, vol: 0.22 }));
+    },
+  },
+  // House pieces with their own sound when tapped
+  furn: {
+    piano() { [523, 659, 784, 659, 1047].forEach((f, i) => tone(f, { at: i * 0.22, dur: 0.6, vol: 0.22 })); },
+    xylo() { for (let i = 0; i < 7; i++) tone(PENTA[5 + i], { at: i * 0.1, voice: 'marimba', dur: 0.3, vol: 0.22 }); },
+    drum() { [0, 0.3, 0.6, 0.75, 1.05].forEach((at, i) => tone(i === 3 ? 196 : 110, { at, voice: 'soft', dur: 0.2, vol: 0.32, glide: 0.6 })); },
+    guitar() { [196, 247, 294, 392, 294, 392].forEach((f, i) => tone(f, { at: i * 0.12, voice: 'marimba', dur: 0.9, vol: 0.2 })); },
+    splash() { [0, 0.12, 0.22, 0.4].forEach((at, i) => tone(1400 - i * 180, { at, voice: 'soft', dur: 0.18, vol: 0.16, glide: 0.5 })); },
+    surf() {
+      [0, 1.2].forEach(at => tone(196, { at, voice: 'soft', dur: 1.1, vol: 0.14, glide: 2 }));
+      [784, 988, 1175].forEach((f, i) => tone(f, { at: 2 + i * 0.08, dur: 0.6, vol: 0.2 }));
     },
   },
   // crunchy chomps, then a happy "mmm" chime
@@ -2708,6 +3000,7 @@ const factKey = (a, b) => `${a}x${b}`;
 const keyOf = q => (q.div ? 'd' : '') + factKey(q.a, q.b);
 const factsOf = key => key.replace('d', '').split('x').map(Number);
 const questionText = q => (q.div ? `${q.a * q.b} ÷ ${q.a}` : `${q.a} × ${q.b}`);
+const keyText = key => questionText({ a: factsOf(key)[0], b: factsOf(key)[1], div: key.startsWith('d') });
 const answerOf = q => (q.div ? q.b : q.a * q.b);
 const weightOf = key => state.weights[key] || 1;
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -3079,6 +3372,12 @@ const POM_MOVES = {
   },
   // House wiggle: her head and tail sway against her body.
   'act-wiggle': (tl, b) => { swing(tl, b.head, 6, 0.5, 4); swing(tl, b.tail, 25, 0.25, 8); ears(tl, b, 10, 0, 0.2, 0.1); ears(tl, b, 0, 0, 0.2, 1.8); },
+  // Surf holds both paws out to balance, knees bent, ears blown back.
+  'act-surf': (tl, b) => {
+    paw(tl, b, 'l', 95, 0.05, 2.2); paw(tl, b, 'r', -95, 0.05, 2.2);
+    tl.to([b.legL, b.legR], { scaleY: 0.85, duration: 0.2 }, 0.05).to([b.legL, b.legR], { scaleY: 1, duration: 0.2 }, 2.2);
+    ears(tl, b, -18, -3, 0.2, 0.1); ears(tl, b, 0, 0, 0.2, 2.2); swing(tl, b.head, 5, 1.2, 2); swing(tl, b.tail, 20, 0.3, 8);
+  },
   'act-swing': (tl, b) => { swing(tl, [b.legL, b.legR], 15, 0.9, 3); swing(tl, b.earL, 10, 0.9, 3); swing(tl, b.earR, 10, 0.9, 3); },
   // Dig reaches both front paws down to the ground and scratches with each in turn, every 0.125s.
   'act-dig': (tl, b) => {
@@ -3233,10 +3532,17 @@ function confetti(amount) {
   }
 }
 
-function banner(text) {
+// A waking sticker comes first, stretching.
+function banner(text, waking) {
   const el = document.createElement('div');
   el.className = 'banner';
   el.textContent = text;
+  if (waking) {
+    const ico = document.createElement('span');
+    ico.className = 'stretch';
+    ico.textContent = waking;
+    el.prepend(ico, ' ');
+  }
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 2500);
 }
@@ -3376,6 +3682,19 @@ function renderPath() {
     ? `All tables done! ${shown.filter(hasSticker).length} of ${shown.length} stickers · Mixed review 🏆${nap}`
     : `Learning ${pathName(at, sign)} · ${(sign === '×' ? PATH_NEW : DIVIDE_NEW)[at].filter(hasSticker).length} of ${(sign === '×' ? PATH_NEW : DIVIDE_NEW)[at].length} stickers${nap}`;
   $('divideToggle').checked = state.divOn;
+  renderQuilt(shown);
+  $('daysTotal').hidden = !state.playDays;
+  $('daysTotal').textContent = `📅 Days with Ms. Menna: ${state.playDays}`;
+}
+
+// Up to 6 sleepy stickers snooze under a quilt on the start screen, with how many are sleepy.
+const QUILT_FRIENDS = 6;
+function renderQuilt(shown) {
+  const sleepy = shown.filter(k => isSleepy(FACT_INDEX[k]));
+  $('quilt').hidden = !sleepy.length;
+  $('quiltFriends').innerHTML = sleepy.slice(0, QUILT_FRIENDS)
+    .map(k => `<span title="${keyText(k)}">${stickerFor(k)}</span>`).join('');
+  $('quiltCount').textContent = `${sleepy.length} sleepy ${sleepy.length === 1 ? 'sticker' : 'stickers'} 💤`;
 }
 
 // Facts from every table up to `top`, split into ones she knows and ones she is learning.
@@ -3794,6 +4113,7 @@ function onCorrect(answer) {
         if (newSticker) {
           state.levels[i] = 0;
           game.newStickers.push(fact);
+          state.since.s++;
         }
       }
     } else if (isSleepy(i)) {
@@ -3801,6 +4121,7 @@ function onCorrect(answer) {
       state.levels[i] = state.levels[i] === SLEEPY_NOW ? 0 : Math.min(state.levels[i] + 1, REVIEW_DAYS.length - 1);
       state.days[i] = day;
       game.woken.push(fact);
+      state.since.w++;
     }
   }
   const cents = game.hinted ? HINT_CENTS : centsFor(game.a, game.b);
@@ -3836,8 +4157,8 @@ function onCorrect(answer) {
     }, 500);
   } else if (woke) {
     later(() => {
-      banner(`${stickerFor(key)} ${questionText(fact)} woke up!`);
-      sfx.sticker();
+      banner(`${questionText(fact)} woke up!`, stickerFor(key));
+      sfx.wake();
     }, 500);
   }
 
@@ -3903,6 +4224,7 @@ function onWrong(answer) {
   if (game.attempts === 1) {
     game.missed.push({ a: game.a, b: game.b, div: game.div });
     recordTry(false);
+    noteMiss(key);
     if (game.redoNow || game.peekNow) game.freeMisses++;
     // A missed sneak peek just waits for its table, and the next one tries the table after it.
     if (game.peekNow) state.peekStep = PATH_NEW.findIndex(keys => keys.includes(key)) + 1;
@@ -4230,6 +4552,19 @@ function showSummary() {
     : '';
   // A new division table starts with a few pictures.
   if ((times || divide) && guidedDivide()) state.divPics = Math.max(state.divPics, AUTO_PICTURES.table);
+  if (state.playDay !== today()) {
+    state.playDays++;
+    state.playDay = today();
+  }
+  const gifts = giveGifts();
+  $('giftNote').hidden = !gifts.length;
+  if (gifts.length) {
+    $('giftNote').textContent = `🎁 A present for you! ${andList(gifts.map(t => `${t.ico} ${t.name}`))} for Ms. Menna's treat jar!`;
+    later(() => {
+      sfx.gift();
+      banner('🎁 A present for you!');
+    }, 1600);
+  }
   saveState();
 
   const unique = [];
@@ -4246,6 +4581,28 @@ function showSummary() {
   showScreen('summaryScreen');
   sfx.roundEnd();
   confetti(stars === 3 ? 110 : stars === 2 ? 60 : 30);
+}
+
+// Every GIFT_EVERY stickers bring a free treat. It is a surprise at the end of the round, never announced before.
+function giveGifts() {
+  syncNewer(); // so a gift another tab already gave is not given again
+  const due = Math.floor(stickerCount() / GIFT_EVERY);
+  const given = [];
+  while (state.gifts < due) {
+    const treat = TREATS[state.gifts % TREATS.length];
+    state.gifts++;
+    state.treats[treat.id] = Math.min(MAX_TREATS, (state.treats[treat.id] || 0) + 1);
+    given.push(treat);
+  }
+  return given;
+}
+
+// Misses since the last cash-out, for the parent summary. Only the most-missed facts are kept, and a new miss wins a tie.
+function noteMiss(key) {
+  const m = state.since.m;
+  m[key] = (m[key] || 0) + 1;
+  const order = Object.keys(m).sort((x, y) => m[y] - m[x] || (y === key) - (x === key));
+  for (const k of order.slice(TRICKY_KEPT)) delete m[k];
 }
 
 function goHome() {
@@ -4663,8 +5020,9 @@ function buyItem() {
 const ownsFurn = id => FURN[id].price === 0 || state.furniture.includes(id);
 const stickerCount = () => state.mastery.filter(m => m >= STICKER_AT).length;
 // A room stays open once opened. A room with furniture already bought is open too, so a v15 save keeps rooms opened at the old counts.
-const roomOpen = room => state.rooms.includes(room.id) || stickerCount() >= room.need ||
-  state.furniture.some(id => FURN[id] && FURN[id].room === room.id);
+// An open room also opens every room before it, so a room added in v45 below an older open room opens with it.
+const roomKept = room => state.rooms.includes(room.id) || state.furniture.some(id => FURN[id] && FURN[id].room === room.id);
+const roomOpen = room => stickerCount() >= room.need || ROOMS.some(r => r.need >= room.need && roomKept(r));
 // Called on every save, so a room opened by stickers is remembered.
 function keepRoomsOpen() {
   for (const room of ROOMS) if (!state.rooms.includes(room.id) && roomOpen(room)) state.rooms.push(room.id);
@@ -4683,12 +5041,18 @@ function placed(base) {
 const actSpot = f => ({ x: f.x + (f.px || 0), y: f.py ?? Math.max(2, f.y - 6) });
 const furnSvg = (f, cls = '') => `<svg viewBox="0 0 ${f.view}" class="${cls}" aria-hidden="true">${ownPaint(f.svg, 'swatch')}</svg>`;
 
+const ROOM_DECO = {
+  tiles: '<span class="deco-tiles"></span>',
+  sea: '<span class="deco-sea"></span>',
+  leaves: '<span class="deco-leaf" style="left:2%">🍃</span><span class="deco-leaf" style="right:3%">🌿</span><span class="deco-leaf" style="left:44%">🍃</span>',
+};
+
 // Draws a room into el. The little start-screen peek shows only furniture Pom has.
 function drawRoom(el, room, walker) {
   el.className = 'room' + (el.id === 'housePeek' ? ' house-peek peek' : '') + (room.outdoor ? ' outdoor' : '') + (roomOpen(room) ? '' : ' locked');
   el.style.setProperty('--wall', room.wall || '#fff');
   el.style.setProperty('--floor', room.floor);
-  const sky = room.outdoor ? '<span class="sun">☀️</span><span class="cloud">☁️</span>' : '';
+  const sky = (room.outdoor ? '<span class="sun">☀️</span><span class="cloud">☁️</span>' : '') + (ROOM_DECO[room.deco] || '');
   const spots = FURNITURE.filter(f => f.room === room.id).map(f => {
     const trying = houseTrying && FURN[houseTrying].base === f.id ? houseTrying : null;
     const shown = trying || placed(f.id);
@@ -4730,7 +5094,7 @@ function stopWalker(w) {
   w.el.classList.remove('walking');
   w.pom.className = 'pom-container';
   restPom(w.pom);
-  w.pom.querySelectorAll('.act-fx, .dirt-fx').forEach(fx => fx.remove());
+  w.pom.querySelectorAll('.act-fx, .dirt-fx, .wave-fx').forEach(fx => fx.remove());
 }
 
 // Walks Pom to (x, y) and calls done when she gets there. z keeps her in front of a piece she climbs on.
@@ -4755,10 +5119,10 @@ function walkTo(w, x, y, done, z) {
   }, ms));
 }
 
-const ACT_TIME = { nap: 2300, hop: 1500, spin: 1050, wiggle: 2200, swing: 2700, dig: 2000, munch: 1600 };
+const ACT_TIME = { nap: 2300, hop: 1500, spin: 1050, wiggle: 2200, swing: 2700, dig: 2000, munch: 1600, surf: 2400 };
 
-// Pom does the piece's act (nap, hop, swing…) with its emoji floating up.
-function doAct(w, f, done) {
+// Pom does the piece's act (nap, hop, swing…) with its emoji floating up. loud plays the piece's own sound, for a tap.
+function doAct(w, f, done, loud) {
   stopWalker(w);
   w.busy = true;
   void w.pom.offsetWidth;
@@ -4772,6 +5136,8 @@ function doAct(w, f, done) {
     fx.style.animationDelay = i * 0.35 + 's';
     w.pom.appendChild(fx);
   }
+  if (f.act === 'surf') w.pom.insertAdjacentHTML('beforeend', '<span class="wave-fx">🌊</span>');
+  if (loud && sfx.furn[f.sound]) sfx.furn[f.sound]();
   if (f.act === 'dig') for (let i = 0; i < 10; i++) {
     const dirt = document.createElement('span');
     dirt.className = 'dirt-fx';
@@ -4786,11 +5152,11 @@ function doAct(w, f, done) {
 }
 
 // Pom goes to a piece and uses it.
-function visitPiece(w, f, done) {
+function visitPiece(w, f, done, loud) {
   const spot = actSpot(f);
   // Pieces she climbs on (bed, swing) keep her drawn in front of them.
   const z = f.py && f.py > f.y ? 100 - f.y + 2 : null;
-  walkTo(w, spot.x, spot.y, () => doAct(w, f, done), z);
+  walkTo(w, spot.x, spot.y, () => doAct(w, f, done, loud), z);
 }
 
 // When nobody is tapping, Pom wanders: sometimes to a spot on the floor, sometimes to play with her furniture.
@@ -4832,7 +5198,7 @@ function renderRoomTabs() {
   $('roomTabs').innerHTML = ROOMS.map(r => {
     const open = roomOpen(r);
     return `<button class="closet-tab room-tab${r.id === state.room ? ' on' : ''}${open ? '' : ' locked'}" data-room="${r.id}">` +
-      `<span class="ico">${open ? r.ico : '🔒'}</span>${r.name}${open ? '' : `<span class="need">⭐ ${r.need}</span>`}</button>`;
+      `<span class="ico">${open ? r.ico : '🔒'}</span>${r.tab || r.name}${open ? '' : `<span class="need">⭐ ${r.need}</span>`}</button>`;
   }).join('');
 }
 
@@ -4933,7 +5299,7 @@ function onSpotTap(id) {
   say('houseBubble', f.say);
   // Opens the closet only if the child is still on the wardrobe, not looking at colors or buying something else.
   const stillHere = () => $('houseScreen').classList.contains('active') && housePick === id && !houseTrying;
-  visitPiece(houseWalker, f, f.opens ? () => { if (stillHere()) showCloset(); } : null);
+  visitPiece(houseWalker, f, f.opens ? () => { if (stillHere()) showCloset(); } : null, true);
 }
 
 // Tapping the floor walks Pom there.
@@ -5036,7 +5402,19 @@ function renderCashout() {
     ? state.payouts.map(po =>
       `<div class="payout-row"><span>${new Date(po.t).toLocaleDateString(undefined, dateFmt)}</span><span>${formatMoney(po.c)}</span></div>`).join('')
     : '<div class="payout-empty">No payouts yet</div>');
+  renderParentNote();
   resetPayButton();
+}
+
+// For the grown-up: what she learned since the last cash-out. Shown, not read out.
+function renderParentNote() {
+  const { s, w, m } = state.since;
+  const tricky = Object.keys(m).sort((x, y) => m[y] - m[x]).slice(0, 3);
+  const plural = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
+  $('parentNote').hidden = !s && !w && !tricky.length;
+  $('parentNote').innerHTML = '<h2>Since the last cash out</h2>' +
+    `<p>⭐ ${plural(s, 'new sticker')} · 💤 ${plural(w, 'sleepy sticker')} woken</p>` +
+    (tricky.length ? `<p>Tricky facts: ${tricky.map(k => `${keyText(k)} (missed ${plural(m[k], 'time')})`).join(', ')}</p>` : '');
 }
 
 function showCashout() {
@@ -5067,6 +5445,7 @@ function onPayYes() {
   state.payouts.length = Math.min(state.payouts.length, MAX_PAYOUTS_KEPT);
   state.paidCents += amount;
   state.totalCents = 0;
+  state.since = { s: 0, w: 0, m: {} };
   saveState();
   renderBank();
   renderCashout();

@@ -221,16 +221,16 @@ test('a tab that missed another tab\'s payout cannot pay it again, and adds to i
 });
 
 test('a stale tab cannot spend gems the other tab already spent', async ({ page }) => {
-  await page.evaluate(() => { state.gems = 10; saveState(); });
+  await page.evaluate(() => { state.gems = 20; saveState(); });
   await page.locator('#houseBtn').click();
   await page.evaluate(() => { for (let i = 0; i < 20; i++) state.mastery[i] = STICKER_AT; showHouse(); });
   await page.locator('#furnItems .item[data-id="bed"]').click();
   await page.locator('#furnColors .color-btn[data-id="bed"]').click();
-  // The other tab spent 8 of the 10 gems on a lamp.
-  await saveFromOtherTab(page, () => ({ gems: 2, furniture: encodeOwned(FURNITURE, ['lamp']) }));
+  // The other tab spent 10 of the 20 gems on a lamp, so the 15-gem bed is too much now.
+  await saveFromOtherTab(page, () => ({ gems: 10, furniture: encodeOwned(FURNITURE, ['lamp']) }));
   await page.locator('#furnBuyBtn').click();
-  expect(await page.evaluate(() => ({ gems: state.gems, furniture: state.furniture }))).toEqual({ gems: 2, furniture: ['lamp'] });
-  await expect(page.locator('.house-head .gem-badge')).toHaveText('💎 2');
+  expect(await page.evaluate(() => ({ gems: state.gems, furniture: state.furniture }))).toEqual({ gems: 10, furniture: ['lamp'] });
+  await expect(page.locator('.house-head .gem-badge')).toHaveText('💎 10');
 });
 
 test('a stale tab keeps the other tab\'s treats, items, furniture and sticker dots', async ({ page }) => {
@@ -479,7 +479,7 @@ test("Ms. Menna's Closet buys, wears, and saves outfits with gems only", async (
   await expect(page.locator('#colorRow .color-btn')).toHaveCount(11);
   await page.locator('.color-btn[data-id="crown"]').click();
   await expect(page.locator('#buyBtn')).toBeDisabled();
-  await expect(page.locator('#buyBtn')).toHaveText('Need 33 more 💎');
+  await expect(page.locator('#buyBtn')).toHaveText('Need 78 more 💎');
 
   await page.locator('.item[data-id="party"]').click();
   await page.locator('.color-btn[data-id="party"]').click();
@@ -567,14 +567,49 @@ test('saved progress still fits in the cookie mirror', async ({ page }) => {
   expect(cookie).toMatchObject({ partial: true, gems: 4321, mastery: true, lowKept: true, highDropped: true });
 });
 
+test('a much bigger house still fits in the cookie, with every sticker, coin, gem, item and piece of furniture', async ({ page }) => {
+  const out = await page.evaluate(() => {
+    const rnd = n => Math.floor(Math.random() * n);
+    // Many more pieces than the game has, each owned in every color, so the cookie needs its last trims
+    for (let n = 0; n < 60; n++) {
+      const f = { ...FURNITURE[n % FURNITURE.length], id: 'extra' + n };
+      f.base = f.id;
+      f.colors = [f, ...COLORS.map(c => ({ ...f, id: f.id + '.' + c.code, color: c }))];
+      FURNITURE.push(f);
+      f.colors.forEach(c => { FURN[c.id] = c; });
+    }
+    FACT_KEYS.forEach((k, i) => {
+      state.mastery[i] = rnd(STICKER_AT + 1); state.days[i] = today() - rnd(today() - 1); state.levels[i] = rnd(SLEEPY_NOW + 1);
+      state.weights[k] = 1.25 + rnd(44) / 4;
+    });
+    state.owned = Object.values(ITEMS).filter(i => i.price > 0).map(i => i.id);
+    state.furniture = Object.values(FURN).filter(p => p.price > 0).map(p => p.id);
+    state.treats = Object.fromEntries(TREATS.map(t => [t.id, 99]));
+    Object.assign(state, { totalCents: 12345, paidCents: 6789, gems: 4321 });
+    saveState();
+    const raw = document.cookie.match(new RegExp('(?:^|; )' + COOKIE_NAME + '=([^;]*)'));
+    const back = parseSave(readCookie());
+    return {
+      size: raw[0].length,
+      mastery: back.mastery.join('') === state.mastery.join(''),
+      owned: back.owned.length === state.owned.length,
+      furniture: back.furniture.length === state.furniture.length,
+      money: [back.totalCents, back.paidCents, back.gems],
+      treats: back.treats.cake,
+    };
+  });
+  expect(out.size).toBeLessThan(4096);
+  expect(out).toMatchObject({ mastery: true, owned: true, furniture: true, money: [12345, 6789, 4321], treats: 99 });
+});
+
 test('closet colors save compactly, and v12 saves keep their items', async ({ page }) => {
   // A v12 save lists plain item ids
   await page.evaluate(() => {
-    localStorage.setItem(STORE_KEY, JSON.stringify({ gems: 30, owned: 'party,ball,choc', worn: { hat: 'party', fur: 'choc' }, savedAt: Date.now() }));
+    localStorage.setItem(STORE_KEY, JSON.stringify({ gems: 40, owned: 'party,ball,choc', worn: { hat: 'party', fur: 'choc' }, savedAt: Date.now() }));
   });
   await page.reload();
   expect(await page.evaluate(() => ({ owned: state.owned, worn: state.worn, gems: state.gems })))
-    .toEqual({ owned: ['party', 'ball', 'choc'], worn: { hat: 'party', fur: 'choc' }, gems: 30 });
+    .toEqual({ owned: ['party', 'ball', 'choc'], worn: { hat: 'party', fur: 'choc' }, gems: 40 });
 
   // Buy a rainbow Party Hat and a blue ball
   await page.locator('#houseBtn').click();
@@ -706,7 +741,7 @@ test('treats are bought with gems, kept in the jar, and used up when Ms. Menna e
 });
 
 test('Ms. Menna buys toys, plays with them, and uses them in streak tricks', async ({ page }) => {
-  await page.evaluate(() => { state.gems = 20; state.totalCents = 90; saveState(); });
+  await page.evaluate(() => { state.gems = 30; state.totalCents = 90; saveState(); });
   await page.reload();
   await expect(page.locator('#toyShelf')).toBeHidden();
 
@@ -716,7 +751,7 @@ test('Ms. Menna buys toys, plays with them, and uses them in streak tricks', asy
   await page.locator('.item[data-id="ball"]').click();
   await page.locator('.color-btn[data-id="ball"]').click(); // tries it out first
   await expect(page.locator('#pomCloset')).toHaveClass(/play-ball/);
-  await expect(page.locator('#buyBtn')).toHaveText('Buy Bouncy Ball for 10 💎');
+  await expect(page.locator('#buyBtn')).toHaveText('Buy Bouncy Ball for 20 💎');
   await page.locator('#buyBtn').click();
   await expect(page.locator('#pomCloset .gem-badge')).toHaveText('💎 10');
   await expect(page.locator('.item[data-id="ball"] .price')).toHaveText('🎨 1 of 11');
@@ -748,7 +783,32 @@ test('the Bedroom needs 20 stickers, but the Closet works before that', async ({
   await expect(page.locator('#furnItems')).toBeHidden();
   await page.locator('#closetBtn').click();
   await expect(page.locator('#closetScreen')).toHaveClass(/active/);
-  expect(await page.evaluate(() => ROOMS.map(r => r.need))).toEqual([20, 60, 121, 171, 221]);
+  expect(await page.evaluate(() => ROOMS.map(r => r.need))).toEqual([20, 40, 60, 95, 121, 145, 171, 190, 215, 221]);
+});
+
+test('the five new rooms each have at least five pieces, and the surfboard rides a wave at the Beach', async ({ page }) => {
+  const counts = await page.evaluate(() => ['spa', 'music', 'swimpool', 'beach', 'treehouse'].map(id => FURNITURE.filter(f => f.room === id).length));
+  for (const n of counts) expect(n).toBeGreaterThanOrEqual(5);
+  // The surfboard is Beach furniture with colors, not a toy
+  const board = await page.evaluate(() => ({ room: FURN.surfboard.room, colors: FURN.surfboard.colors.length }));
+  expect(board.room).toBe('beach');
+  expect(board.colors).toBeGreaterThan(1);
+
+  await page.evaluate(() => {
+    for (let i = 0; i < 215; i++) state.mastery[i] = STICKER_AT;
+    showHouse();
+  });
+  await expect(page.locator('.room-tab')).toHaveCount(10);
+  // The Beach is the last room, opened by the final sticker
+  await expect(page.locator('.room-tab[data-room="treehouse"]')).not.toHaveClass(/locked/);
+  await expect(page.locator('.room-tab[data-room="beach"]')).toHaveClass(/locked/);
+  await page.evaluate(() => { state.mastery.fill(STICKER_AT); state.gems = 100; state.room = 'beach'; saveState(); showHouse(); });
+  await expect(page.locator('.room-tab[data-room="beach"]')).not.toHaveClass(/locked/);
+  await expect(page.locator('#houseRoom .deco-sea')).toHaveCount(1);
+  // Ms. Menna surfs on a board she owns
+  await page.evaluate(() => { state.furniture.push('surfboard'); state.home[FURN.surfboard.base] = 'surfboard'; renderHouse(); doAct(houseWalker, FURN.surfboard, null, true); });
+  await expect(page.locator('#houseRoom .pom-container')).toHaveClass(/act-surf/);
+  await expect(page.locator('#houseRoom .wave-fx')).toHaveCount(1);
 });
 
 test('a v15 save keeps rooms with furniture open under the new sticker counts', async ({ page }) => {
@@ -774,6 +834,17 @@ test('a v15 save keeps rooms with furniture open under the new sticker counts', 
   expect(await page.evaluate(() => roomOpen(ROOM.bedroom))).toBe(false);
 });
 
+test('an open room opens every room before it, so a Kitchen kept from an older save brings the Spa', async ({ page }) => {
+  // A v24 save opened the Kitchen at 30 stickers; the Spa came in v45 at 40
+  await page.evaluate(() => { state.rooms = ['kitchen']; state.mastery.fill(0); for (let i = 0; i < 30; i++) state.mastery[i] = STICKER_AT; showHouse(); });
+  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'spa', 'kitchen']);
+  await expect(page.locator('.room-tab[data-room="spa"]')).not.toHaveClass(/locked/);
+  await expect(page.locator('.room-tab[data-room="music"]')).toHaveClass(/locked/);
+  // Garden furniture from a v15 save opens the rooms now placed before the Garden
+  await page.evaluate(() => { state.rooms = []; state.furniture = [FURNITURE.find(f => f.room === 'garden' && f.price > 0).id]; });
+  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'spa', 'kitchen', 'music', 'playroom', 'garden']);
+});
+
 test('an open room stays open, and a v24 save keeps rooms opened at the old counts', async ({ page }) => {
   // 20 stickers open the Bedroom; it stays open after losing them
   await page.evaluate(() => { for (let i = 0; i < 20; i++) state.mastery[i] = STICKER_AT; saveState(); state.mastery.fill(0); saveState(); });
@@ -789,10 +860,10 @@ test('an open room stays open, and a v24 save keeps rooms opened at the old coun
     document.cookie = `${COOKIE_NAME}=; max-age=0; path=/`;
   });
   await page.reload();
-  expect(await page.evaluate(() => [stickerCount(), ROOMS.filter(roomOpen).map(r => r.id)])).toEqual([70, ['bedroom', 'kitchen']]);
-  // Losing the copied stickers does not close the Kitchen
+  expect(await page.evaluate(() => [stickerCount(), ROOMS.filter(roomOpen).map(r => r.id)])).toEqual([70, ['bedroom', 'spa', 'kitchen']]);
+  // Losing the copied stickers does not close the Kitchen or the Spa
   await page.evaluate(() => { state.mastery.fill(0); });
-  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'kitchen']);
+  expect(await page.evaluate(() => ROOMS.filter(roomOpen).map(r => r.id))).toEqual(['bedroom', 'spa', 'kitchen']);
 });
 
 test("Ms. Menna's House opens rooms with stickers and buys furniture colors with gems", async ({ page }) => {
@@ -815,7 +886,7 @@ test("Ms. Menna's House opens rooms with stickers and buys furniture colors with
   await page.locator('#furnColors .color-btn[data-id="bed"]').click();
   await expect(page.locator('#houseRoom .spot[data-id="bed"]')).toHaveClass(/trying/);
   await page.locator('#furnBuyBtn').click();
-  await expect(page.locator('.house-head .gem-badge')).toHaveText('💎 20');
+  await expect(page.locator('.house-head .gem-badge')).toHaveText('💎 15');
 
   // A second color, then swap back to the first for free; a color is never bought twice
   const second = await page.evaluate(() => FURN.bed.colors[1].id);
@@ -1944,4 +2015,169 @@ test('older stickers get spread-out first visits, and review dates survive a rel
   await page.evaluate(() => { state.days[5] = today() - 40; state.levels[5] = 3; state.levels[6] = SLEEPY_NOW; saveState(); });
   await page.reload();
   expect(await page.evaluate(() => [state.days[5] === today() - 40, state.levels[5], isSleepy(6), sleepyCount()])).toEqual([true, 3, true, 2]);
+});
+
+// Ends the round now, as if the last question was just answered.
+async function finishRound(page) {
+  await page.evaluate(() => { game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
+  await expect(page.locator('#summaryScreen')).toHaveClass(/active/);
+}
+
+test('Cash Out shows the grown-up what she learned since the last payout, and paying starts it again', async ({ page }) => {
+  await page.locator('#cashoutBtn').click();
+  await expect(page.locator('#parentNote')).toBeHidden();
+  await page.locator('#cashBackBtn').click();
+  await page.locator('#pathBtn').click();
+  // A sticker she is about to earn, then a miss on another fact
+  const q = await page.evaluate(() => {
+    const i = FACT_INDEX[keyOf(game)];
+    state.mastery[i] = STICKER_AT - 1;
+    state.days[i] = today() - 1;
+    return questionText(game);
+  });
+  await answer(page, true);
+  await page.waitForTimeout(2000);
+  const missed = await answer(page, false);
+  await finishRound(page);
+  await page.locator('#homeBtn').click();
+  await page.reload(); // it is in the save
+  await page.locator('#cashoutBtn').click();
+  const note = page.locator('#parentNote');
+  await expect(note).toBeVisible();
+  await expect(note).toContainText('⭐ 1 new sticker · 💤 0 sleepy stickers woken');
+  const missedText = await page.evaluate(m => questionText(m), missed);
+  await expect(note).toContainText(`Tricky facts: ${missedText} (missed 1 time)`);
+  expect(missedText).not.toBe(q);
+  // Above the money
+  const [noteTop, bankTop] = await Promise.all(['#parentNote', '#cashBank'].map(s => page.locator(s).boundingBox().then(b => b.y)));
+  expect(noteTop).toBeLessThan(bankTop);
+  await page.locator('#payBtn').click();
+  await page.waitForTimeout(1300);
+  await page.locator('#payYesBtn').click();
+  await expect(note).toBeHidden();
+  expect(await page.evaluate(() => state.since)).toEqual({ s: 0, w: 0, m: {} });
+});
+
+test('the 3 most-missed facts are the tricky ones, and only a few are kept in the save', async ({ page }) => {
+  await page.evaluate(() => {
+    for (let n = 0; n < 20; n++) for (let t = 0; t <= n % 5; t++) noteMiss(MAIN_KEYS[n]);
+    saveState();
+    showCashout();
+  });
+  const kept = await page.evaluate(() => [Object.keys(state.since.m).length, TRICKY_KEPT]);
+  expect(kept).toEqual([12, 12]);
+  const tricky = await page.evaluate(() => [4, 9, 14].map(n => `${keyText(MAIN_KEYS[n])} (missed 5 times)`).join(', '));
+  await expect(page.locator('#parentNote')).toContainText('Tricky facts: ' + tricky);
+});
+
+test('sleepy stickers snooze under a quilt at home, and waking one makes it stretch', async ({ page }) => {
+  await expect(page.locator('#quilt')).toBeHidden();
+  await page.evaluate(() => {
+    for (const k of MAIN_KEYS.slice(0, 8)) {
+      const i = FACT_INDEX[k];
+      state.mastery[i] = STICKER_AT;
+      state.levels[i] = SLEEPY_NOW;
+      state.days[i] = today() - 1;
+    }
+    renderPath();
+  });
+  await expect(page.locator('#quilt')).toBeVisible();
+  await expect(page.locator('#quiltFriends span')).toHaveCount(6);
+  await expect(page.locator('#quiltCount')).toHaveText('8 sleepy stickers 💤');
+  await page.locator('#pathBtn').click();
+  await page.evaluate(() => {
+    const [a, b] = factsOf(MAIN_KEYS[0]);
+    Object.assign(game, { a, b, div: false });
+  });
+  await answer(page, true);
+  await expect(page.locator('.banner .stretch')).toBeVisible();
+  await expect(page.locator('.banner')).toContainText('woke up!');
+  await finishRound(page);
+  await page.locator('#homeBtn').click();
+  await expect(page.locator('#quiltCount')).toHaveText('7 sleepy stickers 💤');
+});
+
+test('every 10th sticker brings a free treat at the end of the round, and older stickers bring none', async ({ page }) => {
+  await page.evaluate(() => {
+    for (const k of MAIN_KEYS.slice(0, 9)) state.mastery[FACT_INDEX[k]] = STICKER_AT;
+    saveState();
+  });
+  await page.locator('#pathBtn').click();
+  await page.evaluate(() => { state.mastery[FACT_INDEX[MAIN_KEYS[9]]] = STICKER_AT; });
+  await finishRound(page);
+  await expect(page.locator('#giftNote')).toBeVisible();
+  await expect(page.locator('#giftNote')).toContainText("A present for you! 🦴 Dog Bone for Ms. Menna's treat jar!");
+  expect(await page.evaluate(() => [state.gifts, state.treats.bone])).toEqual([1, 1]);
+  // No new tenth sticker, no gift
+  await page.locator('#againBtn').click();
+  await finishRound(page);
+  await expect(page.locator('#giftNote')).toBeHidden();
+  expect(await page.evaluate(() => state.treats.bone)).toBe(1);
+
+  // A save from before v45 with 25 stickers gets no gifts for them; the 30th brings one
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem(STORE_KEY));
+    delete save.gifts;
+    save.treats = {};
+    save.mastery = FACT_KEYS.map((k, i) => (MAIN_KEYS.slice(0, 25).includes(k) ? STICKER_AT : 0)).join('');
+    save.savedAt = Date.now() + 1000;
+    localStorage.setItem(STORE_KEY, JSON.stringify(save));
+  });
+  await page.reload();
+  expect(await page.evaluate(() => state.gifts)).toBe(2);
+  await page.locator('#pathBtn').click();
+  await finishRound(page);
+  await expect(page.locator('#giftNote')).toBeHidden();
+  await page.locator('#againBtn').click();
+  await page.evaluate(() => { for (const k of MAIN_KEYS.slice(25, 30)) state.mastery[FACT_INDEX[k]] = STICKER_AT; });
+  await finishRound(page);
+  await expect(page.locator('#giftNote')).toContainText('🍎 Apple'); // the third gift
+});
+
+test('home counts the days with a finished round, and an older save starts at 1', async ({ page }) => {
+  await expect(page.locator('#daysTotal')).toBeHidden();
+  await page.locator('#pathBtn').click();
+  await page.locator('#quitBtn').click();
+  await expect(page.locator('#daysTotal')).toBeHidden(); // a round left early does not count
+  await page.locator('#pathBtn').click();
+  await finishRound(page);
+  await page.locator('#againBtn').click();
+  await finishRound(page); // a second round the same day
+  await page.locator('#homeBtn').click();
+  await expect(page.locator('#daysTotal')).toHaveText('📅 Days with Ms. Menna: 1');
+  await page.evaluate(() => { state.playDay = today() - 1; saveState(); });
+  await page.locator('#pathBtn').click();
+  await finishRound(page);
+  await page.locator('#homeBtn').click();
+  await expect(page.locator('#daysTotal')).toHaveText('📅 Days with Ms. Menna: 2');
+
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem(STORE_KEY));
+    delete save.playDays; delete save.playDay;
+    save.savedAt = Date.now() + 1000;
+    localStorage.setItem(STORE_KEY, JSON.stringify(save));
+  });
+  await page.reload();
+  await expect(page.locator('#daysTotal')).toHaveText('📅 Days with Ms. Menna: 1');
+  await page.locator('#pathBtn').click();
+  await finishRound(page);
+  await page.locator('#homeBtn').click();
+  await expect(page.locator('#daysTotal')).toHaveText('📅 Days with Ms. Menna: 1'); // today was already counted
+});
+
+test('a stale tab keeps the other tab\'s gifts, days and since-cash-out record', async ({ page }) => {
+  await page.evaluate(() => {
+    Object.assign(state, { gifts: 1, playDays: 3, playDay: today() - 1, since: { s: 2, w: 1, m: { '3x4': 2 } } });
+    saveState();
+    // Another tab cashes out, gives a gift and counts today
+    const other = JSON.parse(localStorage.getItem(STORE_KEY));
+    Object.assign(other, { gifts: 2, playDays: 4, playDay: today(), since: { s: 0, w: 0, m: {} }, savedAt: Date.now() + 5000 });
+    localStorage.setItem(STORE_KEY, JSON.stringify(other));
+    // This tab then sees one more sticker and a miss
+    state.since.s++;
+    noteMiss('6x7');
+    saveState();
+  });
+  const st = await page.evaluate(() => [state.gifts, state.playDays, state.playDay - today(), state.since]);
+  expect(st).toEqual([2, 4, 0, { s: 1, w: 0, m: { '6x7': 1 } }]);
 });

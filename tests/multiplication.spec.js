@@ -254,7 +254,7 @@ test('Ms. Menna does a trick for 3 right in a row', async ({ page }) => {
   await page.locator('#pathBtn').click();
   for (let i = 0; i < 2; i++) {
     await answer(page, true);
-    await expect(page.locator('#pomGame')).not.toHaveClass(/trick-/);
+    await expect(page.locator('#gameBubble')).not.toContainText('in a row'); // a surprise trick may play, but no streak trick
     await page.waitForTimeout(1400);
   }
   await answer(page, true);
@@ -947,7 +947,7 @@ test('finishing a table on the path says what comes next', async ({ page }) => {
   expect(await page.evaluate(() => [game.path, game.step])).toEqual(['main', 1]);
 });
 
-test('finishing a table teaches Ms. Menna a trick for the summary, streaks and taps', async ({ page }) => {
+test('finishing a table teaches Ms. Menna a trick for the summary and streaks, and a tap at home is just a hello', async ({ page }) => {
   // A fresh save knows only the first three tricks
   expect(await page.evaluate(() => knownTricks().map(t => t.cls))).toEqual(['trick-spin', 'trick-flip', 'trick-dance']);
   await giveStickers(page, [...tableKeys(2, 2, 9), '2x1']);
@@ -968,23 +968,62 @@ test('finishing a table teaches Ms. Menna a trick for the summary, streaks and t
   // Streaks: spin, flip, dance, then roll over
   expect(await page.evaluate(() => [6, 7].map(n => doTrick(n).cls))).toEqual(['trick-roll', 'trick-spin']);
 
-  // Tapping her at home shows a trick she knows, a different one each time
+  // Tapping her at home gets a bounce and a different hello each time, never a trick
   await page.locator('#homeBtn').click();
-  const says = await page.evaluate(() => knownTricks().map(t => t.say));
   let last = '';
   for (let i = 0; i < 4; i++) {
     await page.locator('#pomStart').click();
-    await expect(page.locator('#pomStart')).toHaveClass(/trick-/);
+    await expect(page.locator('#pomStart')).toHaveClass(/bounce/);
+    await expect(page.locator('#pomStart')).not.toHaveClass(/trick-/);
     const said = await page.locator('#startBubble').textContent();
-    expect(says).toContain(said);
     expect(said).not.toBe(last);
     last = said;
+    await page.waitForTimeout(700);
   }
 
-  // The next round finishes no table, so no trick
+  // The next round finishes no table, so no new trick, but she still celebrates: a bounce for 0 right
   await page.locator('#pathBtn').click();
   await page.evaluate(() => { game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
-  await expect(page.locator('#newTrick')).toBeHidden();
+  await expect(page.locator('#newTrickText')).toBeHidden();
+  await expect(page.locator('#pomSummary')).toBeVisible();
+  await expect(page.locator('#pomSummary')).toHaveClass(/bounce/);
+  // Tapping her then gets a bounce, not a trick
+  await page.waitForTimeout(700);
+  await page.locator('#pomSummary').click();
+  await expect(page.locator('#pomSummary')).toHaveClass(/bounce/);
+  await expect(page.locator('#pomSummary')).not.toHaveClass(/trick-/);
+});
+
+test('Ms. Menna reacts to learning moments with their own trick, and dances for a 3-star round', async ({ page }) => {
+  await page.locator('#pathBtn').click();
+  // A third dot: new sticker, backflip
+  await page.evaluate(() => { state.mastery[FACT_INDEX['3x4']] = 2; state.days[FACT_INDEX['3x4']] = today() - 1; });
+  await askFact(page, 3, 4);
+  await answer(page, true);
+  await expect(page.locator('#pomGame')).toHaveClass(/trick-flip/);
+  await page.waitForTimeout(1900);
+  // Waking a sleepy sticker: a spin until she learns to wave with ×8, then a wave
+  expect(await page.evaluate(() => [reactionTrick('woke').cls, (state.mastery.fill(STICKER_AT), reactionTrick('woke').cls)]))
+    .toEqual(['trick-spin', 'trick-wave']);
+  await page.evaluate(() => { state.mastery.fill(0); state.mastery[FACT_INDEX['3x4']] = STICKER_AT; });
+  // A fact missed earlier in the round, then right: happy dance
+  await askFact(page, 6, 7);
+  await answer(page, false);
+  await page.waitForTimeout(800);
+  await answer(page, true);
+  await page.waitForTimeout(1900);
+  await askFact(page, 6, 7);
+  await answer(page, true);
+  await expect(page.locator('#pomGame')).toHaveClass(/trick-dance/);
+  // A plain answer sometimes gets a surprise trick
+  await page.waitForTimeout(1900);
+  await page.evaluate(() => { Math.random = () => 0.1; });
+  await answer(page, true);
+  await expect(page.locator('#pomGame')).toHaveClass(/trick-/);
+  await page.waitForTimeout(1900);
+  // A 3-star round ends with a happy dance on the summary
+  await page.evaluate(() => { game.firstTry = 9; game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
+  await expect(page.locator('#pomSummary')).toHaveClass(/trick-dance/);
 });
 
 test('the summary shows learning first, and fixed facts are celebrated', async ({ page }) => {

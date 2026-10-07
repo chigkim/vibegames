@@ -1349,13 +1349,13 @@
 <div class="screen active" id="startScreen">
   <div class="card">
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
-    <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to see a trick"></div>
+    <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <div class="shelves">
       <div class="toy-shelf" id="toyShelf" hidden></div>
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v35 - Updated 2026-10-07 02:50 EDT</p>
+    <p class="version">v36 - Updated 2026-10-07 10:18 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1456,9 +1456,9 @@
     <!-- What she learned comes first, then the score and coins. -->
     <div class="new-stickers" id="newStickers"></div>
     <div class="new-stickers" id="pathUp"></div>
-    <div class="new-trick" id="newTrick" hidden>
-      <div class="pom-container small" id="pomSummary" role="button" aria-label="Ms. Menna. Tap her to see her new trick"></div>
-      <p id="newTrickText"></p>
+    <div class="new-trick" id="newTrick">
+      <div class="pom-container small" id="pomSummary" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
+      <p id="newTrickText" hidden></p>
     </div>
     <div class="stat-row">
       <div class="stat"><b id="statFirstTry">0 / 10</b>right on first try</div>
@@ -2512,6 +2512,11 @@ const LEARNED_TRICKS = [
   { cls: 'trick-takebow', name: 'take a bow', say: 'Take a bow! 🎩', stars: ['👏'] },
 ];
 const TRICK_CLASSES = [...TRICKS, ...LEARNED_TRICKS].map(t => t.cls);
+// Learning moments have their own trick: a backflip for a new sticker, a wave for waking one, a happy dance for a fixed fact.
+// She learns to wave with ×8 (the sixth table), so until then she spins.
+const REACTIONS = { sticker: 'trick-flip', woke: 'trick-wave', fixed: 'trick-dance' };
+const reactionTrick = moment => knownTricks().find(t => t.cls === REACTIONS[moment]) || TRICKS[0];
+const SURPRISE_TRICK = 0.25; // chance of a trick for a plain first-try answer
 const knownTricks = () => [...TRICKS, ...LEARNED_TRICKS.slice(0, pathStep())];
 
 const TOY_CLASSES = ['ball', 'duck', 'rope', 'frisbee', 'bubbles', 'box'].map(id => 'play-' + id);
@@ -3418,7 +3423,15 @@ function onCorrect(answer) {
   later(() => pigReact($('gameBank'), 'pulse'), 650);
   renderRoundEarned();
   const trick = game.attempts === 0 && game.streak >= 3 ? doTrick(game.streak) : null;
-  if (!trick) animatePom($('pomGame'), 'bounce');
+  // Without a streak trick, learning moments get their own trick, and other first-try answers sometimes a surprise one.
+  const react = trick ? null
+    : newSticker ? reactionTrick('sticker')
+    : woke ? reactionTrick('woke')
+    : fixed ? reactionTrick('fixed')
+    : game.attempts === 0 && Math.random() < SURPRISE_TRICK ? pick(knownTricks())
+    : null;
+  if (react) showTrick($('pomGame'), react);
+  else if (!trick) animatePom($('pomGame'), 'bounce');
   if (trick && game.streak % 5 === 0) confetti(60);
   else if (game.attempts === 0 && Math.random() < 0.35) confetti(18);
   if (newSticker) {
@@ -3459,7 +3472,7 @@ function onCorrect(answer) {
 
   game.index++;
   $('progressFill').style.width = (game.index / QUESTIONS_PER_ROUND * 100) + '%';
-  later(nextQuestion, trick || newSticker || woke || tomorrow ? 1700 : game.attempts === 0 ? 1300 : 1900);
+  later(nextQuestion, trick || react || newSticker || woke || tomorrow ? 1700 : game.attempts === 0 ? 1300 : 1900);
 }
 
 // A fact from a table the path hasn't reached, to find tables she already knows. It earns a dot like any fact.
@@ -3758,11 +3771,14 @@ function showSummary() {
     game.woken.length ? 'Woke up: ' + list(game.woken) : '',
     game.fixed.length ? 'You fixed: ' + game.fixed.map(questionText).join(', ') : '',
   ].filter(Boolean).join('\n');
-  $('newTrick').hidden = !summaryTricks.length;
+  // She celebrates every round: a new trick if she learned one, else a dance for 3 stars, a spin for 2 and a bounce for 1.
+  $('newTrickText').hidden = !summaryTricks.length;
   if (summaryTricks.length) {
     $('newTrickText').textContent = `🎉 Ms. Menna learned to ${andList(summaryTricks.map(t => t.name))}! Tap her to see ${summaryTricks.length > 1 ? 'them' : 'it'} again.`;
     later(() => showTrick($('pomSummary'), summaryTricks.at(-1)), 900);
-  }
+  } else if (stars > 1) {
+    later(() => showTrick($('pomSummary'), TRICKS.find(t => t.cls === (stars === 3 ? 'trick-dance' : 'trick-spin'))), 900);
+  } else later(() => animatePom($('pomSummary'), 'bounce'), 900);
   const step = pathStep();
   const divStep = divideStep();
   const times = game.path === 'main' && step > game.step;
@@ -4773,19 +4789,19 @@ function init() {
     sfx.tap(CLOSET_SLOTS.findIndex(s => s.id === closetTab));
     renderCloset();
   });
-  // Tapping her on the home screen shows one of her tricks, a different one each time.
+  // Tapping her on the home screen gets a happy bounce and a hello, never a trick, so tricks stay something she earns.
+  const TAP_LINES = ['Hi! Let\'s learn more tricks together! 🐾', 'Hee hee, that tickles! 🐾', 'I\'m ready when you are! 🐾'];
   let lastTap = null;
   $('pomStart').addEventListener('click', () => {
-    const tricks = knownTricks().filter(t => t !== lastTap);
-    lastTap = pick(tricks);
-    showTrick($('pomStart'), lastTap);
-    say('startBubble', lastTap.say);
+    lastTap = pick(TAP_LINES.filter(l => l !== lastTap));
+    animatePom($('pomStart'), 'bounce');
+    say('startBubble', lastTap);
   });
-  // On the summary, tapping her shows the tricks she just learned again.
+  // On the summary, tapping her shows the tricks she just learned again, or else a happy bounce.
   let summaryTap = 0;
   $('pomSummary').addEventListener('click', () => {
-    if (!summaryTricks.length) return;
-    showTrick($('pomSummary'), summaryTricks[summaryTap++ % summaryTricks.length]);
+    if (summaryTricks.length) showTrick($('pomSummary'), summaryTricks[summaryTap++ % summaryTricks.length]);
+    else animatePom($('pomSummary'), 'bounce');
   });
   $('toyShelf').addEventListener('click', e => {
     const btn = e.target.closest('.toy-btn');

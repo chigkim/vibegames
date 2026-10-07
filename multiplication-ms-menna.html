@@ -206,23 +206,27 @@
   }
   /* Tricks she learns, one for each times table she finishes */
   .pom-container.trick-roll { animation: pomRoll 1s ease-in-out; }
+  /* Roll over stays low on the ground, where the cartwheel goes up in an arc. */
   @keyframes pomRoll {
     0% { transform: translate(0, 0) rotate(0); }
-    20% { transform: translate(-6px, 6px) scale(1.05, 0.9); }
-    65% { transform: translate(20px, -6px) rotate(360deg); }
+    20% { transform: translate(-4px, 10px) scale(1.1, 0.8); }
+    65% { transform: translate(22px, 10px) rotate(360deg) scale(1.1, 0.8); }
     100% { transform: translate(0, 0) rotate(360deg); }
   }
   .pom-container.trick-highfive { animation: pomHighFive 1s ease-in-out; }
+  /* High five leans out toward the child and slaps at 40%, when the ✋ burst flies out. */
   @keyframes pomHighFive {
-    0%, 100% { transform: translate(0, 0) rotate(0); }
-    30%, 70% { transform: translate(6px, -10px) rotate(8deg); }
-    50% { transform: translate(8px, -12px) rotate(10deg) scale(1.06); }
+    0%, 100% { transform: translate(0, 0) rotate(0) scale(1); }
+    30% { transform: translate(6px, -8px) rotate(8deg) scale(1.15); }
+    40% { transform: translate(8px, -10px) rotate(12deg) scale(1.28); }
+    55%, 70% { transform: translate(6px, -8px) rotate(8deg) scale(1.18); }
   }
   .pom-container.trick-sit { animation: pomSit 1s ease-in-out; }
+  /* Sit pretty rises up tall on her back legs, where take a bow stays low. */
   @keyframes pomSit {
     0%, 100% { transform: translateY(0) scale(1, 1); }
-    25% { transform: translateY(6px) scale(1.05, 0.85); }
-    50%, 80% { transform: translateY(-14px) scale(0.95, 1.1); }
+    20% { transform: translateY(4px) scale(1.04, 0.9); }
+    40%, 85% { transform: translateY(-22px) scale(0.9, 1.2); }
   }
   .pom-container.trick-playbow { animation: pomPlayBow 1s ease-in-out; }
   @keyframes pomPlayBow {
@@ -230,16 +234,22 @@
     30%, 75% { transform: translate(-4px, 6px) rotate(-14deg); }
   }
   .pom-container.trick-chase { animation: pomChase 1.1s linear; }
+  /* Chase her tail runs a circle on the ground: smaller at the back of it, facing the way she runs.
+     The twirl flips in place, up on her toes. */
   @keyframes pomChase {
-    0%, 100% { transform: translate(0, 0) scaleX(1); }
-    25% { transform: translate(14px, -6px) scaleX(-1); }
-    50% { transform: translate(0, -12px) scaleX(1); }
-    75% { transform: translate(-14px, -6px) scaleX(-1); }
+    0%, 100% { transform: translate(0, 0) scale(1, 1); }
+    25% { transform: translate(24px, -4px) scale(0.92, 0.92); }
+    49% { transform: translate(0, -8px) scale(0.85, 0.85); }
+    51% { transform: translate(0, -8px) scale(-0.85, 0.85); }
+    75% { transform: translate(-24px, -4px) scale(-0.92, 0.92); }
+    99% { transform: translate(0, 0) scale(-1, 1); }
   }
   .pom-container.trick-wave { animation: pomWave 1s ease-in-out; }
+  /* Wave is a gentle sway, small next to the high five. */
   @keyframes pomWave {
     0%, 100% { transform: translateY(0) rotate(0); }
-    20%, 80% { transform: translateY(-6px) rotate(-5deg); }
+    20%, 60% { transform: translateY(-4px) rotate(-5deg); }
+    40%, 80% { transform: translateY(-4px) rotate(5deg); }
   }
   .pom-container.trick-jump { animation: pomJump 1s ease-in-out; }
   @keyframes pomJump {
@@ -265,6 +275,112 @@
   @keyframes pomTakeBow {
     0%, 100% { transform: translateY(0) scale(1, 1); }
     30%, 70% { transform: translateY(6px) scale(1, 0.94); }
+  }
+  /* Tricks she learns, one for each division table she finishes: flashier, and harder as she goes.
+     Tricks with a prop move only her picture, so the hoop, ball and juggling balls keep their own path. */
+  .pom-container.trick-hop { animation: pomHopOne 1s ease-in-out; }
+  @keyframes pomHopOne {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    15%, 45%, 75% { transform: translateY(-14px) rotate(-6deg); }
+    30%, 60%, 90% { transform: translateY(0) rotate(-6deg); }
+  }
+  .pom-container.trick-twirl { animation: pomTwirl 1s ease-in-out; }
+  @keyframes pomTwirl {
+    0%, 100% { transform: translateY(0) scaleX(1); }
+    20%, 60% { transform: translateY(-12px) scaleX(-1); }
+    40%, 80% { transform: translateY(-14px) scaleX(1); }
+  }
+  .pom-container.trick-hula > svg { animation: pomHula 1.1s ease-in-out; }
+  @keyframes pomHula {
+    0%, 100% { transform: translateX(0) rotate(0); }
+    12.5%, 62.5% { transform: translateX(calc(-10px * var(--s))) rotate(-6deg); }
+    37.5%, 87.5% { transform: translateX(calc(10px * var(--s))) rotate(6deg); }
+  }
+  .toy-fx.fx-hoop {
+    left: 50%; top: 68%; width: 80%; height: 16%; opacity: 0;
+    border: calc(var(--s) * 5px) solid #FF6FB5; border-radius: 50%; box-sizing: border-box;
+    animation: fxHoop 1.1s ease-in-out;
+  }
+  @keyframes fxHoop {
+    0%, 100% { opacity: 0; transform: translate(-50%, -50%) rotate(0); }
+    8%, 92% { opacity: 1; }
+    12.5%, 62.5% { transform: translate(calc(-50% + 12px * var(--s)), -50%) rotate(8deg); }
+    37.5%, 87.5% { transform: translate(calc(-50% - 12px * var(--s)), -50%) rotate(-8deg); }
+  }
+  .pom-container.trick-moonwalk { animation: pomMoonwalk 1.1s linear; }
+  @keyframes pomMoonwalk {
+    0% { transform: translate(0, 0) scaleX(1); }
+    15% { transform: translate(-11px, -3px) scaleX(1); }
+    30% { transform: translate(-22px, 0) scaleX(1); }
+    45% { transform: translate(-33px, -3px) scaleX(1); }
+    50% { transform: translate(-34px, 0) scaleX(-1); }
+    65% { transform: translate(-22px, -3px) scaleX(-1); }
+    80% { transform: translate(-11px, 0) scaleX(-1); }
+    97% { transform: translate(0, -2px) scaleX(-1); }
+    100% { transform: translate(0, 0) scaleX(1); }
+  }
+  .pom-container.trick-balance > svg { animation: pomBalance 1.1s ease-in-out; }
+  @keyframes pomBalance {
+    0%, 100% { transform: translateY(0) rotate(0) scale(1, 1); }
+    20% { transform: translateY(calc(4px * var(--s))) scale(1.05, 0.9); }
+    35% { transform: translateY(calc(-32px * var(--s))) rotate(0) scale(1, 1); }
+    50% { transform: translateY(calc(-28px * var(--s))) rotate(-8deg); }
+    65% { transform: translateY(calc(-28px * var(--s))) rotate(8deg); }
+    80% { transform: translateY(calc(-28px * var(--s))) rotate(0); }
+  }
+  .toy-fx.fx-ball { left: 50%; top: 90%; opacity: 0; animation: fxBall 1.1s ease-in-out; }
+  @keyframes fxBall {
+    0% { opacity: 0; transform: translate(calc(-50% + 50px * var(--s)), -50%) rotate(0); }
+    20%, 80% { opacity: 1; transform: translate(-50%, -50%) rotate(-360deg); }
+    50% { transform: translate(calc(-50% + 4px * var(--s)), -50%) rotate(-345deg); }
+    100% { opacity: 0; transform: translate(calc(-50% - 50px * var(--s)), -50%) rotate(-720deg); }
+  }
+  .pom-container.trick-cartwheel { animation: pomCartwheel 1.1s ease-in-out; }
+  @keyframes pomCartwheel {
+    0%, 100% { transform: translate(0, 0) rotate(0); }
+    25%, 75% { transform: translate(20px, -30px) rotate(180deg); }
+    50% { transform: translate(40px, 0) rotate(360deg); }
+  }
+  .pom-container.trick-handstand { animation: pomHandstand 1.1s ease-in-out; }
+  @keyframes pomHandstand {
+    0% { transform: translateY(0) rotate(0) scale(1, 1); }
+    15% { transform: translateY(4px) rotate(0) scale(1.05, 0.9); }
+    35%, 80% { transform: translateY(-16px) rotate(180deg) scale(1, 1); }
+    50% { transform: translateY(-16px) rotate(172deg); }
+    65% { transform: translateY(-16px) rotate(188deg); }
+    100% { transform: translateY(0) rotate(360deg) scale(1, 1); }
+  }
+  .pom-container.trick-breakdance { animation: pomBreakdance 1.1s cubic-bezier(0.45,0,0.3,1); }
+  @keyframes pomBreakdance {
+    0% { transform: translateY(0) rotate(0) scale(1, 1); }
+    15% { transform: translateY(10px) rotate(0) scale(1.15, 0.8); }
+    75% { transform: translateY(10px) rotate(720deg) scale(1.15, 0.8); }
+    88% { transform: translateY(-14px) rotate(720deg) scale(0.95, 1.1); }
+    100% { transform: translateY(0) rotate(720deg) scale(1, 1); }
+  }
+  .pom-container.trick-juggle > svg { animation: pomJuggle 1.1s ease-in-out; }
+  @keyframes pomJuggle {
+    0%, 40%, 80%, 100% { transform: translateY(0); }
+    20%, 60% { transform: translateY(calc(-5px * var(--s))); }
+  }
+  .toy-fx.fx-juggle {
+    left: 50%; top: 55%; opacity: 0;
+    font-size: calc(var(--s) * clamp(1rem, 3.2vmin, 1.5rem));
+    animation: fxJuggle 0.4s linear 2;
+  }
+  @keyframes fxJuggle {
+    0%, 100% { opacity: 1; transform: translate(calc(-50% - 28px * var(--s)), -50%); }
+    25% { opacity: 1; transform: translate(calc(-50% - 10px * var(--s)), calc(-50% - 75px * var(--s))); }
+    50% { opacity: 1; transform: translate(calc(-50% + 28px * var(--s)), -50%); }
+    75% { opacity: 1; transform: translate(-50%, calc(-50% + 8px * var(--s))); }
+  }
+  .pom-container.trick-doubleflip { animation: pomDoubleFlip 1.1s cubic-bezier(0.45,0,0.3,1); }
+  @keyframes pomDoubleFlip {
+    0% { transform: translateY(0) rotate(0) scale(1, 1); }
+    15% { transform: translateY(6px) rotate(0) scale(1.12, 0.82); }
+    60% { transform: translateY(-64px) rotate(-720deg) scale(1, 1); }
+    85% { transform: translateY(0) rotate(-720deg) scale(1.12, 0.88); }
+    100% { transform: translateY(0) rotate(-720deg) scale(1, 1); }
   }
   .trick-star {
     position: fixed;
@@ -1355,7 +1471,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v36 - Updated 2026-10-07 10:18 EDT</p>
+    <p class="version">v37 - Updated 2026-10-07 10:36 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2497,27 +2613,41 @@ const TRICKS = [
   { cls: 'trick-flip', say: 'Backflip! 🤸' },
   { cls: 'trick-dance', say: 'Happy dance! 💃' },
 ];
-// She learns one more trick for each times table the path finishes, in path order (×2 first).
+// She learns one more trick for each times table the path finishes, in path order (×2 first), simple ones first.
 // Saves don't store them: she knows one for each table done, so older saves have theirs already.
 const LEARNED_TRICKS = [
-  { cls: 'trick-roll', name: 'roll over', say: 'Roll over! 🔄' },
-  { cls: 'trick-highfive', name: 'give a high five', say: 'High five! ✋', stars: ['✋'] },
   { cls: 'trick-sit', name: 'sit pretty', say: 'Sit pretty! 🌸' },
-  { cls: 'trick-playbow', name: 'do a play bow', say: 'Play bow! 🐾' },
-  { cls: 'trick-chase', name: 'chase her tail', say: 'Chase my tail! 🌀' },
   { cls: 'trick-wave', name: 'wave hello', say: 'Wave hello! 👋', stars: ['👋'] },
-  { cls: 'trick-jump', name: 'do a big jump', say: 'Big jump! 🦘' },
-  { cls: 'trick-sneeze', name: 'do a silly sneeze', say: 'Ah-choo! 🤧', stars: ['💨'] },
+  { cls: 'trick-highfive', name: 'give a high five', say: 'High five! ✋', stars: ['✋'] },
+  { cls: 'trick-playbow', name: 'stretch', say: 'Big stretch! 🐾' },
   { cls: 'trick-peek', name: 'play peekaboo', say: 'Peekaboo! 🙈' },
+  { cls: 'trick-sneeze', name: 'do a silly sneeze', say: 'Ah-choo! 🤧', stars: ['💨'] },
   { cls: 'trick-takebow', name: 'take a bow', say: 'Take a bow! 🎩', stars: ['👏'] },
+  { cls: 'trick-roll', name: 'roll over', say: 'Roll over! 🔄' },
+  { cls: 'trick-chase', name: 'chase her tail', say: 'Chase my tail! 🌀' },
+  { cls: 'trick-jump', name: 'do a big jump', say: 'Big jump! 🦘' },
 ];
-const TRICK_CLASSES = [...TRICKS, ...LEARNED_TRICKS].map(t => t.cls);
+// Then one for each division table, in the same order (÷2 first), flashier and ending with a double backflip.
+// fx are props that move on their own next to her: a hula hoop, a ball under her, juggling balls.
+const DIVIDE_TRICKS = [
+  { cls: 'trick-hop', name: 'hop on one leg', say: 'Hop, hop, hop! 🦶' },
+  { cls: 'trick-twirl', name: 'twirl', say: 'Twirl! 💫', stars: ['💫'] },
+  { cls: 'trick-hula', name: 'do a hula dance', say: 'Hula dance! 🌺', stars: ['🌺'], fx: { kind: 'hoop', icons: [''] } },
+  { cls: 'trick-moonwalk', name: 'moonwalk', say: 'Moonwalk! 🌙', stars: ['🌙', '⭐'] },
+  { cls: 'trick-balance', name: 'balance on a ball', say: 'Balance on a ball! ⚽', fx: { kind: 'ball', icons: ['⚽'] } },
+  { cls: 'trick-cartwheel', name: 'do a cartwheel', say: 'Cartwheel! 🤸' },
+  { cls: 'trick-handstand', name: 'do a handstand', say: 'Handstand! 🙃' },
+  { cls: 'trick-breakdance', name: 'do a breakdance spin', say: 'Breakdance! 🕺' },
+  { cls: 'trick-juggle', name: 'juggle', say: 'Juggle! 🤹', fx: { kind: 'juggle', icons: ['🔴', '🟡', '🔵'] } },
+  { cls: 'trick-doubleflip', name: 'do a double backflip', say: 'Double backflip! 🤸', stars: ['🌟', '💥', '✨'] },
+];
+const TRICK_CLASSES = [...TRICKS, ...LEARNED_TRICKS, ...DIVIDE_TRICKS].map(t => t.cls);
 // Learning moments have their own trick: a backflip for a new sticker, a wave for waking one, a happy dance for a fixed fact.
-// She learns to wave with ×8 (the sixth table), so until then she spins.
+// She learns to wave with ×10 (the second table), so until then she spins.
 const REACTIONS = { sticker: 'trick-flip', woke: 'trick-wave', fixed: 'trick-dance' };
 const reactionTrick = moment => knownTricks().find(t => t.cls === REACTIONS[moment]) || TRICKS[0];
 const SURPRISE_TRICK = 0.25; // chance of a trick for a plain first-try answer
-const knownTricks = () => [...TRICKS, ...LEARNED_TRICKS.slice(0, pathStep())];
+const knownTricks = () => [...TRICKS, ...LEARNED_TRICKS.slice(0, pathStep()), ...DIVIDE_TRICKS.slice(0, divideStep())];
 
 const TOY_CLASSES = ['ball', 'duck', 'rope', 'frisbee', 'bubbles', 'box'].map(id => 'play-' + id);
 
@@ -2604,7 +2734,17 @@ function showTrick(el, trick) {
   void el.offsetWidth;
   el.classList.add(trick.cls);
   pomMove(el, trick.cls);
-  el.toyTimer = setTimeout(() => el.classList.remove(trick.cls), 1150);
+  (trick.fx?.icons || []).forEach((ico, i) => {
+    const fx = document.createElement('span');
+    fx.className = 'toy-fx fx-' + trick.fx.kind;
+    fx.textContent = ico;
+    fx.style.animationDelay = (i * 0.15) + 's';
+    el.appendChild(fx);
+  });
+  el.toyTimer = setTimeout(() => {
+    el.classList.remove(trick.cls);
+    el.querySelectorAll('.toy-fx').forEach(t => t.remove());
+  }, 1150);
   const r = el.getBoundingClientRect();
   for (let i = 0; i < 6; i++) {
     const star = document.createElement('span');
@@ -2696,6 +2836,37 @@ const POM_MOVES = {
   'trick-sneeze': (tl, b) => { tl.to(b.head, { rotation: -10, y: -2, duration: 0.3 }, 0.1).to(b.head, { rotation: 12, y: 2, duration: 0.08 }, 0.45).to(b.head, { rotation: 0, y: 0, duration: 0.3 }, 0.6); shutEyes(tl, b, 0.3, 0.7); ears(tl, b, 20, 0, 0.08, 0.45); ears(tl, b, 0, 0, 0.3, 0.6); },
   'trick-peek': (tl, b) => { tl.to(b.legL, { rotation: 50, duration: 0.2 }, 0.15).to(b.legR, { rotation: -50, duration: 0.2 }, 0.15).to([b.legL, b.legR], { rotation: 0, duration: 0.15 }, 0.6); shutEyes(tl, b, 0.15, 0.62); ears(tl, b, 25, 3, 0.2, 0.15); ears(tl, b, -10, -3, 0.15, 0.62); ears(tl, b, 0, 0, 0.3, 0.8); swing(tl, b.tail, 25, 0.2, 2, 0.65); },
   'trick-takebow': (tl, b) => { tl.to(b.head, { rotation: 18, y: 6, duration: 0.3 }, 0.1).to(b.head, { rotation: 0, y: 0, duration: 0.3 }, 0.7); shutEyes(tl, b, 0.2, 0.7, 0.3); ears(tl, b, 15, 3, 0.3, 0.1); ears(tl, b, 0, 0, 0.3, 0.7); },
+  'trick-hop': (tl, b) => {
+    tl.to(b.legL, { rotation: 45, duration: 0.15 }, 0.05).to(b.legL, { rotation: 0, duration: 0.2 }, 0.8);
+    for (let i = 0; i < 3; i++) tl.to(b.legR, { scaleY: 0.75, duration: 0.08, yoyo: true, repeat: 1 }, 0.25 + i * 0.3);
+    swing(tl, b.earL, 10, 0.3, 3); swing(tl, b.earR, -10, 0.3, 3); swing(tl, b.tail, 20, 0.3, 3);
+  },
+  'trick-twirl': (tl, b) => { ears(tl, b, -20, -3, 0.2, 0.1); ears(tl, b, 0, 0, 0.3, 0.7); shutEyes(tl, b, 0.3, 0.7, 0.3); swing(tl, b.tail, 25, 0.25, 4); },
+  'trick-hula': (tl, b) => { swing(tl, b.head, -8, 0.55, 2); swing(tl, b.tail, 25, 0.275, 4); swing(tl, b.earL, 8, 0.55, 2); swing(tl, b.earR, 8, 0.55, 2); },
+  'trick-moonwalk': (tl, b) => { swing(tl, b.legL, 20, 0.275, 4); swing(tl, b.legR, -20, 0.275, 4); tl.to(b.head, { y: -2, duration: 0.14, yoyo: true, repeat: 7 }, 0); },
+  'trick-balance': (tl, b) => {
+    tl.to(b.legL, { rotation: 25, duration: 0.2 }, 0.3).to(b.legR, { rotation: -25, duration: 0.2 }, 0.3).to([b.legL, b.legR], { rotation: 0, duration: 0.2 }, 0.85);
+    swing(tl, b.head, 6, 0.3, 2, 0.45); ears(tl, b, 15, 2, 0.2, 0.4); ears(tl, b, 0, 0, 0.25, 0.85); swing(tl, b.tail, 25, 0.25, 4);
+  },
+  'trick-cartwheel': (tl, b) => {
+    tl.to(b.legL, { rotation: 45, duration: 0.2 }, 0.05).to(b.legR, { rotation: -45, duration: 0.2 }, 0.05).to([b.legL, b.legR], { rotation: 0, duration: 0.25 }, 0.8);
+    ears(tl, b, -20, -4, 0.2, 0.1); ears(tl, b, 0, 0, 0.25, 0.8); shutEyes(tl, b, 0.2, 0.8, 0.3); swing(tl, b.tail, 20, 0.275, 4);
+  },
+  'trick-handstand': (tl, b) => {
+    tl.to([b.legL, b.legR], { scaleY: 0.8, duration: 0.15 }, 0.05).to([b.legL, b.legR], { scaleY: 1, duration: 0.15 }, 0.25);
+    swing(tl, b.legL, 15, 0.3, 2, 0.4); swing(tl, b.legR, -15, 0.3, 2, 0.4);
+    ears(tl, b, 30, 4, 0.2, 0.3); ears(tl, b, 0, 0, 0.25, 0.85); swing(tl, b.tail, 20, 0.275, 4);
+  },
+  'trick-breakdance': (tl, b) => {
+    swing(tl, b.legL, 35, 0.15, 6, 0.15); swing(tl, b.legR, -35, 0.15, 6, 0.15);
+    ears(tl, b, 25, 3, 0.15, 0.15); ears(tl, b, 0, 0, 0.2, 0.85); shutEyes(tl, b, 0.2, 0.85, 0.3);
+  },
+  'trick-juggle': (tl, b) => {
+    for (let i = 0; i < 4; i++) tl.to(i % 2 ? b.legR : b.legL, { rotation: i % 2 ? -50 : 50, duration: 0.1, yoyo: true, repeat: 1 }, 0.1 + i * 0.2);
+    tl.to(b.eyes, { y: -2, duration: 0.15 }, 0.1).to(b.eyes, { y: 0, duration: 0.15 }, 0.85);
+    swing(tl, b.head, 6, 0.4, 2, 0.1); swing(tl, b.tail, 15, 0.275, 4);
+  },
+  'trick-doubleflip': (tl, b) => { tuck(tl, b, 0.9, 1, 0.15); ears(tl, b, -18, -5, 0.2, 0.2); ears(tl, b, 0, 0, 0.3, 0.8); shutEyes(tl, b, 0.2, 0.8, 0.1); swing(tl, b.tail, 22, 0.275, 4); },
   'play-ball': (tl, b) => { swing(tl, b.legL, 22, 0.3, 4); swing(tl, b.legR, -22, 0.3, 4); ears(tl, b, 15, 2, 0.2); ears(tl, b, 0, 0, 0.3, 1); swing(tl, b.tail, 20, 0.3, 4); },
   'play-duck': (tl, b) => { tuck(tl, b, 0.6, 2); swing(tl, b.earL, 10, 0.6, 2); swing(tl, b.earR, -10, 0.6, 2); swing(tl, b.tail, 18, 0.3, 4); },
   'play-rope': (tl, b) => { tl.to(b.head, { rotation: -10, x: -3, duration: 0.32, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 0); tl.to([b.legL, b.legR], { rotation: 15, duration: 0.2 }, 0).to([b.legL, b.legR], { rotation: 0, duration: 0.2 }, 1.1); swing(tl, b.tail, 15, 0.32, 4); },
@@ -3730,8 +3901,8 @@ function showSummary() {
   const allAwake = game.woken.length > 0 && sleepyCount() === 0;
   const invite = game.path === 'main' && inviteDue();
   $('divideInvite').hidden = !invite;
-  // She learns a trick for each times table finished this round, on the path or in practice.
-  summaryTricks = LEARNED_TRICKS.slice(game.step, pathStep());
+  // She learns a trick for each times or division table finished this round, on the path or in practice.
+  summaryTricks = [...LEARNED_TRICKS.slice(game.step, pathStep()), ...DIVIDE_TRICKS.slice(game.divStep, divideStep())];
   const newSticks = game.newStickers.length;
   say('summaryBubble', invite
     ? 'You learned all your times tables! 🎉 Want to learn dividing next?'

@@ -958,15 +958,15 @@ test('finishing a table teaches Ms. Menna a trick for the summary and streaks, a
     nextQuestion();
   });
   await expect(page.locator('#newTrick')).toBeVisible();
-  await expect(page.locator('#newTrickText')).toHaveText('🎉 Ms. Menna learned to roll over! Tap her to see it again.');
-  await expect(page.locator('#summaryBubble')).toHaveText('I learned to roll over! Watch! 🎉');
-  await expect(page.locator('#pomSummary')).toHaveClass(/trick-roll/);
-  await expect(page.locator('#pomSummary')).not.toHaveClass(/trick-roll/);
+  await expect(page.locator('#newTrickText')).toHaveText('🎉 Ms. Menna learned to sit pretty! Tap her to see it again.');
+  await expect(page.locator('#summaryBubble')).toHaveText('I learned to sit pretty! Watch! 🎉');
+  await expect(page.locator('#pomSummary')).toHaveClass(/trick-sit/);
+  await expect(page.locator('#pomSummary')).not.toHaveClass(/trick-sit/);
   await page.locator('#pomSummary').click();
-  await expect(page.locator('#pomSummary')).toHaveClass(/trick-roll/);
+  await expect(page.locator('#pomSummary')).toHaveClass(/trick-sit/);
 
-  // Streaks: spin, flip, dance, then roll over
-  expect(await page.evaluate(() => [6, 7].map(n => doTrick(n).cls))).toEqual(['trick-roll', 'trick-spin']);
+  // Streaks: spin, flip, dance, then sit pretty
+  expect(await page.evaluate(() => [6, 7].map(n => doTrick(n).cls))).toEqual(['trick-sit', 'trick-spin']);
 
   // Tapping her at home gets a bounce and a different hello each time, never a trick
   await page.locator('#homeBtn').click();
@@ -994,6 +994,35 @@ test('finishing a table teaches Ms. Menna a trick for the summary and streaks, a
   await expect(page.locator('#pomSummary')).not.toHaveClass(/trick-/);
 });
 
+test('finishing a division table teaches her a division trick, simple ones first and a double backflip last', async ({ page }) => {
+  // Every times table is done, and ÷2 has 15 of its 19 stickers, just under 80%
+  const left = ['d2x7', 'd7x2', 'd2x3', 'd3x2'];
+  await page.evaluate(left => {
+    state.divOn = true;
+    for (const k of [...PATH_FACTS.flat(), ...DIVIDE_FACTS[0].filter(k => !left.includes(k))]) state.mastery[FACT_INDEX[k]] = STICKER_AT;
+    saveState();
+    renderPath();
+  }, left);
+  expect(await page.evaluate(() => knownTricks().length)).toBe(13);
+  await page.locator('#pathBtn').click();
+  await page.evaluate(left => {
+    for (const k of left) state.mastery[FACT_INDEX[k]] = STICKER_AT;
+    game.index = QUESTIONS_PER_ROUND;
+    nextQuestion();
+  }, left);
+  await expect(page.locator('#newTrickText')).toHaveText('🎉 Ms. Menna learned to hop on one leg! Tap her to see it again.');
+  await expect(page.locator('#pomSummary')).toHaveClass(/trick-hop/);
+  expect(await page.evaluate(() => knownTricks().at(-1).cls)).toBe('trick-hop');
+  // With every table done she knows all 23, ending with the double backflip
+  const all = await page.evaluate(() => { state.mastery.fill(STICKER_AT); return knownTricks().map(t => t.cls); });
+  expect(all.length).toBe(23);
+  expect(all.at(-1)).toBe('trick-doubleflip');
+  // A trick with a prop shows it, then takes it away
+  await page.evaluate(() => showTrick($('pomSummary'), DIVIDE_TRICKS.find(t => t.cls === 'trick-juggle')));
+  await expect(page.locator('#pomSummary .fx-juggle')).toHaveCount(3);
+  await expect(page.locator('#pomSummary .fx-juggle')).toHaveCount(0);
+});
+
 test('Ms. Menna reacts to learning moments with their own trick, and dances for a 3-star round', async ({ page }) => {
   await page.locator('#pathBtn').click();
   // A third dot: new sticker, backflip
@@ -1002,7 +1031,7 @@ test('Ms. Menna reacts to learning moments with their own trick, and dances for 
   await answer(page, true);
   await expect(page.locator('#pomGame')).toHaveClass(/trick-flip/);
   await page.waitForTimeout(1900);
-  // Waking a sleepy sticker: a spin until she learns to wave with ×8, then a wave
+  // Waking a sleepy sticker: a spin until she learns to wave with ×10, then a wave
   expect(await page.evaluate(() => [reactionTrick('woke').cls, (state.mastery.fill(STICKER_AT), reactionTrick('woke').cls)]))
     .toEqual(['trick-spin', 'trick-wave']);
   await page.evaluate(() => { state.mastery.fill(0); state.mastery[FACT_INDEX['3x4']] = STICKER_AT; });

@@ -449,8 +449,8 @@
     15%, 85% { transform: translate(-50%, -50%) scale(1); }
     100% { transform: translate(-50%, -50%) scale(0); }
   }
-  .pom-container.play-ball > svg { animation: pomChase 1.3s ease-in-out; }
-  @keyframes pomChase {
+  .pom-container.play-ball > svg { animation: pomBallChase 1.3s ease-in-out; }
+  @keyframes pomBallChase {
     25% { transform: translate(calc(14px * var(--s)), calc(-10px * var(--s))) rotate(8deg); }
     50% { transform: translate(calc(24px * var(--s)), 0) rotate(0); }
     75% { transform: translate(calc(10px * var(--s)), calc(-8px * var(--s))) rotate(-6deg); }
@@ -1471,7 +1471,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v37 - Updated 2026-10-07 10:36 EDT</p>
+    <p class="version">v38 - Updated 2026-10-07 10:46 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -3191,6 +3191,10 @@ function canEarn(key) {
   return state.mastery[i] < STICKER_AT && state.days[i] !== today();
 }
 
+// Facts without a sticker in the tables before `step`, the ones left when a table was done at 80%.
+const LEFTOVER_SLOTS = 2; // new-fact questions a round gives them first
+const leftovers = step => poolsOf(PATH_FACTS, step - 1, false).learning.filter(canEarn);
+
 function pathPool() {
   if (game.divideAt.includes(game.index)) {
     if (game.guided) return mixOf(poolsOf(DIVIDE_FACTS, game.divStep, true), game.divNewAt);
@@ -3199,6 +3203,12 @@ function pathPool() {
     const open = DIVIDE_FACTS.filter((_, s) => tableDone(PATH_NEW, s));
     const pools = poolsOf(open, open.length - 1, true);
     if (pools.known.length || pools.learning.length) return mixOf(pools, game.divNewAt);
+  }
+  // The first new facts of the round are ones a finished table left without a sticker, while any can earn a dot today,
+  // so earlier tables get finished before much of the current one.
+  if (game.newAt.slice(0, LEFTOVER_SLOTS).includes(game.index) && game.step < PATH.length) {
+    const left = leftovers(game.step);
+    if (left.length) return left;
   }
   return mixOf(poolsOf(PATH_FACTS, game.step, false), game.newAt);
 }

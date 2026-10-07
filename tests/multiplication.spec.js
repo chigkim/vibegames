@@ -1598,6 +1598,41 @@ test('a missed fact asked again today pays but earns no dot, and its miss does n
   })).toEqual([1, false, ['6x7']]);
 });
 
+test('the first 2 new facts of a round go to facts a finished table left without a sticker', async ({ page }) => {
+  const r = await page.evaluate(() => {
+    // ×2 and ×10 are done with a few facts left at 0 dots, as in a save from before the path
+    const left = [];
+    for (const s of [0, 1]) for (const k of PATH_NEW[s]) {
+      state.mastery[FACT_INDEX[k]] = 0;
+      if (tableDone(PATH_NEW, s)) left.push(k); else state.mastery[FACT_INDEX[k]] = STICKER_AT;
+    }
+    saveState();
+    const picks = [];
+    let third = 0;
+    for (let i = 0; i < 30; i++) {
+      startRound('main');
+      for (const at of game.newAt.slice(0, 2)) {
+        game.index = at;
+        const q = pickQuestion();
+        picks.push(factKey(q.a, q.b));
+      }
+      // The third goes to the current table, or a leftover now and then as before
+      game.index = game.newAt[2];
+      const q = pickQuestion();
+      if (PATH_NEW[2].includes(factKey(q.a, q.b))) third++;
+      clearTimers();
+    }
+    // Once none can earn a dot today, that slot teaches the current table again
+    for (const k of left) state.days[FACT_INDEX[k]] = today();
+    startRound('main');
+    game.index = game.newAt[0];
+    const q = pickQuestion();
+    clearTimers();
+    return { step: pathStep(), some: left.length > 0, all: picks.every(k => left.includes(k)), third: third > 15, after: PATH_NEW[2].includes(factKey(q.a, q.b)) };
+  });
+  expect(r).toEqual({ step: 2, some: true, all: true, third: true, after: true });
+});
+
 test('a sneak peek at a later table earns a dot, stays with that table, and a miss costs nothing', async ({ page }) => {
   await page.locator('#pathBtn').click();
   // On ×2 the first question peeks at ×10, the next table with facts that can earn a dot

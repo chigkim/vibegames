@@ -942,12 +942,13 @@ test('finishing a table on the path says what comes next', async ({ page }) => {
   });
   await expect(page.locator('#summaryScreen')).toHaveClass(/active/);
   await expect(page.locator('#pathUp')).toHaveText('🐾 You learned ×2! Next up: ×10');
+  await page.locator('.trick-choice').first().click();
   await expect(page.locator('#homeBtn')).toHaveText('← Home');
   await page.locator('#againBtn').click();
   expect(await page.evaluate(() => [game.path, game.step])).toEqual(['main', 1]);
 });
 
-test('finishing a table teaches Ms. Menna a trick for the summary and streaks, and a tap at home is just a hello', async ({ page }) => {
+test('finishing a table lets the child pick a trick to teach Ms. Menna, used in streaks, and a tap at home is just a hello', async ({ page }) => {
   // A fresh save knows only the first three tricks
   expect(await page.evaluate(() => knownTricks().map(t => t.cls))).toEqual(['trick-spin', 'trick-flip', 'trick-dance']);
   await giveStickers(page, [...tableKeys(2, 2, 9), '2x1']);
@@ -957,16 +958,26 @@ test('finishing a table teaches Ms. Menna a trick for the summary and streaks, a
     game.index = QUESTIONS_PER_ROUND;
     nextQuestion();
   });
-  await expect(page.locator('#newTrick')).toBeVisible();
-  await expect(page.locator('#newTrickText')).toHaveText('🎉 Ms. Menna learned to sit pretty! Tap her to see it again.');
-  await expect(page.locator('#summaryBubble')).toHaveText('I learned to sit pretty! Watch! 🎉');
-  await expect(page.locator('#pomSummary')).toHaveClass(/trick-sit/);
-  await expect(page.locator('#pomSummary')).not.toHaveClass(/trick-sit/);
+  // The next 3 tricks, and no way out until she picks one
+  await expect(page.locator('#summaryBubble')).toHaveText('You finished a table! Which trick should I learn? 🐾');
+  await expect(page.locator('.trick-choice')).toHaveText(['🌸Sit pretty', '👋Wave hello', '✋Give a high five']);
+  await expect(page.locator('#againBtn')).toBeHidden();
+  await expect(page.locator('#homeBtn')).toBeHidden();
+  await expect(page.locator('#newTrickText')).toBeHidden();
+  await page.locator('.trick-choice', { hasText: 'Wave hello' }).click();
+  await expect(page.locator('#pomSummary')).toHaveClass(/trick-wave/);
+  await expect(page.locator('#teachTrick')).toBeHidden();
+  await expect(page.locator('#againBtn')).toBeVisible();
+  await expect(page.locator('#homeBtn')).toBeVisible();
+  await expect(page.locator('#newTrickText')).toHaveText('🎉 Ms. Menna learned to wave hello! Tap her to see it again.');
+  await expect(page.locator('#summaryBubble')).toHaveText('I learned to wave hello! Thank you! 🎉');
+  expect(await page.evaluate(() => [state.tricks, JSON.parse(localStorage.getItem(STORE_KEY)).tricks])).toEqual(['1', '1']);
+  await expect(page.locator('#pomSummary')).not.toHaveClass(/trick-wave/);
   await page.locator('#pomSummary').click();
-  await expect(page.locator('#pomSummary')).toHaveClass(/trick-sit/);
+  await expect(page.locator('#pomSummary')).toHaveClass(/trick-wave/);
 
-  // Streaks: spin, flip, dance, then sit pretty
-  expect(await page.evaluate(() => [6, 7].map(n => doTrick(n).cls))).toEqual(['trick-sit', 'trick-spin']);
+  // Streaks: spin, flip, dance, then the trick she was taught
+  expect(await page.evaluate(() => [6, 7].map(n => doTrick(n).cls))).toEqual(['trick-wave', 'trick-spin']);
 
   // Tapping her at home gets a bounce and a different hello each time, never a trick
   await page.locator('#homeBtn').click();
@@ -1003,24 +1014,55 @@ test('finishing a division table teaches her a division trick, simple ones first
     saveState();
     renderPath();
   }, left);
-  expect(await page.evaluate(() => knownTricks().length)).toBe(13);
+  // Starting a round catches up the times tables done without picking: the planned tricks, in order
   await page.locator('#pathBtn').click();
+  expect(await page.evaluate(() => knownTricks().length)).toBe(13);
   await page.evaluate(left => {
     for (const k of left) state.mastery[FACT_INDEX[k]] = STICKER_AT;
     game.index = QUESTIONS_PER_ROUND;
     nextQuestion();
   }, left);
+  await expect(page.locator('.trick-choice')).toHaveText(['🦶Hop on one leg', '💫Twirl', '🌺Do a hula dance']);
+  await page.locator('.trick-choice').first().click();
   await expect(page.locator('#newTrickText')).toHaveText('🎉 Ms. Menna learned to hop on one leg! Tap her to see it again.');
   await expect(page.locator('#pomSummary')).toHaveClass(/trick-hop/);
   expect(await page.evaluate(() => knownTricks().at(-1).cls)).toBe('trick-hop');
   // With every table done she knows all 23, ending with the double backflip
-  const all = await page.evaluate(() => { state.mastery.fill(STICKER_AT); return knownTricks().map(t => t.cls); });
+  const all = await page.evaluate(() => { state.mastery.fill(STICKER_AT); catchUpTricks(); return knownTricks().map(t => t.cls); });
   expect(all.length).toBe(23);
   expect(all.at(-1)).toBe('trick-doubleflip');
   // A trick with a prop shows it, then takes it away
   await page.evaluate(() => showTrick($('pomSummary'), DIVIDE_TRICKS.find(t => t.cls === 'trick-juggle')));
   await expect(page.locator('#pomSummary .fx-juggle')).toHaveCount(3);
   await expect(page.locator('#pomSummary .fx-juggle')).toHaveCount(0);
+});
+
+test('the last two times tables offer 2 tricks and then just the last one, and a table done without a pick gets the planned trick', async ({ page }) => {
+  // 8 tables done but only 7 tricks taught, roll over missing: the round start teaches it
+  await page.evaluate(() => {
+    for (const k of PATH_NEW.slice(0, 8).flat()) state.mastery[FACT_INDEX[k]] = STICKER_AT;
+    state.tricks = '0123457';
+    saveState();
+  });
+  await page.locator('#pathBtn').click();
+  expect(await page.evaluate(() => state.tricks)).toBe('01234576');
+  const finish = s => page.evaluate(s => {
+    for (const k of PATH_NEW[s]) state.mastery[FACT_INDEX[k]] = STICKER_AT;
+    game.index = QUESTIONS_PER_ROUND;
+    nextQuestion();
+  }, s);
+  await finish(8);
+  await expect(page.locator('.trick-choice')).toHaveText(['🌀Chase her tail', '🦘Do a big jump']);
+  await page.locator('.trick-choice', { hasText: 'Do a big jump' }).click();
+  await expect(page.locator('#pomSummary')).toHaveClass(/trick-jump/);
+  await page.locator('#againBtn').click();
+  // The last table has one trick left, so she just learns it
+  await finish(9);
+  await expect(page.locator('#teachTrick')).toBeHidden();
+  await expect(page.locator('#newTrickText')).toHaveText('🎉 Ms. Menna learned to chase her tail! Tap her to see it again.');
+  await expect(page.locator('#divideInvite')).toBeVisible();
+  await expect(page.locator('#againBtn')).toBeVisible();
+  expect(await page.evaluate(() => state.tricks)).toBe('0123457698');
 });
 
 test('Ms. Menna reacts to learning moments with their own trick, and dances for a 3-star round', async ({ page }) => {
@@ -1032,7 +1074,7 @@ test('Ms. Menna reacts to learning moments with their own trick, and dances for 
   await expect(page.locator('#pomGame')).toHaveClass(/trick-flip/);
   await page.waitForTimeout(1900);
   // Waking a sleepy sticker: a spin until she learns to wave with ×10, then a wave
-  expect(await page.evaluate(() => [reactionTrick('woke').cls, (state.mastery.fill(STICKER_AT), reactionTrick('woke').cls)]))
+  expect(await page.evaluate(() => [reactionTrick('woke').cls, (state.mastery.fill(STICKER_AT), catchUpTricks(), reactionTrick('woke').cls)]))
     .toEqual(['trick-spin', 'trick-wave']);
   await page.evaluate(() => { state.mastery.fill(0); state.mastery[FACT_INDEX['3x4']] = STICKER_AT; });
   // A fact missed earlier in the round, then right: happy dance

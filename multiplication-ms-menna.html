@@ -1168,6 +1168,17 @@
   .new-trick[hidden] { display: none; }
   .new-trick p { margin: 0; text-align: left; }
   #pomSummary { cursor: pointer; }
+  #summaryScreen .btn[hidden] { display: none; }
+  .teach-trick { background: #FFF4D6; border: 3px solid #FFD166; border-radius: 22px; padding: 14px; margin: 0 0 14px; }
+  .teach-trick[hidden] { display: none; }
+  .teach-trick p { font-weight: 800; color: var(--dark-brown); margin-bottom: 10px; }
+  .trick-choices { display: flex; gap: 10px; justify-content: center; }
+  .trick-choice { flex: 1; max-width: 160px; min-height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; padding: 10px 6px; border: 3px solid #FFD166; border-radius: 18px; background: white; color: var(--dark-brown);
+    font-family: 'Baloo 2', cursive; font-weight: 800; font-size: clamp(0.95rem, 2.2vmin, 1.2rem); line-height: 1.15;
+    cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 0 rgba(0,0,0,0.12); transition: transform 0.15s; }
+  .trick-choice:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,0.12); }
+  .trick-choice span { font-size: clamp(2rem, 5vmin, 2.6rem); line-height: 1; }
 
   /* ===== POM'S CLOSET ===== */
   .closet-pom { width: clamp(150px, 26vmin, 220px); height: clamp(150px, 26vmin, 220px); margin: 4px auto 18px; }
@@ -1491,7 +1502,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v39 - Updated 2026-10-07 10:58 EDT</p>
+    <p class="version">v40 - Updated 2026-10-07 11:10 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1592,6 +1603,10 @@
     <!-- What she learned comes first, then the score and coins. -->
     <div class="new-stickers" id="newStickers"></div>
     <div class="new-stickers" id="pathUp"></div>
+    <div class="teach-trick" id="teachTrick" hidden>
+      <p>Pick a trick to teach Ms. Menna! 🐾</p>
+      <div class="trick-choices" id="trickChoices"></div>
+    </div>
     <div class="new-trick" id="newTrick">
       <div class="pom-container small" id="pomSummary" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
       <p id="newTrickText" hidden></p>
@@ -2145,6 +2160,7 @@ function defaultState() {
     divAsked: 0, // the day she last said "Not yet" to learning dividing
     divPics: 0, // new division questions left that show their picture right away
     rooms: [], // rooms she has opened, which stay open
+    tricks: '', // the tricks she has taught Ms. Menna, in the order she taught them (see TEACHABLE)
   };
 }
 
@@ -2330,6 +2346,7 @@ function parseSave(saved) {
       if (FURN[id] && (FURN[id].price === 0 || state.furniture.includes(id))) state.home[FURN[id].base] = id;
     }
   }
+  if (typeof saved.tricks === 'string' && /^[0-9a-j]*$/.test(saved.tricks)) state.tricks = [...new Set(saved.tricks)].join('');
   if (Array.isArray(saved.rooms)) state.rooms = [...new Set([...state.rooms, ...saved.rooms.filter(id => ROOM[id])])];
   if (ROOM[saved.room]) state.room = saved.room;
   if (saved.worn && typeof saved.worn === 'object') {
@@ -2408,6 +2425,7 @@ function mergeNewer(stored) {
   if (stored.missedDay > state.missedDay) [state.missedDay, state.missedKeys] = [stored.missedDay, stored.missedKeys];
   else if (stored.missedDay === state.missedDay) state.missedKeys = [...new Set([...stored.missedKeys, ...state.missedKeys])];
   state.rooms = [...new Set([...stored.rooms, ...state.rooms])];
+  state.tricks = [...new Set(stored.tricks + state.tricks)].join('');
   // Choices like the outfit, toys, furniture spots and the room go to this tab, the one saving now.
   // A payout row is lost only if the newest copy is the cookie without the list; paidCents is still right.
 }
@@ -2633,8 +2651,8 @@ const TRICKS = [
   { cls: 'trick-flip', say: 'Backflip! 🤸' },
   { cls: 'trick-dance', say: 'Happy dance! 💃' },
 ];
-// She learns one more trick for each times table the path finishes, in path order (×2 first), simple ones first.
-// Saves don't store them: she knows one for each table done, so older saves have theirs already.
+// She learns one more trick for each times table finished. The child picks it from the next 3 she doesn't know yet,
+// simple ones first, so the last two tables offer 2 and then just the final one.
 const LEARNED_TRICKS = [
   { cls: 'trick-sit', name: 'sit pretty', say: 'Sit pretty! 🌸' },
   { cls: 'trick-wave', name: 'wave hello', say: 'Wave hello! 👋', stars: ['👋'] },
@@ -2647,7 +2665,7 @@ const LEARNED_TRICKS = [
   { cls: 'trick-chase', name: 'chase her tail', say: 'Chase my tail! 🌀' },
   { cls: 'trick-jump', name: 'do a big jump', say: 'Big jump! 🦘' },
 ];
-// Then one for each division table, in the same order (÷2 first), flashier and ending with a double backflip.
+// Then one for each division table, picked the same way, flashier and ending with a double backflip.
 // fx are props that move on their own next to her: a hula hoop, a ball under her, juggling balls.
 const DIVIDE_TRICKS = [
   { cls: 'trick-hop', name: 'hop on one leg', say: 'Hop, hop, hop! 🦶' },
@@ -2662,12 +2680,31 @@ const DIVIDE_TRICKS = [
   { cls: 'trick-doubleflip', name: 'do a double backflip', say: 'Double backflip! 🤸', stars: ['🌟', '💥', '✨'] },
 ];
 const TRICK_CLASSES = [...TRICKS, ...LEARNED_TRICKS, ...DIVIDE_TRICKS].map(t => t.cls);
+// Saves store each taught trick as one character: its place in this list.
+const TEACHABLE = [...LEARNED_TRICKS, ...DIVIDE_TRICKS];
+const TRICK_CHOICES = 3;
+const trickCode = t => WEIGHT_CHARS[TEACHABLE.indexOf(t)];
+const trickEmoji = t => t.say.split(' ').at(-1);
+const unlearned = pool => pool.filter(t => !state.tricks.includes(trickCode(t)));
+const learnTrick = t => { state.tricks += trickCode(t); };
+// A finished table with no trick taught for it gets the next one in order: older saves, or a tab closed before picking.
+// Runs as a round starts, so the tables finished in that round are still the child's to pick for.
+function catchUpTricks() {
+  let changed = false;
+  for (const [pool, done] of [[LEARNED_TRICKS, pathStep()], [DIVIDE_TRICKS, divideStep()]]) {
+    while (pool.length - unlearned(pool).length < done) {
+      learnTrick(unlearned(pool)[0]);
+      changed = true;
+    }
+  }
+  if (changed) saveState();
+}
 // Learning moments have their own trick: a backflip for a new sticker, a wave for waking one, a happy dance for a fixed fact.
-// She learns to wave with ×10 (the second table), so until then she spins.
+// Until she is taught to wave, she spins.
 const REACTIONS = { sticker: 'trick-flip', woke: 'trick-wave', fixed: 'trick-dance' };
 const reactionTrick = moment => knownTricks().find(t => t.cls === REACTIONS[moment]) || TRICKS[0];
 const SURPRISE_TRICK = 0.25; // chance of a trick for a plain first-try answer
-const knownTricks = () => [...TRICKS, ...LEARNED_TRICKS.slice(0, pathStep()), ...DIVIDE_TRICKS.slice(0, divideStep())];
+const knownTricks = () => [...TRICKS, ...[...state.tricks].map(c => TEACHABLE[WEIGHT_CHARS.indexOf(c)]).filter(Boolean)];
 
 const TOY_CLASSES = ['ball', 'duck', 'rope', 'frisbee', 'bubbles', 'box'].map(id => 'play-' + id);
 
@@ -3392,6 +3429,7 @@ let carried = null; // retries the last round had no room for, asked first if sh
 
 // path is 'main' for Learn with Ms. Menna, or 'practice' for every fact up to max.
 function startRound(path, max = 0) {
+  catchUpTricks();
   if (path === 'practice') {
     state.lastMax = max;
     saveState();
@@ -3948,6 +3986,34 @@ function showGrid(countOut, free = false) {
 // ===== SUMMARY =====
 const andList = names => (names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names.at(-1) : names[0]);
 let summaryTricks = []; // tricks she learned in the round just finished
+let teachQueue = []; // the trick list to pick from for each table finished this round and not yet picked for
+let summaryInvite = false; // the summary asks about dividing, after any trick is picked
+
+// Shows the next trick choice. The last trick of a list has no choice, so she just learns it.
+// Returns true while a choice is showing. The child must pick one, so the way out waits until then.
+function offerTrick() {
+  while (teachQueue.length && unlearned(teachQueue[0]).length <= 1) {
+    const [last] = unlearned(teachQueue.shift());
+    if (last) {
+      learnTrick(last);
+      summaryTricks.push(last);
+    }
+  }
+  const choices = teachQueue.length ? unlearned(teachQueue[0]).slice(0, TRICK_CHOICES) : [];
+  $('teachTrick').hidden = !choices.length;
+  $('trickChoices').innerHTML = choices.map(t =>
+    `<button class="trick-choice" data-trick="${t.cls}"><span>${trickEmoji(t)}</span>${t.name[0].toUpperCase() + t.name.slice(1)}</button>`).join('');
+  $('againBtn').hidden = $('homeBtn').hidden = choices.length > 0;
+  $('divideInvite').hidden = choices.length > 0 || !summaryInvite;
+  return choices.length > 0;
+}
+
+function showLearned() {
+  $('newTrickText').hidden = !summaryTricks.length;
+  if (summaryTricks.length) {
+    $('newTrickText').textContent = `🎉 Ms. Menna learned to ${andList(summaryTricks.map(t => t.name))}! Tap her to see ${summaryTricks.length > 1 ? 'them' : 'it'} again.`;
+  }
+}
 
 function showSummary() {
   clearTimers();
@@ -3961,12 +4027,15 @@ function showSummary() {
     `<span class="${i <= stars ? '' : 'dim'}" style="animation-delay:${0.2 + i * 0.2}s">⭐</span>`).join('');
   // She woke the last sleepy sticker, so the review for today is done. More play is still fine.
   const allAwake = game.woken.length > 0 && sleepyCount() === 0;
-  const invite = game.path === 'main' && inviteDue();
-  $('divideInvite').hidden = !invite;
+  const invite = summaryInvite = game.path === 'main' && inviteDue();
   // She learns a trick for each times or division table finished this round, on the path or in practice.
-  summaryTricks = [...LEARNED_TRICKS.slice(game.step, pathStep()), ...DIVIDE_TRICKS.slice(game.divStep, divideStep())];
+  summaryTricks = [];
+  teachQueue = [...Array(Math.max(0, pathStep() - game.step)).fill(LEARNED_TRICKS), ...Array(Math.max(0, divideStep() - game.divStep)).fill(DIVIDE_TRICKS)];
+  const choosing = offerTrick();
   const newSticks = game.newStickers.length;
-  say('summaryBubble', invite
+  say('summaryBubble', choosing
+    ? 'You finished a table! Which trick should I learn? 🐾'
+    : invite
     ? 'You learned all your times tables! 🎉 Want to learn dividing next?'
     : summaryTricks.length
     ? `I learned to ${andList(summaryTricks.map(t => t.name))}! Watch! 🎉`
@@ -4005,9 +4074,9 @@ function showSummary() {
     game.fixed.length ? 'You fixed: ' + game.fixed.map(questionText).join(', ') : '',
   ].filter(Boolean).join('\n');
   // She celebrates every round: a new trick if she learned one, else a dance for 3 stars, a spin for 2 and a bounce for 1.
-  $('newTrickText').hidden = !summaryTricks.length;
+  // A picked trick she does as soon as it is picked.
+  showLearned();
   if (summaryTricks.length) {
-    $('newTrickText').textContent = `🎉 Ms. Menna learned to ${andList(summaryTricks.map(t => t.name))}! Tap her to see ${summaryTricks.length > 1 ? 'them' : 'it'} again.`;
     later(() => showTrick($('pomSummary'), summaryTricks.at(-1)), 900);
   } else if (stars > 1) {
     later(() => showTrick($('pomSummary'), TRICKS.find(t => t.cls === (stars === 3 ? 'trick-dance' : 'trick-spin'))), 900);
@@ -5032,6 +5101,20 @@ function init() {
   });
   // On the summary, tapping her shows the tricks she just learned again, or else a happy bounce.
   let summaryTap = 0;
+  // Picking a trick teaches it to her, and she does it right away.
+  $('trickChoices').addEventListener('click', e => {
+    const btn = e.target.closest('.trick-choice');
+    if (!btn) return;
+    const trick = TEACHABLE.find(t => t.cls === btn.dataset.trick);
+    teachQueue.shift();
+    learnTrick(trick);
+    summaryTricks.push(trick);
+    const more = offerTrick();
+    saveState();
+    showLearned();
+    showTrick($('pomSummary'), trick);
+    say('summaryBubble', `I learned to ${trick.name}! ${more ? 'Pick one more trick to teach me! 🐾' : 'Thank you! 🎉'}`);
+  });
   $('pomSummary').addEventListener('click', () => {
     if (summaryTricks.length) showTrick($('pomSummary'), summaryTricks[summaryTap++ % summaryTricks.length]);
     else animatePom($('pomSummary'), 'bounce');

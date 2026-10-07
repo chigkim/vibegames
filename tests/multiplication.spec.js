@@ -947,6 +947,74 @@ test('finishing a table on the path says what comes next', async ({ page }) => {
   expect(await page.evaluate(() => [game.path, game.step])).toEqual(['main', 1]);
 });
 
+test('finishing a table teaches Ms. Menna a trick for the summary, streaks and taps', async ({ page }) => {
+  // A fresh save knows only the first three tricks
+  expect(await page.evaluate(() => knownTricks().map(t => t.cls))).toEqual(['trick-spin', 'trick-flip', 'trick-dance']);
+  await giveStickers(page, [...tableKeys(2, 2, 9), '2x1']);
+  await page.locator('#pathBtn').click();
+  await page.evaluate(() => {
+    state.mastery[FACT_INDEX[factKey(2, 10)]] = STICKER_AT;
+    game.index = QUESTIONS_PER_ROUND;
+    nextQuestion();
+  });
+  await expect(page.locator('#newTrick')).toBeVisible();
+  await expect(page.locator('#newTrickText')).toHaveText('🎉 Ms. Menna learned to roll over! Tap her to see it again.');
+  await expect(page.locator('#summaryBubble')).toHaveText('I learned to roll over! Watch! 🎉');
+  await expect(page.locator('#pomSummary')).toHaveClass(/trick-roll/);
+  await expect(page.locator('#pomSummary')).not.toHaveClass(/trick-roll/);
+  await page.locator('#pomSummary').click();
+  await expect(page.locator('#pomSummary')).toHaveClass(/trick-roll/);
+
+  // Streaks: spin, flip, dance, then roll over
+  expect(await page.evaluate(() => [6, 7].map(n => doTrick(n).cls))).toEqual(['trick-roll', 'trick-spin']);
+
+  // Tapping her at home shows a trick she knows, a different one each time
+  await page.locator('#homeBtn').click();
+  const says = await page.evaluate(() => knownTricks().map(t => t.say));
+  let last = '';
+  for (let i = 0; i < 4; i++) {
+    await page.locator('#pomStart').click();
+    await expect(page.locator('#pomStart')).toHaveClass(/trick-/);
+    const said = await page.locator('#startBubble').textContent();
+    expect(says).toContain(said);
+    expect(said).not.toBe(last);
+    last = said;
+  }
+
+  // The next round finishes no table, so no trick
+  await page.locator('#pathBtn').click();
+  await page.evaluate(() => { game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
+  await expect(page.locator('#newTrick')).toBeHidden();
+});
+
+test('the summary shows learning first, and fixed facts are celebrated', async ({ page }) => {
+  await page.locator('#pathBtn').click();
+  await askFact(page, 3, 4);
+  await answer(page, false);
+  await page.waitForTimeout(800);
+  await answer(page, true); // right on a second try of the same question: not fixed yet
+  await expect(page.locator('#gameBubble')).not.toContainText('fixed');
+  await page.waitForTimeout(1900);
+  await askFact(page, 3, 4);
+  await answer(page, true);
+  await expect(page.locator('#gameBubble')).toHaveText('You fixed 3 × 4! 🌟');
+  await page.evaluate(() => { game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
+  await expect(page.locator('#newStickers')).toContainText('You fixed: 3 × 4');
+  // Learning lines come before the score and coins
+  expect(await page.evaluate(() => !!($('newStickers').compareDocumentPosition(document.querySelector('#summaryScreen .stat-row')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+});
+
+test('Ms. Menna says sleepy stickers are still hers, once a day', async ({ page }) => {
+  await setFact(page, '3x5', 3, 1);
+  await setFact(page, '3x6', 3, 1);
+  await page.reload();
+  await expect(page.locator('#startBubble')).toHaveText("2 stickers are sleepy 💤. They're still yours! Get them right to wake them up! 🐾");
+  await page.reload();
+  await expect(page.locator('#startBubble')).not.toContainText('sleepy');
+  await page.locator('#stickersBtn').click();
+  await expect(page.locator('.sticker-help')).toContainText('Sleepy stickers are still yours.');
+});
+
 test('division pays like its times fact, hints with the missing number, and shows the fact family', async ({ page }) => {
   await page.locator('#pathBtn').click();
   const askDivide = (a, b) => page.evaluate(([x, y]) => {

@@ -156,7 +156,7 @@
     box-shadow: 0 3px 0 #A994F5;
     pointer-events: none;
   }
-  #pomStart { margin-bottom: 16px; }
+  #pomStart { margin-bottom: 16px; cursor: pointer; }
   .pom-container.small .gem-badge { font-size: 0.8rem; padding: 0 7px; bottom: -10px; }
   .gem-badge.pulse { animation: bankPulse 0.5s cubic-bezier(0.34,1.56,0.64,1); }
   .gem-badge.drop { animation: bankDrop 0.45s ease; }
@@ -203,6 +203,68 @@
     45% { transform: translate(10px, -14px) rotate(12deg); }
     60% { transform: translate(0, 0) rotate(0); }
     80% { transform: translate(0, -26px) scale(1.15); }
+  }
+  /* Tricks she learns, one for each times table she finishes */
+  .pom-container.trick-roll { animation: pomRoll 1s ease-in-out; }
+  @keyframes pomRoll {
+    0% { transform: translate(0, 0) rotate(0); }
+    20% { transform: translate(-6px, 6px) scale(1.05, 0.9); }
+    65% { transform: translate(20px, -6px) rotate(360deg); }
+    100% { transform: translate(0, 0) rotate(360deg); }
+  }
+  .pom-container.trick-highfive { animation: pomHighFive 1s ease-in-out; }
+  @keyframes pomHighFive {
+    0%, 100% { transform: translate(0, 0) rotate(0); }
+    30%, 70% { transform: translate(6px, -10px) rotate(8deg); }
+    50% { transform: translate(8px, -12px) rotate(10deg) scale(1.06); }
+  }
+  .pom-container.trick-sit { animation: pomSit 1s ease-in-out; }
+  @keyframes pomSit {
+    0%, 100% { transform: translateY(0) scale(1, 1); }
+    25% { transform: translateY(6px) scale(1.05, 0.85); }
+    50%, 80% { transform: translateY(-14px) scale(0.95, 1.1); }
+  }
+  .pom-container.trick-playbow { animation: pomPlayBow 1s ease-in-out; }
+  @keyframes pomPlayBow {
+    0%, 100% { transform: translate(0, 0) rotate(0); }
+    30%, 75% { transform: translate(-4px, 6px) rotate(-14deg); }
+  }
+  .pom-container.trick-chase { animation: pomChase 1.1s linear; }
+  @keyframes pomChase {
+    0%, 100% { transform: translate(0, 0) scaleX(1); }
+    25% { transform: translate(14px, -6px) scaleX(-1); }
+    50% { transform: translate(0, -12px) scaleX(1); }
+    75% { transform: translate(-14px, -6px) scaleX(-1); }
+  }
+  .pom-container.trick-wave { animation: pomWave 1s ease-in-out; }
+  @keyframes pomWave {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    20%, 80% { transform: translateY(-6px) rotate(-5deg); }
+  }
+  .pom-container.trick-jump { animation: pomJump 1s ease-in-out; }
+  @keyframes pomJump {
+    0%, 100% { transform: translateY(0) scale(1, 1); }
+    20% { transform: translateY(6px) scale(1.1, 0.85); }
+    50% { transform: translateY(-60px) scale(0.95, 1.08); }
+    80% { transform: translateY(0) scale(1.1, 0.9); }
+  }
+  .pom-container.trick-sneeze { animation: pomSneeze 1s ease-in-out; }
+  @keyframes pomSneeze {
+    0%, 100% { transform: translate(0, 0) rotate(0) scale(1); }
+    40% { transform: translate(0, -4px) rotate(-8deg) scale(1.04); }
+    50% { transform: translate(4px, 2px) rotate(10deg) scale(0.95); }
+    62% { transform: translate(0, 0) rotate(-3deg) scale(1); }
+  }
+  .pom-container.trick-peek { animation: pomPeekaboo 1.1s ease-in-out; }
+  @keyframes pomPeekaboo {
+    0%, 100% { transform: translateY(0) scale(1); }
+    20%, 55% { transform: translateY(4px) scale(0.92); }
+    68% { transform: translateY(-10px) scale(1.12); }
+  }
+  .pom-container.trick-takebow { animation: pomTakeBow 1s ease-in-out; }
+  @keyframes pomTakeBow {
+    0%, 100% { transform: translateY(0) scale(1, 1); }
+    30%, 70% { transform: translateY(6px) scale(1, 0.94); }
   }
   .trick-star {
     position: fixed;
@@ -975,6 +1037,10 @@
   .sticker-grid .dots { font-size: 0.5em; color: var(--orange); letter-spacing: -1px; }
   .sticker-help { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin-bottom: 4px; }
   .new-stickers { font-weight: 800; color: var(--dark-brown); margin: -6px 0 14px; white-space: pre-line; }
+  .new-trick { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0 0 14px; font-weight: 800; color: var(--dark-brown); }
+  .new-trick[hidden] { display: none; }
+  .new-trick p { margin: 0; text-align: left; }
+  #pomSummary { cursor: pointer; }
 
   /* ===== POM'S CLOSET ===== */
   .closet-pom { width: clamp(150px, 26vmin, 220px); height: clamp(150px, 26vmin, 220px); margin: 4px auto 18px; }
@@ -1283,13 +1349,13 @@
 <div class="screen active" id="startScreen">
   <div class="card">
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
-    <div class="pom-container" id="pomStart"></div>
+    <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to see a trick"></div>
     <div class="shelves">
       <div class="toy-shelf" id="toyShelf" hidden></div>
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v34 - Updated 2026-10-06 20:55 EDT</p>
+    <p class="version">v35 - Updated 2026-10-07 02:50 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1387,14 +1453,19 @@
     <h1 id="summaryTitle">Great job!</h1>
     <div class="final-stars" id="finalStars"></div>
     <div class="speech-bubble below" id="summaryBubble"></div>
+    <!-- What she learned comes first, then the score and coins. -->
+    <div class="new-stickers" id="newStickers"></div>
+    <div class="new-stickers" id="pathUp"></div>
+    <div class="new-trick" id="newTrick" hidden>
+      <div class="pom-container small" id="pomSummary" role="button" aria-label="Ms. Menna. Tap her to see her new trick"></div>
+      <p id="newTrickText"></p>
+    </div>
     <div class="stat-row">
       <div class="stat"><b id="statFirstTry">0 / 10</b>right on first try</div>
       <div class="stat"><b id="statEarned">+0¢</b>this round</div>
       <div class="stat"><b id="statBank">$0.00</b>piggy bank</div>
       <div class="stat"><b id="statGems">+0 💎</b>gems for Ms. Menna</div>
     </div>
-    <div class="new-stickers" id="newStickers"></div>
-    <div class="new-stickers" id="pathUp"></div>
     <div class="divide-invite" id="divideInvite" hidden>
       <p>Want to learn dividing next? ➗</p>
       <div class="btn-row">
@@ -1434,7 +1505,7 @@
     <p class="sticker-count" id="stickerCount"></p>
     <div class="sticker-grid" id="stickerGrid"></div>
     <div class="sticker-grid" id="stickerGridMore" hidden></div>
-    <p class="sticker-help">Get a fact right on the first try on 3 different days to earn its sticker.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 each have a sticker!</span><br>💤 Sleepy stickers want a visit. Get one right to wake it up!</p>
+    <p class="sticker-help">Get a fact right on the first try on 3 different days to earn its sticker.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 each have a sticker!</span><br>💤 Sleepy stickers are still yours. They just want a visit. Get one right to wake it up!</p>
     <button class="btn btn-secondary" id="stickerBackBtn">← Back</button>
   </div>
 </div>
@@ -2422,10 +2493,26 @@ function showScreen(id) {
 }
 
 const TRICKS = [
-  { cls: 'trick-spin', say: n => `${n} in a row! Spin! 🌀` },
-  { cls: 'trick-flip', say: n => `${n} in a row! Backflip! 🤸` },
-  { cls: 'trick-dance', say: n => `${n} in a row! Happy dance! 💃` },
+  { cls: 'trick-spin', say: 'Spin! 🌀' },
+  { cls: 'trick-flip', say: 'Backflip! 🤸' },
+  { cls: 'trick-dance', say: 'Happy dance! 💃' },
 ];
+// She learns one more trick for each times table the path finishes, in path order (×2 first).
+// Saves don't store them: she knows one for each table done, so older saves have theirs already.
+const LEARNED_TRICKS = [
+  { cls: 'trick-roll', name: 'roll over', say: 'Roll over! 🔄' },
+  { cls: 'trick-highfive', name: 'give a high five', say: 'High five! ✋', stars: ['✋'] },
+  { cls: 'trick-sit', name: 'sit pretty', say: 'Sit pretty! 🌸' },
+  { cls: 'trick-playbow', name: 'do a play bow', say: 'Play bow! 🐾' },
+  { cls: 'trick-chase', name: 'chase her tail', say: 'Chase my tail! 🌀' },
+  { cls: 'trick-wave', name: 'wave hello', say: 'Wave hello! 👋', stars: ['👋'] },
+  { cls: 'trick-jump', name: 'do a big jump', say: 'Big jump! 🦘' },
+  { cls: 'trick-sneeze', name: 'do a silly sneeze', say: 'Ah-choo! 🤧', stars: ['💨'] },
+  { cls: 'trick-peek', name: 'play peekaboo', say: 'Peekaboo! 🙈' },
+  { cls: 'trick-takebow', name: 'take a bow', say: 'Take a bow! 🎩', stars: ['👏'] },
+];
+const TRICK_CLASSES = [...TRICKS, ...LEARNED_TRICKS].map(t => t.cls);
+const knownTricks = () => [...TRICKS, ...LEARNED_TRICKS.slice(0, pathStep())];
 
 const TOY_CLASSES = ['ball', 'duck', 'rope', 'frisbee', 'bubbles', 'box'].map(id => 'play-' + id);
 
@@ -2435,7 +2522,7 @@ function playToy(el, id) {
   const kind = toy.base;
   clearTimeout(el.toyTimer);
   el.querySelectorAll('.toy-fx, .treat-fx, .crumb-fx, .heart-fx').forEach(t => t.remove());
-  el.classList.remove('bounce', 'shake', 'surprised', 'eating', ...TRICKS.map(t => t.cls), ...TOY_CLASSES);
+  el.classList.remove('bounce', 'shake', 'surprised', 'eating', ...TRICK_CLASSES, ...TOY_CLASSES);
   void el.offsetWidth;
   el.classList.add('play-' + kind);
   pomMove(el, 'play-' + kind);
@@ -2463,7 +2550,7 @@ function feedPom(el, id) {
   const treat = TREAT[id];
   clearTimeout(el.toyTimer);
   el.querySelectorAll('.toy-fx, .treat-fx, .crumb-fx, .heart-fx').forEach(t => t.remove());
-  el.classList.remove('bounce', 'shake', 'surprised', 'eating', ...TRICKS.map(t => t.cls), ...TOY_CLASSES);
+  el.classList.remove('bounce', 'shake', 'surprised', 'eating', ...TRICK_CLASSES, ...TOY_CLASSES);
   void el.offsetWidth;
   el.classList.add('eating');
   pomMove(el, 'eating');
@@ -2488,28 +2575,36 @@ function feedPom(el, id) {
   }, 3000);
 }
 
-// Ms. Menna does a trick for 3 or more first-try answers in a row: spin, backflip, dance,
+// Ms. Menna does a trick for 3 or more first-try answers in a row: spin, backflip, dance and the tricks she has learned,
 // then plays with each toy she owns, then repeats.
 function doTrick(streak) {
+  const tricks = knownTricks();
   const toys = ownedToys();
-  const turn = (streak - 3) % (TRICKS.length + toys.length);
-  if (turn >= TRICKS.length) {
-    const toy = toys[turn - TRICKS.length];
+  const turn = (streak - 3) % (tricks.length + toys.length);
+  if (turn >= tricks.length) {
+    const toy = toys[turn - tricks.length];
     playToy($('pomGame'), toy.id);
     return { cls: 'play-' + toy.base, say: n => `${n} in a row! ${toy.say}` };
   }
-  const trick = TRICKS[turn];
-  const el = $('pomGame');
-  el.classList.remove('bounce', 'shake', 'surprised', ...TRICKS.map(t => t.cls), ...TOY_CLASSES);
+  const trick = tricks[turn];
+  showTrick($('pomGame'), trick);
+  return { cls: trick.cls, say: n => `${n} in a row! ${trick.say}` };
+}
+
+// Her picture does the trick, and stars fly out of her.
+function showTrick(el, trick) {
+  clearTimeout(el.toyTimer);
+  el.querySelectorAll('.toy-fx, .treat-fx, .crumb-fx, .heart-fx').forEach(t => t.remove());
+  el.classList.remove('bounce', 'shake', 'surprised', 'eating', ...TRICK_CLASSES, ...TOY_CLASSES);
   void el.offsetWidth;
   el.classList.add(trick.cls);
   pomMove(el, trick.cls);
-  setTimeout(() => el.classList.remove(trick.cls), 1150);
+  el.toyTimer = setTimeout(() => el.classList.remove(trick.cls), 1150);
   const r = el.getBoundingClientRect();
   for (let i = 0; i < 6; i++) {
     const star = document.createElement('span');
     star.className = 'trick-star';
-    star.textContent = pick(['⭐', '✨', '🌟']);
+    star.textContent = pick(trick.stars || ['⭐', '✨', '🌟']);
     const ang = (i / 6) * Math.PI * 2;
     star.style.left = (r.left + r.width / 2) + 'px';
     star.style.top = (r.top + r.height / 2) + 'px';
@@ -2520,7 +2615,6 @@ function doTrick(streak) {
     setTimeout(() => star.remove(), 1400);
   }
   sfx.trick();
-  return trick;
 }
 
 function animatePom(el, cls) {
@@ -2587,6 +2681,16 @@ const POM_MOVES = {
   'trick-spin': kick,
   'trick-flip': (tl, b) => { tuck(tl, b, 1, 1, 0.1); ears(tl, b, -15, -4, 0.2, 0.2); ears(tl, b, 0, 0, 0.3, 0.7); shutEyes(tl, b, 0.2, 0.75, 0.3); swing(tl, b.tail, 20, 0.3, 3); },
   'trick-dance': (tl, b) => dance(tl, b, 1),
+  'trick-roll': (tl, b) => { tuck(tl, b, 0.8, 1, 0.1); shutEyes(tl, b, 0.2, 0.7, 0.3); ears(tl, b, 20, 2, 0.2, 0.15); ears(tl, b, 0, 0, 0.3, 0.7); swing(tl, b.tail, 20, 0.25, 4); },
+  'trick-highfive': (tl, b) => { tl.to(b.legR, { rotation: -70, duration: 0.25, ease: 'back.out(2)' }, 0.1).to(b.legR, { rotation: 0, duration: 0.25 }, 0.7); ears(tl, b, -10, -3, 0.2, 0.1); ears(tl, b, 0, 0, 0.3, 0.7); swing(tl, b.tail, 22, 0.25, 4); },
+  'trick-sit': (tl, b) => { tl.to(b.legL, { rotation: 40, duration: 0.25 }, 0.3).to(b.legR, { rotation: -40, duration: 0.25 }, 0.3).to([b.legL, b.legR], { rotation: 0, duration: 0.2 }, 0.8); ears(tl, b, -12, -4, 0.2, 0.3); ears(tl, b, 0, 0, 0.2, 0.8); swing(tl, b.tail, 15, 0.5, 2); },
+  'trick-playbow': (tl, b) => { tl.to(b.head, { y: 4, rotation: -6, duration: 0.25 }, 0.05).to(b.head, { y: 0, rotation: 0, duration: 0.25 }, 0.75); ears(tl, b, -10, -2, 0.2, 0.1); ears(tl, b, 0, 0, 0.25, 0.75); swing(tl, b.tail, 30, 0.2, 5); },
+  'trick-chase': (tl, b) => { swing(tl, b.tail, 35, 0.275, 4); ears(tl, b, 15, 2, 0.2); ears(tl, b, 0, 0, 0.3, 0.8); swing(tl, b.head, 6, 0.55, 2); },
+  'trick-wave': (tl, b) => { tl.to(b.legR, { rotation: -60, duration: 0.2 }, 0.05).to(b.legR, { rotation: -95, duration: 0.15, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 0.25).to(b.legR, { rotation: 0, duration: 0.2 }, 0.8); tl.to(b.head, { rotation: 6, duration: 0.2 }, 0.1).to(b.head, { rotation: 0, duration: 0.2 }, 0.8); swing(tl, b.tail, 18, 0.33, 3); },
+  'trick-jump': (tl, b) => { tuck(tl, b, 0.6, 1, 0.2); ears(tl, b, -18, -5, 0.2, 0.3); ears(tl, b, 0, 0, 0.3, 0.7); swing(tl, b.tail, 22, 0.25, 4); },
+  'trick-sneeze': (tl, b) => { tl.to(b.head, { rotation: -10, y: -2, duration: 0.3 }, 0.1).to(b.head, { rotation: 12, y: 2, duration: 0.08 }, 0.45).to(b.head, { rotation: 0, y: 0, duration: 0.3 }, 0.6); shutEyes(tl, b, 0.3, 0.7); ears(tl, b, 20, 0, 0.08, 0.45); ears(tl, b, 0, 0, 0.3, 0.6); },
+  'trick-peek': (tl, b) => { tl.to(b.legL, { rotation: 50, duration: 0.2 }, 0.15).to(b.legR, { rotation: -50, duration: 0.2 }, 0.15).to([b.legL, b.legR], { rotation: 0, duration: 0.15 }, 0.6); shutEyes(tl, b, 0.15, 0.62); ears(tl, b, 25, 3, 0.2, 0.15); ears(tl, b, -10, -3, 0.15, 0.62); ears(tl, b, 0, 0, 0.3, 0.8); swing(tl, b.tail, 25, 0.2, 2, 0.65); },
+  'trick-takebow': (tl, b) => { tl.to(b.head, { rotation: 18, y: 6, duration: 0.3 }, 0.1).to(b.head, { rotation: 0, y: 0, duration: 0.3 }, 0.7); shutEyes(tl, b, 0.2, 0.7, 0.3); ears(tl, b, 15, 3, 0.3, 0.1); ears(tl, b, 0, 0, 0.3, 0.7); },
   'play-ball': (tl, b) => { swing(tl, b.legL, 22, 0.3, 4); swing(tl, b.legR, -22, 0.3, 4); ears(tl, b, 15, 2, 0.2); ears(tl, b, 0, 0, 0.3, 1); swing(tl, b.tail, 20, 0.3, 4); },
   'play-duck': (tl, b) => { tuck(tl, b, 0.6, 2); swing(tl, b.earL, 10, 0.6, 2); swing(tl, b.earR, -10, 0.6, 2); swing(tl, b.tail, 18, 0.3, 4); },
   'play-rope': (tl, b) => { tl.to(b.head, { rotation: -10, x: -3, duration: 0.32, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 0); tl.to([b.legL, b.legR], { rotation: 15, duration: 0.2 }, 0).to([b.legL, b.legR], { rotation: 0, duration: 0.2 }, 1.1); swing(tl, b.tail, 15, 0.32, 4); },
@@ -2869,8 +2973,11 @@ const moreToGet = divide => {
   return left ? ` ${left} more ${left === 1 ? 'sticker' : 'stickers'} to collect!` : '';
 };
 
+// The facts on the path: times facts up to 10, and division when it is on.
+const shownKeys = () => MAIN_KEYS.filter(k => state.divOn || !k.startsWith('d'));
+
 function renderPath() {
-  const shown = MAIN_KEYS.filter(k => state.divOn || !k.startsWith('d'));
+  const shown = shownKeys();
   const sleepy = sleepyCount(shown);
   const nap = sleepy ? ` · ${sleepy} sleepy 💤` : '';
   const step = pathStep();
@@ -3073,6 +3180,7 @@ function startRound(path, max = 0) {
       ? carried.retries.filter(r => !r.div || state.divOn).map(r => ({ ...r, at: 0 })) : [],
     newStickers: [],
     woken: [],
+    fixed: [], // facts missed earlier in the round, then right on a later try
     newAt: path === 'practice' ? [] : guided ? GUIDED_TIMES_NEW_AT : easy ? PATH_NEW_AT_EASY
       : state.fastPath ? PATH_NEW_AT_FAST : PATH_NEW_AT,
     divNewAt: path === 'practice' ? [] : guided ? (easy ? GUIDED_NEW_AT_EASY : GUIDED_NEW_AT) : [divide.learn],
@@ -3264,6 +3372,7 @@ function onCorrect(answer) {
   const fact = { a: game.a, b: game.b, div: game.div };
   let newSticker = false;
   let woke = false;
+  let fixed = false; // she missed it earlier this round and got it this time
   let tomorrow = false; // it had its dot today, or a miss, so the next dot waits for another day
   if (game.attempts === 0) {
     recordTry(true);
@@ -3274,7 +3383,8 @@ function onCorrect(answer) {
     const day = today();
     // A fact missed earlier this round was just shown, so getting it now earns no dot and wakes nothing.
     if (game.missed.some(m => keyOf(m) === key)) {
-      // practice only
+      fixed = true;
+      if (!game.fixed.some(f => keyOf(f) === key)) game.fixed.push(fact);
     } else if (state.mastery[i] < STICKER_AT) {
       if (state.days[i] === day) tomorrow = true;
       else {
@@ -3337,12 +3447,14 @@ function onCorrect(answer) {
     ? trick.say(game.streak)
     : woke
     ? pick(['Wake up, sticker! ☀️', 'Good morning, sticker! ⭐'])
+    : fixed
+    ? `You fixed ${questionText(fact)}! 🌟`
     : tomorrow
     ? state.mastery[FACT_INDEX[key]] === STICKER_AT - 1
       ? 'Two dots! Get it right tomorrow for the sticker! 🌙'
       : 'One dot a day! Get it right tomorrow for the next one! 🌙'
     : game.attempts === 0
-    ? pick(['Pawsome! 🐾', 'Woof woof! Correct!', 'You got it! ⭐', 'Super smart!', `Yay! +${cents}¢ for you!`, 'Wag wag! That\'s right!'])
+    ? pick(['Pawsome! 🐾', 'Woof woof! Correct!', 'You got it! ⭐', `You remembered ${questionText(fact)}!`, 'You knew that one right away!', 'Wag wag! That\'s right!'])
     : pick(['You figured it out! 🐾', 'Yes! You kept trying!', 'That\'s it! 🐾']));
 
   game.index++;
@@ -3588,6 +3700,9 @@ function showGrid(countOut, free = false) {
 }
 
 // ===== SUMMARY =====
+const andList = names => (names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names.at(-1) : names[0]);
+let summaryTricks = []; // tricks she learned in the round just finished
+
 function showSummary() {
   clearTimers();
   const { firstTry, roundCents, missed } = game;
@@ -3602,12 +3717,17 @@ function showSummary() {
   const allAwake = game.woken.length > 0 && sleepyCount() === 0;
   const invite = game.path === 'main' && inviteDue();
   $('divideInvite').hidden = !invite;
+  // She learns a trick for each times table finished this round, on the path or in practice.
+  summaryTricks = LEARNED_TRICKS.slice(game.step, pathStep());
+  const newSticks = game.newStickers.length;
   say('summaryBubble', invite
     ? 'You learned all your times tables! 🎉 Want to learn dividing next?'
+    : summaryTricks.length
+    ? `I learned to ${andList(summaryTricks.map(t => t.name))}! Watch! 🎉`
     : allAwake
     ? 'You woke up every sleepy sticker! Ready for another round? 🐾'
     : stars === 3
-    ? 'You\'re a superstar! 🐾'
+    ? (newSticks ? `${newSticks} new ${newSticks === 1 ? 'sticker' : 'stickers'}! Your practice is working! 🐾` : 'You remembered so many facts! 🐾')
     : stars === 2
       ? 'Great job! 🐾'
       : 'Nice try! Keep going! 💪',
@@ -3636,16 +3756,19 @@ function showSummary() {
   $('newStickers').textContent = [
     game.newStickers.length ? 'New stickers: ' + list(game.newStickers) : '',
     game.woken.length ? 'Woke up: ' + list(game.woken) : '',
+    game.fixed.length ? 'You fixed: ' + game.fixed.map(questionText).join(', ') : '',
   ].filter(Boolean).join('\n');
+  $('newTrick').hidden = !summaryTricks.length;
+  if (summaryTricks.length) {
+    $('newTrickText').textContent = `🎉 Ms. Menna learned to ${andList(summaryTricks.map(t => t.name))}! Tap her to see ${summaryTricks.length > 1 ? 'them' : 'it'} again.`;
+    later(() => showTrick($('pomSummary'), summaryTricks.at(-1)), 900);
+  }
   const step = pathStep();
   const divStep = divideStep();
   const times = game.path === 'main' && step > game.step;
   const divide = game.guided && divStep > game.divStep;
   // Every table passed this round, since one round can finish more than one: "×9 and ×7".
-  const learned = (from, to, sign) => {
-    const names = PATH.slice(from, to).map((_, s) => pathName(from + s, sign));
-    return names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names.at(-1) : names[0];
-  };
+  const learned = (from, to, sign) => andList(PATH.slice(from, to).map((_, s) => pathName(from + s, sign)));
   $('pathUp').textContent = times
     ? (step === PATH.length
       ? `🐾 You learned ${learned(game.step, step)}! That's all the times tables! 🏆${moreToGet(false)}`
@@ -3683,11 +3806,25 @@ function goHome() {
   renderPath();
   renderMedals();
   renderPeek();
-  say('startBubble', pick([
+  if (!sleepyHello()) say('startBubble', pick([
     'Woof! Let\'s practice!',
     'Welcome back! 🐾',
   ]));
   showScreen('startScreen');
+}
+
+// The first time she sees sleepy stickers on a day, Ms. Menna says they are still hers. Returns whether she said it.
+function sleepyHello() {
+  const sleepy = sleepyCount(shownKeys());
+  if (!sleepy) return false;
+  try {
+    if (localStorage.getItem(STORE_KEY + '_sleepyDay') === String(today())) return false;
+    localStorage.setItem(STORE_KEY + '_sleepyDay', String(today()));
+  } catch { return false; }
+  say('startBubble', sleepy === 1
+    ? '1 sticker is sleepy 💤. It\'s still yours! Get it right to wake it up! 🐾'
+    : `${sleepy} stickers are sleepy 💤. They're still yours! Get them right to wake them up! 🐾`);
+  return true;
 }
 
 // ===== STICKER CHART =====
@@ -3854,6 +3991,7 @@ function dressAllPoms() {
   const outfit = tryingOn && ITEMS[tryingOn].slot !== 'toy' ? { ...state.worn, [ITEMS[tryingOn].slot]: tryingOn } : state.worn;
   dressPom($('pomStart'), state.worn);
   dressPom($('pomGame'), state.worn);
+  dressPom($('pomSummary'), state.worn);
   dressPom($('pomCloset'), outfit);
   // The walkers leave the page while their room is locked, so use their own elements.
   dressPom(houseWalker.pom, state.worn);
@@ -4509,7 +4647,7 @@ function init() {
   peekWalker = makeWalker('pomPeek');
   $('houseRoom').append(houseWalker.el); // inside their rooms from the start, so no stray Pom shows on the start screen
   $('housePeek').append(peekWalker.el);
-  document.querySelectorAll('#pomStart, #pomGame, #pomCloset, #pomHouse, #pomPeek').forEach(el => {
+  document.querySelectorAll('#pomStart, #pomGame, #pomCloset, #pomHouse, #pomPeek, #pomSummary').forEach(el => {
     el.appendChild($('pomTemplate').content.cloneNode(true));
     el.querySelector('svg').insertAdjacentHTML('afterbegin', '<defs>' + ownPaint(PAINT_DEFS.replace(/id="(rainbow|glitter)"/g, 'id="$1-' + el.id + '"'), el.id) + '</defs>');
     const badge = document.createElement('span');
@@ -4568,6 +4706,7 @@ function init() {
   document.addEventListener('pointerdown', () => {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   }, { once: true });
+  sleepyHello();
   showHomeScreenTip();
 
   function reloadState(extra) {
@@ -4633,6 +4772,20 @@ function init() {
     treatPick = null;
     sfx.tap(CLOSET_SLOTS.findIndex(s => s.id === closetTab));
     renderCloset();
+  });
+  // Tapping her on the home screen shows one of her tricks, a different one each time.
+  let lastTap = null;
+  $('pomStart').addEventListener('click', () => {
+    const tricks = knownTricks().filter(t => t !== lastTap);
+    lastTap = pick(tricks);
+    showTrick($('pomStart'), lastTap);
+    say('startBubble', lastTap.say);
+  });
+  // On the summary, tapping her shows the tricks she just learned again.
+  let summaryTap = 0;
+  $('pomSummary').addEventListener('click', () => {
+    if (!summaryTricks.length) return;
+    showTrick($('pomSummary'), summaryTricks[summaryTap++ % summaryTricks.length]);
   });
   $('toyShelf').addEventListener('click', e => {
     const btn = e.target.closest('.toy-btn');

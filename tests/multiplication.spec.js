@@ -262,6 +262,33 @@ test('Ms. Menna does a trick for 3 right in a row', async ({ page }) => {
   await expect(page.locator('#gameBubble')).toContainText('3 in a row');
 });
 
+test('her body parts settle after every move, even one cut short, and wag only on the showing screen', async ({ page }) => {
+  test.setTimeout(60000);
+  const left = await page.evaluate(async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const el = $('pomStart');
+    el.blink.kill();
+    const b = pomBody(el);
+    const out = [];
+    // Each move is cut short by itself, then plays to the end.
+    for (const n of Object.keys(POM_MOVES).filter(n => n !== 'walking')) {
+      pomMove(el, n); await sleep(150); pomMove(el, n);
+      await sleep(el.move.duration() * 1000 + 400);
+      for (const [part, node] of Object.entries(b)) {
+        if (part === 'tail') continue;
+        const off = ['rotation', 'x', 'y'].map(p => gsap.getProperty(node, p)).concat(gsap.getProperty(node, 'scaleY') - 1);
+        if (off.some(v => Math.abs(v) > 0.01)) out.push(`${n}: ${part}`);
+      }
+    }
+    showScreen('closetScreen');
+    if (!el.idle.paused()) out.push('start screen still wags while hidden');
+    showScreen('startScreen');
+    if (el.idle.paused()) out.push('start screen does not wag again');
+    return out;
+  });
+  expect(left).toEqual([]);
+});
+
 test('the sticker chart has times and divide pages, each with a 0–10 and an 11–20 view', async ({ page }) => {
   await page.evaluate(() => {
     for (const k of ['3x7', '4x17', '17x4', '0x0', 'd7x8', 'd2x2', 'd3x15']) state.mastery[FACT_INDEX[k]] = 3;

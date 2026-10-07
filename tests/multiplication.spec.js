@@ -263,9 +263,11 @@ test('Ms. Menna does a trick for 3 right in a row', async ({ page }) => {
 });
 
 test('her body parts settle after every move, even one cut short, and wag only on the showing screen', async ({ page }) => {
-  test.setTimeout(60000);
   const left = await page.evaluate(async () => {
-    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    // Her moves play 8 times faster here, and the waits shrink to match.
+    const fast = 8;
+    gsap.globalTimeline.timeScale(fast);
+    const sleep = ms => new Promise(r => setTimeout(r, ms / fast));
     const el = $('pomStart');
     el.blink.kill();
     const b = pomBody(el);
@@ -1524,6 +1526,7 @@ test('Learn with Ms. Menna ends at ×10, and practice visits sleepy bigger stick
 });
 
 test('after the times tables, Ms. Menna invites her to divide, and asks again 3 days after "Not yet"', async ({ page }) => {
+  test.setTimeout(30000); // takes about 15 seconds on its own
   await learnAllTimes(page);
   // Not after practice, only after the path
   await page.evaluate(() => startRound('practice', 5));

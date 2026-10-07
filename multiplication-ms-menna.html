@@ -180,11 +180,12 @@
   }
 
   /* Tricks for answers right in a row */
-  .pom-container.trick-spin > svg { animation: pomSpin 1s cubic-bezier(0.45,0,0.3,1); }
+  .pom-container.trick-spin > svg { animation: pomSpin 1s ease-in-out; }
+  /* Spin rises a little and turns once at one height, with no crouch, so it doesn't look like a small backflip. */
   @keyframes pomSpin {
     0% { transform: translateY(0) rotate(0); }
-    30% { transform: translateY(-22px) rotate(0); }
-    70% { transform: translateY(-22px) rotate(360deg); }
+    20% { transform: translateY(-10px) rotate(0); }
+    80% { transform: translateY(-10px) rotate(360deg); }
     100% { transform: translateY(0) rotate(360deg); }
   }
   .pom-container.trick-flip > svg { animation: pomFlip 1s cubic-bezier(0.45,0,0.3,1); }
@@ -309,16 +310,14 @@
     37.5%, 87.5% { transform: translate(calc(-50% - 12px * var(--s)), -50%) rotate(-8deg); }
   }
   .pom-container.trick-moonwalk > svg { animation: pomMoonwalk 1.1s linear; }
+  /* Moonwalk slides backward without turning round, one foot planted at a time, holds a pose, and glides back. */
   @keyframes pomMoonwalk {
-    0% { transform: translate(0, 0) scaleX(1); }
-    15% { transform: translate(-11px, -3px) scaleX(1); }
-    30% { transform: translate(-22px, 0) scaleX(1); }
-    45% { transform: translate(-33px, -3px) scaleX(1); }
-    50% { transform: translate(-34px, 0) scaleX(-1); }
-    65% { transform: translate(-22px, -3px) scaleX(-1); }
-    80% { transform: translate(-11px, 0) scaleX(-1); }
-    97% { transform: translate(0, -2px) scaleX(-1); }
-    100% { transform: translate(0, 0) scaleX(1); }
+    0%, 100% { transform: translate(0, 0) rotate(0); }
+    19% { transform: translate(-9px, -3px) rotate(0); }
+    38% { transform: translate(-17px, 0) rotate(0); }
+    56% { transform: translate(-26px, -3px) rotate(0); }
+    75% { transform: translate(-34px, 0) rotate(0); }
+    80%, 85% { transform: translate(-34px, -2px) rotate(-6deg); }
   }
   .pom-container.trick-balance > svg { animation: pomBalance 1.1s ease-in-out; }
   @keyframes pomBalance {
@@ -361,12 +360,21 @@
   }
   @keyframes fxMat { 0%, 100% { opacity: 0; } 15%, 88% { opacity: 1; } }
   .pom-container.trick-breakdance > svg { animation: pomBreakdance 1.1s cubic-bezier(0.45,0,0.3,1); }
+  /* Breakdance drops into a freeze on her side, turns twice on the floor, and springs up. No end-over-end roll. */
   @keyframes pomBreakdance {
-    0% { transform: translateY(0) rotate(0) scale(1, 1); }
-    15% { transform: translateY(10px) rotate(0) scale(1.15, 0.8); }
-    75% { transform: translateY(10px) rotate(720deg) scale(1.15, 0.8); }
-    88% { transform: translateY(-14px) rotate(720deg) scale(0.95, 1.1); }
-    100% { transform: translateY(0) rotate(720deg) scale(1, 1); }
+    0%, 100% { transform: translateY(0) rotate(0) scale(1, 1); }
+    10% { transform: translateY(10px) rotate(0) scale(1.15, 0.8); }
+    18%, 28% { transform: translateY(14px) rotate(-80deg) scale(1, 1); }
+    34% { transform: translateY(10px) rotate(0) scale(1.15, 0.8); }
+    40% { transform: translateY(10px) rotate(0) scale(0.3, 0.8); }
+    46% { transform: translateY(10px) rotate(0) scale(-1.15, 0.8); }
+    52% { transform: translateY(10px) rotate(0) scale(-0.3, 0.8); }
+    58% { transform: translateY(10px) rotate(0) scale(1.15, 0.8); }
+    64% { transform: translateY(10px) rotate(0) scale(0.3, 0.8); }
+    70% { transform: translateY(10px) rotate(0) scale(-1.15, 0.8); }
+    76% { transform: translateY(10px) rotate(0) scale(-0.3, 0.8); }
+    82% { transform: translateY(10px) rotate(0) scale(1.15, 0.8); }
+    90% { transform: translateY(-14px) rotate(0) scale(0.95, 1.1); }
   }
   .pom-container.trick-juggle > svg { animation: pomJuggle 1.1s ease-in-out; }
   @keyframes pomJuggle {
@@ -386,11 +394,16 @@
     75% { opacity: 1; transform: translate(-50%, calc(-50% - 58px * var(--s))); }
   }
   .pom-container.trick-doubleflip > svg { animation: pomDoubleFlip 1.1s cubic-bezier(0.45,0,0.3,1); }
+  /* Double backflip turns at an even pace so both turns show, and lands at 90%. */
+  .pom-container.trick-doubleflip > svg { animation-timing-function: linear; }
   @keyframes pomDoubleFlip {
-    0% { transform: translateY(0) rotate(0) scale(1, 1); }
-    15% { transform: translateY(6px) rotate(0) scale(1.12, 0.82); }
-    60% { transform: translateY(-64px) rotate(-720deg) scale(1, 1); }
-    85% { transform: translateY(0) rotate(-720deg) scale(1.12, 0.88); }
+    0% { transform: translateY(0) rotate(0) scale(1, 1); animation-timing-function: ease-in-out; }
+    15% { transform: translateY(6px) rotate(0) scale(1.12, 0.82); animation-timing-function: ease-out; }
+    35% { transform: translateY(-48px) rotate(-180deg) scale(1, 1); }
+    50% { transform: translateY(-64px) rotate(-360deg); }
+    65% { transform: translateY(-48px) rotate(-540deg); }
+    78% { transform: translateY(-20px) rotate(-720deg); animation-timing-function: ease-in; }
+    90% { transform: translateY(0) rotate(-720deg) scale(1.12, 0.88); animation-timing-function: ease-out; }
     100% { transform: translateY(0) rotate(-720deg) scale(1, 1); }
   }
   .trick-star {
@@ -1333,7 +1346,9 @@
   .pom-container.act-nap > svg { animation: pomNap 2.2s ease-in-out; transform-origin: 50% 95%; }
   @keyframes pomNap { 15%, 85% { transform: rotate(-80deg) translate(-10%, 8%) scale(0.95, 0.85); } }
   .pom-container.act-hop > svg { animation: pomHop 0.5s ease-in-out 3; }
-  .pom-container.act-spin > svg { animation: pomSpin 1s cubic-bezier(0.45,0,0.3,1); }
+  /* The House spin turns round on the spot, feet on the floor, where the Spin trick goes up and over. */
+  .pom-container.act-spin > svg { animation: pomTurn 1s ease-in-out; }
+  @keyframes pomTurn { 25% { transform: scaleX(0.25); } 50% { transform: scaleX(-1); } 75% { transform: scaleX(-0.25); } }
   .pom-container.act-wiggle > svg { animation: pomDance 1.1s ease-in-out 2; }
   .pom-container.act-swing > svg { animation: pomSwing 0.9s ease-in-out 3; transform-origin: 50% -60%; }
   @keyframes pomSwing { 25% { transform: rotate(18deg); } 75% { transform: rotate(-18deg); } }
@@ -1506,7 +1521,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v42 - Updated 2026-10-07 11:27 EDT</p>
+    <p class="version">v43 - Updated 2026-10-07 11:32 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2931,7 +2946,12 @@ const POM_MOVES = {
   },
   'trick-twirl': (tl, b) => { ears(tl, b, -20, -3, 0.2, 0.1); ears(tl, b, 0, 0, 0.3, 0.7); shutEyes(tl, b, 0.3, 0.7, 0.3); swing(tl, b.tail, 25, 0.25, 4); },
   'trick-hula': (tl, b) => { swing(tl, b.head, -8, 0.55, 2); swing(tl, b.tail, 25, 0.275, 4); swing(tl, b.earL, 8, 0.55, 2); swing(tl, b.earR, 8, 0.55, 2); },
-  'trick-moonwalk': (tl, b) => { swing(tl, b.legL, 20, 0.275, 4); swing(tl, b.legR, -20, 0.275, 4); tl.to(b.head, { y: -2, duration: 0.14, yoyo: true, repeat: 7 }, 0); },
+  // Moonwalk slides one foot back while the other stays planted, then swaps, until the pose at 75%.
+  'trick-moonwalk': (tl, b) => {
+    for (let i = 0; i < 4; i++) tl.to(i % 2 ? b.legR : b.legL, { rotation: i % 2 ? -20 : 20, duration: 0.1, yoyo: true, repeat: 1, ease: 'sine.inOut' }, i * 0.21);
+    tl.to(b.head, { rotation: -8, duration: 0.1 }, 0.84).to(b.head, { rotation: 0, duration: 0.15 }, 0.94);
+    ears(tl, b, -12, -3, 0.1, 0.84); ears(tl, b, 0, 0, 0.15, 0.94); swing(tl, b.tail, 12, 0.275, 4);
+  },
   'trick-balance': (tl, b) => {
     tl.to(b.legL, { rotation: 25, duration: 0.2 }, 0.3).to(b.legR, { rotation: -25, duration: 0.2 }, 0.3).to([b.legL, b.legR], { rotation: 0, duration: 0.2 }, 0.85);
     swing(tl, b.head, 6, 0.3, 2, 0.45); ears(tl, b, 15, 2, 0.2, 0.4); ears(tl, b, 0, 0, 0.25, 0.85); swing(tl, b.tail, 25, 0.25, 4);
@@ -2949,9 +2969,12 @@ const POM_MOVES = {
     swing(tl, b.legL, 15, 0.3, 2, 0.4); swing(tl, b.legR, -15, 0.3, 2, 0.4);
     ears(tl, b, 30, 4, 0.2, 0.3); ears(tl, b, 0, 0, 0.25, 0.85); swing(tl, b.tail, 20, 0.275, 4);
   },
+  // Breakdance kicks her legs up in the freeze, then keeps them spread wide through the floor turns.
   'trick-breakdance': (tl, b) => {
-    swing(tl, b.legL, 35, 0.15, 6, 0.15); swing(tl, b.legR, -35, 0.15, 6, 0.15);
-    ears(tl, b, 25, 3, 0.15, 0.15); ears(tl, b, 0, 0, 0.2, 0.85); shutEyes(tl, b, 0.2, 0.85, 0.3);
+    tl.to(b.legL, { rotation: 55, duration: 0.12 }, 0.18).to(b.legR, { rotation: -55, duration: 0.12 }, 0.18)
+      .to(b.legL, { rotation: 35, duration: 0.1 }, 0.33).to(b.legR, { rotation: -35, duration: 0.1 }, 0.33)
+      .to([b.legL, b.legR], { rotation: 0, duration: 0.15 }, 0.9);
+    ears(tl, b, 25, 3, 0.15, 0.15); ears(tl, b, 0, 0, 0.2, 0.9); shutEyes(tl, b, 0.2, 0.36, 0.3); swing(tl, b.tail, 20, 0.2, 3, 0.35);
   },
   // Juggle holds both paws out by her shoulders and tosses with each in turn.
   'trick-juggle': (tl, b) => {
@@ -2960,7 +2983,7 @@ const POM_MOVES = {
     tl.to(b.eyes, { y: -2, duration: 0.15 }, 0.1).to(b.eyes, { y: 0, duration: 0.15 }, 0.85);
     swing(tl, b.head, 6, 0.4, 2, 0.1); swing(tl, b.tail, 15, 0.275, 4);
   },
-  'trick-doubleflip': (tl, b) => { tuck(tl, b, 0.9, 1, 0.15); ears(tl, b, -18, -5, 0.2, 0.2); ears(tl, b, 0, 0, 0.3, 0.8); shutEyes(tl, b, 0.2, 0.8, 0.1); swing(tl, b.tail, 22, 0.275, 4); },
+  'trick-doubleflip': (tl, b) => { tuck(tl, b, 0.24, 2, 0.33); ears(tl, b, -18, -5, 0.2, 0.2); ears(tl, b, 0, 0, 0.3, 0.8); shutEyes(tl, b, 0.2, 0.8, 0.1); swing(tl, b.tail, 22, 0.275, 4); },
   'play-ball': (tl, b) => { swing(tl, b.legL, 22, 0.3, 4); swing(tl, b.legR, -22, 0.3, 4); ears(tl, b, 15, 2, 0.2); ears(tl, b, 0, 0, 0.3, 1); swing(tl, b.tail, 20, 0.3, 4); },
   'play-duck': (tl, b) => { tuck(tl, b, 0.6, 2); swing(tl, b.earL, 10, 0.6, 2); swing(tl, b.earR, -10, 0.6, 2); swing(tl, b.tail, 18, 0.3, 4); },
   'play-rope': (tl, b) => { tl.to(b.head, { rotation: -10, x: -3, duration: 0.32, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 0); tl.to([b.legL, b.legR], { rotation: 15, duration: 0.2 }, 0).to([b.legL, b.legR], { rotation: 0, duration: 0.2 }, 1.1); swing(tl, b.tail, 15, 0.32, 4); },
@@ -2971,7 +2994,11 @@ const POM_MOVES = {
   walking: (tl, b) => { swing(tl, b.legL, 18, 0.32, 1000); swing(tl, b.legR, -18, 0.32, 1000); swing(tl, b.tail, 12, 0.64, 500); },
   'act-nap': (tl, b) => { shutEyes(tl, b, 0.3, 1.9); ears(tl, b, 15, 2, 0.4, 0.3); ears(tl, b, 0, 0, 0.4, 1.8); },
   'act-hop': (tl, b) => { tuck(tl, b, 0.5, 3); swing(tl, b.tail, 18, 0.25, 6); },
-  'act-spin': kick,
+  // The House spin steps her feet round as she turns.
+  'act-spin': (tl, b) => {
+    for (let i = 0; i < 4; i++) tl.to(i % 2 ? b.legR : b.legL, { y: -4, duration: 0.11, yoyo: true, repeat: 1 }, 0.05 + i * 0.23);
+    ears(tl, b, 12, 2, 0.2, 0.1); ears(tl, b, 0, 0, 0.25, 0.75); swing(tl, b.tail, 20, 0.3, 3);
+  },
   'act-wiggle': (tl, b) => dance(tl, b, 2),
   'act-swing': (tl, b) => { swing(tl, [b.legL, b.legR], 15, 0.9, 3); swing(tl, b.earL, 10, 0.9, 3); swing(tl, b.earR, 10, 0.9, 3); },
   'act-dig': (tl, b) => { swing(tl, b.legL, 25, 0.25, 8); swing(tl, b.legR, -25, 0.25, 8); swing(tl, b.earL, 12, 0.25, 8); swing(tl, b.earR, -12, 0.25, 8); swing(tl, b.tail, 20, 0.25, 8); },

@@ -180,14 +180,14 @@
   }
 
   /* Tricks for answers right in a row */
-  .pom-container.trick-spin { animation: pomSpin 1s cubic-bezier(0.45,0,0.3,1); }
+  .pom-container.trick-spin > svg { animation: pomSpin 1s cubic-bezier(0.45,0,0.3,1); }
   @keyframes pomSpin {
     0% { transform: translateY(0) rotate(0); }
     30% { transform: translateY(-22px) rotate(0); }
     70% { transform: translateY(-22px) rotate(360deg); }
     100% { transform: translateY(0) rotate(360deg); }
   }
-  .pom-container.trick-flip { animation: pomFlip 1s cubic-bezier(0.45,0,0.3,1); }
+  .pom-container.trick-flip > svg { animation: pomFlip 1s cubic-bezier(0.45,0,0.3,1); }
   @keyframes pomFlip {
     0% { transform: translateY(0) rotate(0) scale(1, 1); }
     15% { transform: translateY(4px) scale(1.1, 0.85); }
@@ -195,7 +195,7 @@
     85% { transform: translateY(0) rotate(-360deg) scale(1.1, 0.9); }
     100% { transform: translateY(0) rotate(-360deg) scale(1); }
   }
-  .pom-container.trick-dance { animation: pomDance 1.1s ease-in-out; }
+  .pom-container.trick-dance > svg { animation: pomDance 1.1s ease-in-out; }
   @keyframes pomDance {
     0%,100% { transform: translate(0, 0) rotate(0); }
     15% { transform: translate(-10px, -14px) rotate(-12deg); }
@@ -205,7 +205,7 @@
     80% { transform: translate(0, -26px) scale(1.15); }
   }
   /* Tricks she learns, one for each times table she finishes */
-  .pom-container.trick-roll { animation: pomRoll 1s ease-in-out; }
+  .pom-container.trick-roll > svg { animation: pomRoll 1s ease-in-out; }
   /* Roll over stays low on the ground, where the cartwheel goes up in an arc. */
   @keyframes pomRoll {
     0% { transform: translate(0, 0) rotate(0); }
@@ -213,7 +213,7 @@
     65% { transform: translate(22px, 10px) rotate(360deg) scale(1.1, 0.8); }
     100% { transform: translate(0, 0) rotate(360deg); }
   }
-  .pom-container.trick-highfive { animation: pomHighFive 1s ease-in-out; }
+  .pom-container.trick-highfive > svg { animation: pomHighFive 1s ease-in-out; }
   /* High five leans out toward the child and slaps at 40%, when the ✋ burst flies out. */
   @keyframes pomHighFive {
     0%, 100% { transform: translate(0, 0) rotate(0) scale(1); }
@@ -221,19 +221,19 @@
     40% { transform: translate(8px, -10px) rotate(12deg) scale(1.28); }
     55%, 70% { transform: translate(6px, -8px) rotate(8deg) scale(1.18); }
   }
-  .pom-container.trick-sit { animation: pomSit 1s ease-in-out; }
+  .pom-container.trick-sit > svg { animation: pomSit 1s ease-in-out; }
   /* Sit pretty rises up tall on her back legs, where take a bow stays low. */
   @keyframes pomSit {
     0%, 100% { transform: translateY(0) scale(1, 1); }
     20% { transform: translateY(4px) scale(1.04, 0.9); }
     40%, 85% { transform: translateY(-22px) scale(0.9, 1.2); }
   }
-  .pom-container.trick-playbow { animation: pomPlayBow 1s ease-in-out; }
+  .pom-container.trick-playbow > svg { animation: pomPlayBow 1s ease-in-out; }
   @keyframes pomPlayBow {
     0%, 100% { transform: translate(0, 0) rotate(0); }
     30%, 75% { transform: translate(-4px, 6px) rotate(-14deg); }
   }
-  .pom-container.trick-chase { animation: pomChase 1.1s linear; }
+  .pom-container.trick-chase > svg { animation: pomChase 1.1s linear; }
   /* Chase her tail runs a circle on the ground: smaller at the back of it, facing the way she runs.
      The twirl flips in place, up on her toes. */
   @keyframes pomChase {
@@ -244,47 +244,48 @@
     75% { transform: translate(-24px, -4px) scale(-0.92, 0.92); }
     99% { transform: translate(0, 0) scale(-1, 1); }
   }
-  .pom-container.trick-wave { animation: pomWave 1s ease-in-out; }
+  .pom-container.trick-wave > svg { animation: pomWave 1s ease-in-out; }
   /* Wave is a gentle sway, small next to the high five. */
   @keyframes pomWave {
     0%, 100% { transform: translateY(0) rotate(0); }
     20%, 60% { transform: translateY(-4px) rotate(-5deg); }
     40%, 80% { transform: translateY(-4px) rotate(5deg); }
   }
-  .pom-container.trick-jump { animation: pomJump 1s ease-in-out; }
+  .pom-container.trick-jump > svg { animation: pomJump 1s ease-in-out; }
   @keyframes pomJump {
     0%, 100% { transform: translateY(0) scale(1, 1); }
     20% { transform: translateY(6px) scale(1.1, 0.85); }
     50% { transform: translateY(-60px) scale(0.95, 1.08); }
     80% { transform: translateY(0) scale(1.1, 0.9); }
   }
-  .pom-container.trick-sneeze { animation: pomSneeze 1s ease-in-out; }
+  .pom-container.trick-sneeze > svg { animation: pomSneeze 1s ease-in-out; }
   @keyframes pomSneeze {
     0%, 100% { transform: translate(0, 0) rotate(0) scale(1); }
     40% { transform: translate(0, -4px) rotate(-8deg) scale(1.04); }
     50% { transform: translate(4px, 2px) rotate(10deg) scale(0.95); }
     62% { transform: translate(0, 0) rotate(-3deg) scale(1); }
   }
-  .pom-container.trick-peek { animation: pomPeekaboo 1.1s ease-in-out; }
+  .pom-container.trick-peek > svg { animation: pomPeekaboo 1.1s ease-in-out; }
+  /* Peekaboo barely moves: her paws do the hiding, then she pops up a little for the reveal. */
   @keyframes pomPeekaboo {
     0%, 100% { transform: translateY(0) scale(1); }
-    20%, 55% { transform: translateY(4px) scale(0.92); }
-    68% { transform: translateY(-10px) scale(1.12); }
+    20%, 55% { transform: translateY(2px) scale(0.98); }
+    66%, 85% { transform: translateY(-4px) scale(1.04); }
   }
-  .pom-container.trick-takebow { animation: pomTakeBow 1s ease-in-out; }
+  .pom-container.trick-takebow > svg { animation: pomTakeBow 1s ease-in-out; }
   @keyframes pomTakeBow {
     0%, 100% { transform: translateY(0) scale(1, 1); }
     30%, 70% { transform: translateY(6px) scale(1, 0.94); }
   }
   /* Tricks she learns, one for each division table she finishes: flashier, and harder as she goes.
-     Tricks with a prop move only her picture, so the hoop, ball and juggling balls keep their own path. */
-  .pom-container.trick-hop { animation: pomHopOne 1s ease-in-out; }
+     Every trick moves only her picture, so the gem badge and the props keep their own place. */
+  .pom-container.trick-hop > svg { animation: pomHopOne 1s ease-in-out; }
   @keyframes pomHopOne {
     0%, 100% { transform: translateY(0) rotate(0); }
     15%, 45%, 75% { transform: translateY(-14px) rotate(-6deg); }
     30%, 60%, 90% { transform: translateY(0) rotate(-6deg); }
   }
-  .pom-container.trick-twirl { animation: pomTwirl 1s ease-in-out; }
+  .pom-container.trick-twirl > svg { animation: pomTwirl 1s ease-in-out; }
   @keyframes pomTwirl {
     0%, 100% { transform: translateY(0) scaleX(1); }
     20%, 60% { transform: translateY(-12px) scaleX(-1); }
@@ -307,7 +308,7 @@
     12.5%, 62.5% { transform: translate(calc(-50% + 12px * var(--s)), -50%) rotate(8deg); }
     37.5%, 87.5% { transform: translate(calc(-50% - 12px * var(--s)), -50%) rotate(-8deg); }
   }
-  .pom-container.trick-moonwalk { animation: pomMoonwalk 1.1s linear; }
+  .pom-container.trick-moonwalk > svg { animation: pomMoonwalk 1.1s linear; }
   @keyframes pomMoonwalk {
     0% { transform: translate(0, 0) scaleX(1); }
     15% { transform: translate(-11px, -3px) scaleX(1); }
@@ -335,22 +336,31 @@
     50% { transform: translate(calc(-50% + 4px * var(--s)), -50%) rotate(-345deg); }
     100% { opacity: 0; transform: translate(calc(-50% - 50px * var(--s)), -50%) rotate(-720deg); }
   }
-  .pom-container.trick-cartwheel { animation: pomCartwheel 1.1s ease-in-out; }
+  .pom-container.trick-cartwheel > svg { animation: pomCartwheel 1.1s ease-in-out; }
   @keyframes pomCartwheel {
     0%, 100% { transform: translate(0, 0) rotate(0); }
     25%, 75% { transform: translate(20px, -30px) rotate(180deg); }
     50% { transform: translate(40px, 0) rotate(360deg); }
   }
-  .pom-container.trick-handstand { animation: pomHandstand 1.1s ease-in-out; }
+  .pom-container.trick-handstand > svg { animation: pomHandstand 1.1s ease-in-out; }
+  /* Upside down she sits low enough for her front paws to reach the mat, and wobbles a little. */
   @keyframes pomHandstand {
     0% { transform: translateY(0) rotate(0) scale(1, 1); }
     15% { transform: translateY(4px) rotate(0) scale(1.05, 0.9); }
-    35%, 80% { transform: translateY(-16px) rotate(180deg) scale(1, 1); }
-    50% { transform: translateY(-16px) rotate(172deg); }
-    65% { transform: translateY(-16px) rotate(188deg); }
+    35%, 80% { transform: translateY(calc(24px * var(--s))) rotate(180deg) scale(1, 1); }
+    50% { transform: translateY(calc(24px * var(--s))) rotate(176deg); }
+    65% { transform: translateY(calc(24px * var(--s))) rotate(184deg); }
     100% { transform: translateY(0) rotate(360deg) scale(1, 1); }
   }
-  .pom-container.trick-breakdance { animation: pomBreakdance 1.1s cubic-bezier(0.45,0,0.3,1); }
+  /* She and the mat go over the gem badge while she is upside down, so her face and paws show. */
+  .pom-container.trick-handstand > svg { position: relative; z-index: 1; }
+  .toy-fx.fx-mat {
+    z-index: 1; left: 50%; top: 99%; width: 84%; height: 7%; opacity: 0;
+    background: #8FD3FF; border: calc(var(--s) * 2px) solid #4FA8E0; border-radius: 40%; box-sizing: border-box;
+    animation: fxMat 1.1s ease-in-out;
+  }
+  @keyframes fxMat { 0%, 100% { opacity: 0; } 15%, 88% { opacity: 1; } }
+  .pom-container.trick-breakdance > svg { animation: pomBreakdance 1.1s cubic-bezier(0.45,0,0.3,1); }
   @keyframes pomBreakdance {
     0% { transform: translateY(0) rotate(0) scale(1, 1); }
     15% { transform: translateY(10px) rotate(0) scale(1.15, 0.8); }
@@ -363,18 +373,19 @@
     0%, 40%, 80%, 100% { transform: translateY(0); }
     20%, 60% { transform: translateY(calc(-5px * var(--s))); }
   }
+  /* Each ball goes from one paw to the other over her head, a high arc and a lower one, and lands back in the first paw. */
   .toy-fx.fx-juggle {
-    left: 50%; top: 55%; opacity: 0;
+    left: 50%; top: 44%; opacity: 0;
     font-size: calc(var(--s) * clamp(1rem, 3.2vmin, 1.5rem));
-    animation: fxJuggle 0.4s linear 2;
+    animation: fxJuggle 0.42s linear 2;
   }
   @keyframes fxJuggle {
-    0%, 100% { opacity: 1; transform: translate(calc(-50% - 28px * var(--s)), -50%); }
-    25% { opacity: 1; transform: translate(calc(-50% - 10px * var(--s)), calc(-50% - 75px * var(--s))); }
-    50% { opacity: 1; transform: translate(calc(-50% + 28px * var(--s)), -50%); }
-    75% { opacity: 1; transform: translate(-50%, calc(-50% + 8px * var(--s))); }
+    0%, 100% { opacity: 1; transform: translate(calc(-50% - 38px * var(--s)), -50%); }
+    25% { opacity: 1; transform: translate(-50%, calc(-50% - 72px * var(--s))); }
+    50% { opacity: 1; transform: translate(calc(-50% + 38px * var(--s)), -50%); }
+    75% { opacity: 1; transform: translate(-50%, calc(-50% - 58px * var(--s))); }
   }
-  .pom-container.trick-doubleflip { animation: pomDoubleFlip 1.1s cubic-bezier(0.45,0,0.3,1); }
+  .pom-container.trick-doubleflip > svg { animation: pomDoubleFlip 1.1s cubic-bezier(0.45,0,0.3,1); }
   @keyframes pomDoubleFlip {
     0% { transform: translateY(0) rotate(0) scale(1, 1); }
     15% { transform: translateY(6px) rotate(0) scale(1.12, 0.82); }
@@ -1456,6 +1467,15 @@
       <rect x="68" y="108" width="12" height="16" rx="6" class="f4" fill="#D4924A"/>
       <ellipse cx="74" cy="124" rx="8" ry="4" class="f5" fill="#C0824A"/>
     </g>
+    <!-- Front paws hide in her fluff until a trick raises them. -->
+    <g class="pom-arm-l" opacity="0">
+      <rect x="42" y="72" width="12" height="26" rx="6" class="pom-fore-l f4" fill="#D4924A"/>
+      <ellipse cx="48" cy="98" rx="8" ry="6.5" class="pom-paw-l f3" fill="#F5C27A" stroke="#C0824A" stroke-width="1.5"/>
+    </g>
+    <g class="pom-arm-r" opacity="0">
+      <rect x="76" y="72" width="12" height="26" rx="6" class="pom-fore-r f4" fill="#D4924A"/>
+      <ellipse cx="82" cy="98" rx="8" ry="6.5" class="pom-paw-r f3" fill="#F5C27A" stroke="#C0824A" stroke-width="1.5"/>
+    </g>
     <line x1="30" y1="90" x2="18" y2="65" stroke="#8B5E3C" stroke-width="3" stroke-linecap="round"/>
     <text x="13" y="66" font-family="Baloo 2, sans-serif" font-weight="800" font-size="14" fill="#FF8C42">×</text>
   </svg>
@@ -1471,7 +1491,7 @@
       <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
     </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v38 - Updated 2026-10-07 10:46 EDT</p>
+    <p class="version">v39 - Updated 2026-10-07 10:58 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2636,7 +2656,7 @@ const DIVIDE_TRICKS = [
   { cls: 'trick-moonwalk', name: 'moonwalk', say: 'Moonwalk! 🌙', stars: ['🌙', '⭐'] },
   { cls: 'trick-balance', name: 'balance on a ball', say: 'Balance on a ball! ⚽', fx: { kind: 'ball', icons: ['⚽'] } },
   { cls: 'trick-cartwheel', name: 'do a cartwheel', say: 'Cartwheel! 🤸' },
-  { cls: 'trick-handstand', name: 'do a handstand', say: 'Handstand! 🙃' },
+  { cls: 'trick-handstand', name: 'do a handstand', say: 'Handstand! 🙃', fx: { kind: 'mat', icons: [''], under: true } },
   { cls: 'trick-breakdance', name: 'do a breakdance spin', say: 'Breakdance! 🕺' },
   { cls: 'trick-juggle', name: 'juggle', say: 'Juggle! 🤹', fx: { kind: 'juggle', icons: ['🔴', '🟡', '🔵'] } },
   { cls: 'trick-doubleflip', name: 'do a double backflip', say: 'Double backflip! 🤸', stars: ['🌟', '💥', '✨'] },
@@ -2738,8 +2758,9 @@ function showTrick(el, trick) {
     const fx = document.createElement('span');
     fx.className = 'toy-fx fx-' + trick.fx.kind;
     fx.textContent = ico;
-    fx.style.animationDelay = (i * 0.15) + 's';
-    el.appendChild(fx);
+    fx.style.animationDelay = (i * 0.14) + 's';
+    // The mat goes under her picture; the other props go over her.
+    if (trick.fx.under) el.prepend(fx); else el.appendChild(fx);
   });
   el.toyTimer = setTimeout(() => {
     el.classList.remove(trick.cls);
@@ -2777,6 +2798,8 @@ function animatePom(el, cls) {
 const POM_PARTS = {
   tail: ['.pom-tail', '88 76'], head: ['.pom-head', '65 74'], earL: ['.pom-ear-l', '46 42'], earR: ['.pom-ear-r', '84 42'],
   eyes: ['.pom-eyes', '65 50'], legL: ['.pom-leg-l', '56 109'], legR: ['.pom-leg-r', '74 109'],
+  armL: ['.pom-arm-l', '48 76'], foreL: ['.pom-fore-l', '48 76'], pawL: ['.pom-paw-l', '48 98'],
+  armR: ['.pom-arm-r', '82 76'], foreR: ['.pom-fore-r', '82 76'], pawR: ['.pom-paw-r', '82 98'],
 };
 
 function pomBody(el) {
@@ -2805,6 +2828,17 @@ const ears = (tl, b, angle, y, duration, at = 0) => tl
   .to(b.earL, { rotation: -angle, y, duration }, at).to(b.earR, { rotation: angle, y, duration }, at);
 const shutEyes = (tl, b, from, to, open = 0.1) => tl
   .to(b.eyes, { scaleY: open, duration: 0.15 }, from).to(b.eyes, { scaleY: 1, duration: 0.2 }, to);
+// Raises a front paw ('l' or 'r') to `angle` at `at`, `reach` units further out than its 22, and puts it away at `until`.
+// From hanging down, a negative angle swings it up past her chest and a positive one out past her side.
+const ARM_LENGTH = 22;
+const paw = (tl, b, side, angle, at, until, reach = 0) => {
+  const [arm, fore, p] = side === 'l' ? [b.armL, b.foreL, b.pawL] : [b.armR, b.foreR, b.pawR];
+  return tl.to(arm, { opacity: 1, duration: 0.08 }, at)
+    .to(arm, { rotation: angle, duration: 0.18, ease: 'back.out(1.6)' }, at)
+    .to(fore, { scaleY: (ARM_LENGTH + reach) / ARM_LENGTH, duration: 0.18 }, at).to(p, { y: reach, duration: 0.18 }, at)
+    .to(arm, { rotation: 0, duration: 0.15, ease: 'sine.in' }, until).to(fore, { scaleY: 1, duration: 0.15 }, until)
+    .to(p, { y: 0, scale: 1, duration: 0.15 }, until).to(arm, { opacity: 0, duration: 0.06 }, until + 0.1);
+};
 const munch = (tl, b, at) => tl.to(b.head, { y: 2, rotation: 3, duration: 0.15, yoyo: true, repeat: 9, ease: 'sine.inOut' }, at);
 const dance = (tl, b, times) => {
   swing(tl, b.head, 8, 1.1, times);
@@ -2827,14 +2861,22 @@ const POM_MOVES = {
   'trick-flip': (tl, b) => { tuck(tl, b, 1, 1, 0.1); ears(tl, b, -15, -4, 0.2, 0.2); ears(tl, b, 0, 0, 0.3, 0.7); shutEyes(tl, b, 0.2, 0.75, 0.3); swing(tl, b.tail, 20, 0.3, 3); },
   'trick-dance': (tl, b) => dance(tl, b, 1),
   'trick-roll': (tl, b) => { tuck(tl, b, 0.8, 1, 0.1); shutEyes(tl, b, 0.2, 0.7, 0.3); ears(tl, b, 20, 2, 0.2, 0.15); ears(tl, b, 0, 0, 0.3, 0.7); swing(tl, b.tail, 20, 0.25, 4); },
-  'trick-highfive': (tl, b) => { tl.to(b.legR, { rotation: -70, duration: 0.25, ease: 'back.out(2)' }, 0.1).to(b.legR, { rotation: 0, duration: 0.25 }, 0.7); ears(tl, b, -10, -3, 0.2, 0.1); ears(tl, b, 0, 0, 0.3, 0.7); swing(tl, b.tail, 22, 0.25, 4); },
+  // High five reaches one paw out past her head, and it grows at the slap.
+  'trick-highfive': (tl, b) => { paw(tl, b, 'r', -135, 0.1, 0.7, 14); tl.to(b.pawR, { scale: 1.35, duration: 0.1, ease: 'back.out(3)' }, 0.32).to(b.pawR, { scale: 1.1, duration: 0.2 }, 0.52); ears(tl, b, -10, -3, 0.2, 0.1); ears(tl, b, 0, 0, 0.3, 0.7); swing(tl, b.tail, 22, 0.25, 4); },
   'trick-sit': (tl, b) => { tl.to(b.legL, { rotation: 40, duration: 0.25 }, 0.3).to(b.legR, { rotation: -40, duration: 0.25 }, 0.3).to([b.legL, b.legR], { rotation: 0, duration: 0.2 }, 0.8); ears(tl, b, -12, -4, 0.2, 0.3); ears(tl, b, 0, 0, 0.2, 0.8); swing(tl, b.tail, 15, 0.5, 2); },
   'trick-playbow': (tl, b) => { tl.to(b.head, { y: 4, rotation: -6, duration: 0.25 }, 0.05).to(b.head, { y: 0, rotation: 0, duration: 0.25 }, 0.75); ears(tl, b, -10, -2, 0.2, 0.1); ears(tl, b, 0, 0, 0.25, 0.75); swing(tl, b.tail, 30, 0.2, 5); },
   'trick-chase': (tl, b) => { swing(tl, b.tail, 35, 0.275, 4); ears(tl, b, 15, 2, 0.2); ears(tl, b, 0, 0, 0.3, 0.8); swing(tl, b.head, 6, 0.55, 2); },
-  'trick-wave': (tl, b) => { tl.to(b.legR, { rotation: -60, duration: 0.2 }, 0.05).to(b.legR, { rotation: -95, duration: 0.15, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 0.25).to(b.legR, { rotation: 0, duration: 0.2 }, 0.8); tl.to(b.head, { rotation: 6, duration: 0.2 }, 0.1).to(b.head, { rotation: 0, duration: 0.2 }, 0.8); swing(tl, b.tail, 18, 0.33, 3); },
+  // Wave holds a paw up by her cheek and waves it 4 times.
+  'trick-wave': (tl, b) => { paw(tl, b, 'r', -128, 0.05, 0.82); tl.to(b.armR, { rotation: -156, duration: 0.15, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 0.22); tl.to(b.head, { rotation: 6, duration: 0.2 }, 0.1).to(b.head, { rotation: 0, duration: 0.2 }, 0.8); swing(tl, b.tail, 18, 0.33, 3); },
   'trick-jump': (tl, b) => { tuck(tl, b, 0.6, 1, 0.2); ears(tl, b, -18, -5, 0.2, 0.3); ears(tl, b, 0, 0, 0.3, 0.7); swing(tl, b.tail, 22, 0.25, 4); },
   'trick-sneeze': (tl, b) => { tl.to(b.head, { rotation: -10, y: -2, duration: 0.3 }, 0.1).to(b.head, { rotation: 12, y: 2, duration: 0.08 }, 0.45).to(b.head, { rotation: 0, y: 0, duration: 0.3 }, 0.6); shutEyes(tl, b, 0.3, 0.7); ears(tl, b, 20, 0, 0.08, 0.45); ears(tl, b, 0, 0, 0.3, 0.6); },
-  'trick-peek': (tl, b) => { tl.to(b.legL, { rotation: 50, duration: 0.2 }, 0.15).to(b.legR, { rotation: -50, duration: 0.2 }, 0.15).to([b.legL, b.legR], { rotation: 0, duration: 0.15 }, 0.6); shutEyes(tl, b, 0.15, 0.62); ears(tl, b, 25, 3, 0.2, 0.15); ears(tl, b, -10, -3, 0.15, 0.62); ears(tl, b, 0, 0, 0.3, 0.8); swing(tl, b.tail, 25, 0.2, 2, 0.65); },
+  // Peekaboo covers her eyes with both paws, then opens them out wide.
+  'trick-peek': (tl, b) => {
+    paw(tl, b, 'l', -161, 0.15, 0.93, 6); paw(tl, b, 'r', 161, 0.15, 0.93, 6);
+    tl.to(b.armL, { rotation: -215, duration: 0.12, ease: 'back.out(2)' }, 0.6).to(b.armR, { rotation: 215, duration: 0.12, ease: 'back.out(2)' }, 0.6);
+    tl.to([b.foreL, b.foreR], { scaleY: 1, duration: 0.12 }, 0.6).to([b.pawL, b.pawR], { y: 0, duration: 0.12 }, 0.6);
+    shutEyes(tl, b, 0.15, 0.6); ears(tl, b, 25, 3, 0.2, 0.15); ears(tl, b, -10, -3, 0.15, 0.62); ears(tl, b, 0, 0, 0.3, 0.8); swing(tl, b.tail, 25, 0.2, 2, 0.65);
+  },
   'trick-takebow': (tl, b) => { tl.to(b.head, { rotation: 18, y: 6, duration: 0.3 }, 0.1).to(b.head, { rotation: 0, y: 0, duration: 0.3 }, 0.7); shutEyes(tl, b, 0.2, 0.7, 0.3); ears(tl, b, 15, 3, 0.3, 0.1); ears(tl, b, 0, 0, 0.3, 0.7); },
   'trick-hop': (tl, b) => {
     tl.to(b.legL, { rotation: 45, duration: 0.15 }, 0.05).to(b.legL, { rotation: 0, duration: 0.2 }, 0.8);
@@ -2852,8 +2894,12 @@ const POM_MOVES = {
     tl.to(b.legL, { rotation: 45, duration: 0.2 }, 0.05).to(b.legR, { rotation: -45, duration: 0.2 }, 0.05).to([b.legL, b.legR], { rotation: 0, duration: 0.25 }, 0.8);
     ears(tl, b, -20, -4, 0.2, 0.1); ears(tl, b, 0, 0, 0.25, 0.8); shutEyes(tl, b, 0.2, 0.8, 0.3); swing(tl, b.tail, 20, 0.275, 4);
   },
+  // Handstand tucks her head in and plants both front paws on the mat beside it.
   'trick-handstand': (tl, b) => {
     tl.to([b.legL, b.legR], { scaleY: 0.8, duration: 0.15 }, 0.05).to([b.legL, b.legR], { scaleY: 1, duration: 0.15 }, 0.25);
+    paw(tl, b, 'l', 155, 0.18, 0.88, 20); paw(tl, b, 'r', -155, 0.18, 0.88, 20);
+    tl.to([b.armL, b.armR], { y: -10, duration: 0.18 }, 0.18).to([b.armL, b.armR], { y: 0, duration: 0.15 }, 0.88)
+      .to(b.head, { y: 10, duration: 0.18 }, 0.18).to(b.head, { y: 0, duration: 0.15 }, 0.88);
     swing(tl, b.legL, 15, 0.3, 2, 0.4); swing(tl, b.legR, -15, 0.3, 2, 0.4);
     ears(tl, b, 30, 4, 0.2, 0.3); ears(tl, b, 0, 0, 0.25, 0.85); swing(tl, b.tail, 20, 0.275, 4);
   },
@@ -2861,8 +2907,10 @@ const POM_MOVES = {
     swing(tl, b.legL, 35, 0.15, 6, 0.15); swing(tl, b.legR, -35, 0.15, 6, 0.15);
     ears(tl, b, 25, 3, 0.15, 0.15); ears(tl, b, 0, 0, 0.2, 0.85); shutEyes(tl, b, 0.2, 0.85, 0.3);
   },
+  // Juggle holds both paws out by her shoulders and tosses with each in turn.
   'trick-juggle': (tl, b) => {
-    for (let i = 0; i < 4; i++) tl.to(i % 2 ? b.legR : b.legL, { rotation: i % 2 ? -50 : 50, duration: 0.1, yoyo: true, repeat: 1 }, 0.1 + i * 0.2);
+    paw(tl, b, 'l', 145, 0, 0.95); paw(tl, b, 'r', -145, 0, 0.95);
+    for (let i = 0; i < 4; i++) tl.to(i % 2 ? b.armR : b.armL, { rotation: i % 2 ? -165 : 165, duration: 0.08, yoyo: true, repeat: 1 }, 0.2 + i * 0.21);
     tl.to(b.eyes, { y: -2, duration: 0.15 }, 0.1).to(b.eyes, { y: 0, duration: 0.15 }, 0.85);
     swing(tl, b.head, 6, 0.4, 2, 0.1); swing(tl, b.tail, 15, 0.275, 4);
   },
@@ -2890,6 +2938,7 @@ calmMotion.addEventListener?.('change', () => document.querySelectorAll('.pom-co
   if (!window.gsap || !el.body) return;
   stopPom(el);
   gsap.set(Object.values(el.body), POM_REST);
+  hideArms(el.body);
   idlePom(el);
 }));
 
@@ -2918,7 +2967,8 @@ function wakePom(el) {
   return shown;
 }
 
-const POM_REST = { rotation: 0, x: 0, y: 0, scaleY: 1 };
+const POM_REST = { rotation: 0, x: 0, y: 0, scaleX: 1, scaleY: 1 };
+const hideArms = b => gsap.set([b.armL, b.armR], { opacity: 0 });
 
 // Stops her move, idle wag, blink and settling, leaving every part where it is.
 function stopPom(el) {
@@ -2934,6 +2984,7 @@ function pomMove(el, name) {
   const b = pomBody(el);
   stopPom(el);
   el.move = gsap.timeline({ onComplete: () => restPom(el) });
+  hideArms(b);
   el.move.to(Object.values(b), { ...POM_REST, duration: 0.15 }, 0);
   POM_MOVES[name](el.move, b);
 }
@@ -2943,6 +2994,7 @@ function restPom(el) {
   if (!window.gsap || !el.move) return;
   stopPom(el);
   const b = pomBody(el);
+  hideArms(b);
   gsap.to(Object.values(b).filter(p => p !== b.tail), { ...POM_REST, duration: 0.2 });
   idlePom(el);
 }

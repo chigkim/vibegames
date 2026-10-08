@@ -457,7 +457,7 @@ test('a save from v11 (numbers up to 13) keeps every sticker, coin, gem and clos
 
   // Loading saved it again in the newest format. It still starts with the v11 sticker string, so an old tab still open reads it right
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem(STORE_KEY)));
-  expect(saved.v).toBe(26);
+  expect(saved.v).toBe(await page.evaluate(() => SAVE_VERSION));
   expect(saved.mastery.slice(0, 91)).toBe(old);
   expect(saved.mastery).toHaveLength(841);
   await page.reload();
@@ -543,6 +543,122 @@ test("Ms. Menna's Closet buys, wears, and saves outfits with gems only", async (
   await page.locator('#closetBackBtn').click();
   await page.locator('#houseBackBtn').click();
   await expect(page.locator('#pomStart .acc-hat polygon')).toHaveCount(1);
+});
+
+test('an item owned in every color is saved with each color, so older versions read it, and `.*` still loads', async ({ page }) => {
+  const r = await page.evaluate(() => {
+    const all = ITEMS.party.colors.map(c => c.id);
+    const furn = FURN.rug.colors.filter(c => c.color).map(c => c.id);
+    return {
+      all: encodeOwned(CLOSET, all), some: encodeOwned(CLOSET, ['party.r', 'party.g']),
+      star: decodeOwned('party,party.*').sort().join() === [...all].sort().join(), furnStar: decodeOwned('rug.*', FURN).length,
+      old: decodeOwned('party.rgbpknwsoy').length,
+    };
+  });
+  expect(r).toEqual({ all: 'party,party.roygbpknws', some: 'party.rg', star: true, furnStar: 10, old: 10 });
+});
+
+// The items saved as bits, in the order saves have them since v50. Never change this list except to add to its end.
+const PACKED_SINCE_V50 = [
+  'dinohood', 'unicorn', 'flowers', 'astro', 'antenna', 'pirate', 'firehat', 'racing', 'stars', 'patch', 'mask', 'goggles',
+  'lei', 'spikes', 'jetpack', 'butterfly', 'dino', 'rocket', 'truck', 'chest',
+  'dinosuit', 'unisuit', 'astrosuit', 'robosuit', 'piratesuit', 'firesuit', 'racesuit', 'herosuit', 'fairydress', 'buttersuit',
+  'chefsuit', 'wizrobe', 'cowvest', 'gown',
+  'beesuit', 'bugears', 'beewings', 'ladysuit', 'ladyshell', 'lionmane', 'lionsuit', 'liontail', 'bunears', 'bunsuit', 'buntail',
+  'catears', 'catsuit', 'cattail', 'bearears', 'bearsuit', 'froghood', 'frogsuit', 'draghorns', 'dragsuit', 'dragwings',
+  'mersuit', 'shelltiara', 'penghood', 'pengsuit',
+  'necklace', 'backpack', 'watch', 'bracelet', 'helpervest',
+];
+
+test('the bit list of owned items only ever grows at the end, and holds every closet item added since v49', async ({ page }) => {
+  const now = await page.evaluate(() => ({ order: PACK_ORDER, colors: PACK_COLORS, codes: COLORS.map(c => c.code).join(''), ids: CLOSET.map(i => i.id) }));
+  expect(now.order.slice(0, PACKED_SINCE_V50.length)).toEqual(PACKED_SINCE_V50);
+  expect(new Set(now.order).size).toBe(now.order.length);
+  expect(now.colors).toBe('roygbpknws');
+  expect(now.codes).toBe(now.colors);
+  const v49 = require('child_process').execSync('git show d00e18f:multiplication-ms-menna.html', { cwd: require('path').resolve(__dirname, '..') }).toString();
+  const old = new Set([...v49.matchAll(/\{ id: '([a-z0-9]+)', slot: '/g)].map(m => m[1]));
+  expect(now.ids.filter(id => !old.has(id) && !now.order.includes(id))).toEqual([]);
+  expect(now.order.filter(id => old.has(id))).toEqual([]);
+});
+
+test('items saved as bits come back in every color, and the cookie lists them only as bits', async ({ page }) => {
+  const r = await page.evaluate(() => {
+    const packed = Object.values(ITEMS).filter(i => PACK_ORDER.includes(i.base) && i.price > 0).map(i => i.id);
+    const same = (a, b) => [...a].sort().join() === [...b].sort().join();
+    let seed = 3;
+    const rnd = n => { seed = (seed * 16807) % 2147483647; return seed % n; };
+    const mixes = Array.from({ length: 50 }, () => packed.filter(() => !rnd(3 + rnd(5))));
+    state.owned = ['party.r', ...packed];
+    saveState();
+    const local = JSON.parse(localStorage.getItem(STORE_KEY));
+    const cookie = readCookie();
+    return {
+      count: packed.length, all: same(decodePacked(encodePacked(packed)), packed), none: encodePacked([]),
+      mixes: mixes.every(m => same(decodePacked(encodePacked(m)), m)),
+      cookieBits: cookie.ownBits === local.ownBits && same(decodePacked(cookie.ownBits), packed),
+      cookieNames: cookie.owned, localNames: decodeOwned(local.owned).length, bitsSize: local.ownBits.length,
+    };
+  });
+  expect(r.count).toBeGreaterThan(200);
+  expect(r).toMatchObject({ all: true, none: '', mixes: true, cookieBits: true, cookieNames: 'party.r', localNames: r.count + 1 });
+  expect(r.bitsSize).toBeLessThanOrEqual(Math.ceil(PACKED_SINCE_V50.length * 11 / 6));
+
+  // The cookie alone brings them all back
+  await clearAllButCookie(page);
+  await page.reload();
+  expect(await page.evaluate(() => state.owned.length)).toBe(r.count + 1);
+});
+
+test('items an older version dropped and saved over come back from the kept copy, in localStorage or IndexedDB', async ({ page }) => {
+  const owned = await page.evaluate(() => {
+    state.owned = ['party', 'party.r', 'dinohood.b', 'helpervest'];
+    state.furniture = ['rug.g'];
+    saveState();
+    return [...state.owned].sort();
+  });
+  // An older version saves over all three copies with only the items it knows.
+  const oldSave = () => page.evaluate(async () => {
+    const json = JSON.stringify({ v: 26, owned: 'party,party.r', furniture: '', gems: 5, savedAt: Date.now() + 60000 });
+    localStorage.setItem(STORE_KEY, json);
+    await SaveDB.write(json);
+    document.cookie = `${COOKIE_NAME}=; max-age=0; path=/`;
+  });
+  const loaded = () => page.evaluate(() => ({ owned: [...state.owned].sort(), furniture: state.furniture, gems: state.gems }));
+  await page.waitForTimeout(300);
+  await oldSave();
+  await page.reload();
+  expect(await loaded()).toEqual({ owned, furniture: ['rug.g'], gems: 5 });
+
+  // localStorage cleared too: the IndexedDB kept copy brings them back.
+  await oldSave();
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect.poll(loaded).toEqual({ owned, furniture: ['rug.g'], gems: 5 });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem(KEPT_KEY)).owned.length)).toBe(4);
+});
+
+test('bits for items this version does not know are kept when it saves, and broken bits change nothing', async ({ page }) => {
+  const r = await page.evaluate(() => {
+    // A later version's save: two more items after the end of the list, one owned in classic and pink
+    const later = (PACK_ORDER.length + 1) * PACK_BITS;
+    const bits = Array(later + PACK_BITS).fill(0);
+    bits[0] = 1; // the classic Dino Hood
+    bits[later] = bits[later + 7] = 1;
+    const text = bits.join('').replace(/0+$/, '').padEnd(Math.ceil((later + 8) / 6) * 6, '0').match(/.{6}/g)
+      .map(b => PACK_CHARS[parseInt(b, 2)]).join('');
+    localStorage.setItem(STORE_KEY, JSON.stringify({ v: SAVE_VERSION, owned: 'party.r', ownBits: text, savedAt: Date.now() + 1000 }));
+    Object.assign(state, parseSave(readLocal()));
+    state.owned.push('unicorn.k');
+    saveState();
+    const back = packBits(readCookie().ownBits);
+    const broken = parseSave({ owned: 'party.r', ownBits: 'ab!c' });
+    return {
+      owned: [...state.owned].sort(), later: back[later] === 1 && back[later + 7] === 1 && back.slice(later).filter(Boolean).length === 2,
+      unicorn: back[PACK_ORDER.indexOf('unicorn') * PACK_BITS + 7], broken: broken.owned, brokenBits: broken.ownBits,
+    };
+  });
+  expect(r).toEqual({ owned: ['dinohood', 'party.r', 'unicorn.k'], later: true, unicorn: 1, broken: ['party.r'], brokenBits: '' });
 });
 
 test('saved progress still fits in the cookie mirror', async ({ page }) => {
@@ -635,6 +751,26 @@ test('a much bigger house still fits in the cookie, with every sticker, coin, ge
   });
   expect(out.size).toBeLessThan(4096);
   expect(out).toMatchObject({ mastery: true, owned: true, furniture: true, money: [12345, 6789, 4321], treats: 99 });
+});
+
+// A warning before the cookie runs out of room: with everything this version sells, it must leave space for later ones.
+test('the cookie with everything the game has stays under 3,600 bytes', async ({ page }) => {
+  const out = await page.evaluate(() => {
+    FACT_KEYS.forEach((k, i) => {
+      state.mastery[i] = STICKER_AT; state.days[i] = today() - 400 + i; state.levels[i] = SLEEPY_NOW;
+      state.weights[k] = 12.25;
+    });
+    state.owned = Object.values(ITEMS).filter(i => i.price > 0).map(i => i.id);
+    state.furniture = Object.values(FURN).filter(p => p.price > 0).map(p => p.id);
+    state.treats = Object.fromEntries(TREATS.map(t => [t.id, 99]));
+    Object.assign(state, { totalCents: 999999, paidCents: 999999, gems: 99999 });
+    saveState();
+    const raw = document.cookie.match(new RegExp('(?:^|; )' + COOKIE_NAME + '=([^;]*)'));
+    const back = parseSave(readCookie());
+    return { size: raw[0].length, owned: back.owned.length === state.owned.length, furniture: back.furniture.length === state.furniture.length };
+  });
+  expect(out.size).toBeLessThan(3600);
+  expect(out).toMatchObject({ owned: true, furniture: true });
 });
 
 test('closet colors save compactly, and v12 saves keep their items', async ({ page }) => {
@@ -849,21 +985,31 @@ test('the cookie leaves out the old payout list, and v46 still loads it with the
     await page.reload();
     expect(await page.evaluate(saveSnapshot)).toEqual({ ...before, payouts: [] });
 
-    // v46 from the cookie alone: every sticker, dot, coin, gem and item, as with its own trimmed cookies
+    // v46 from the cookie alone: every sticker, dot, coin, gem, and every item and color it knows.
     await bigSave(seed);
     await clearAllButCookie(page);
     await openV46(page);
     const old = await page.evaluate(saveSnapshot);
     expect(old.payouts).toEqual([]);
-    expect(keep(old)).toEqual(keep(before));
+    const knownToV46 = await page.evaluate(() => ({ items: Object.keys(ITEMS), furn: Object.keys(FURN) }));
+    expect(keep(old)).toEqual(keep({
+      ...before,
+      owned: before.owned.filter(id => knownToV46.items.includes(id)),
+      furniture: before.furniture.filter(id => knownToV46.furn.includes(id)),
+    }));
 
-    // v46 with the IndexedDB copy still there: everything, payouts included
+    // v46 with the IndexedDB copy still there: everything it knows about, every color and payouts included
     await bigSave(seed);
     await page.waitForTimeout(300);
     await page.evaluate(() => localStorage.clear());
     await openV46(page);
     await expect.poll(() => page.evaluate(() => state.payouts.length)).toBe(30);
-    expect(await page.evaluate(saveSnapshot)).toEqual(before);
+    const v46Ids = await page.evaluate(() => ({ items: Object.keys(ITEMS), furn: Object.keys(FURN) }));
+    expect(await page.evaluate(saveSnapshot)).toEqual({
+      ...before,
+      owned: before.owned.filter(id => v46Ids.items.includes(id)),
+      furniture: before.furniture.filter(id => v46Ids.furn.includes(id)),
+    });
   }
 });
 
@@ -923,6 +1069,37 @@ test('treats are bought with gems, kept in the jar, and used up when Ms. Menna e
   expect(await page.evaluate(() => state.treats)).toEqual({});
 });
 
+test('Ms. Menna has no color that looks like the classic one, and keeps the old ones for anyone who bought them', async ({ page }) => {
+  // Copies from v50 are gone. Copies that v48 sold are hidden, but kept so older saves don't lose them.
+  const same = await page.evaluate(() => [...Object.values(ITEMS), ...Object.values(FURN)].filter(c => c.same).map(c => c.id).sort());
+  expect(same).toEqual(['bandana.r', 'beanbag.p', 'drum.r', 'poolfloat.k', 'toybox.o']);
+  expect(await page.evaluate(() => [ITEMS.dinohood.colors.length, 'dinohood.g' in ITEMS])).toEqual([10, false]);
+
+  await page.evaluate(() => { state.gems = 500; saveState(); });
+  await page.reload();
+  await page.locator('#houseBtn').click();
+  await page.locator('#closetBtn').click();
+  await page.locator('.closet-tab[data-slot="neck"]').click();
+  await page.locator('.item[data-id="bandana"]').click();
+  await expect(page.locator('.color-btn')).toHaveCount(10);
+  await expect(page.locator('.color-btn[data-id="bandana.r"]')).toHaveCount(0);
+  await expect(page.locator('#colorRow .color-title span')).toHaveText('0 of 10 are yours');
+
+  // An older save that bought the copy still has it, and it still counts
+  await page.evaluate(() => { state.owned.push('bandana.r'); state.worn.neck = 'bandana.r'; saveState(); });
+  await page.reload();
+  await page.locator('#houseBtn').click();
+  await page.locator('#closetBtn').click();
+  await page.locator('.closet-tab[data-slot="neck"]').click();
+  await expect(page.locator('.item[data-id="bandana"] .price')).toHaveText('🎨 1 of 11');
+  await page.locator('.item[data-id="bandana"]').click();
+  await expect(page.locator('.color-btn[data-id="bandana.r"] .price')).toHaveText('Wearing ✓');
+
+  // The same goes for furniture
+  const drum = await page.evaluate(() => [forSale(FURN.drum, ownsFurn).length, (state.furniture.push('drum.r'), forSale(FURN.drum, ownsFurn).length)]);
+  expect(drum).toEqual([10, 11]);
+});
+
 test('Ms. Menna buys toys, plays with them, and uses them in streak tricks', async ({ page }) => {
   await page.evaluate(() => { state.gems = 30; state.totalCents = 90; saveState(); });
   await page.reload();
@@ -956,6 +1133,74 @@ test('Ms. Menna buys toys, plays with them, and uses them in streak tricks', asy
   expect(say).toContain('Fetch');
   await expect(page.locator('#pomGame')).toHaveClass(/play-ball/);
   expect(await page.evaluate(() => doTrick(7).cls)).toBe('trick-spin');
+});
+
+test('the picture toys play from the shelf in every color, and stay still with Reduce Motion', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  const ids = ['dino', 'rocket', 'truck', 'chest'];
+  await page.evaluate(ids => {
+    state.toys = Object.fromEntries(ids.map(id => [id, id]));
+    state.owned = [...ids];
+    saveState();
+  }, ids);
+  await page.reload();
+  await page.locator('#houseBtn').click();
+  await expect(page.locator('#toyShelf .toy-btn .toy-pic')).toHaveCount(4);
+  for (const id of ids) {
+    await page.locator(`#toyShelf .toy-btn[data-id="${id}"]`).click();
+    await expect(page.locator('#pomHouse')).toHaveClass(new RegExp('play-' + id));
+    await expect(page.locator('#pomHouse .toy-fx .toy-pic svg')).toHaveCount(1);
+    expect(await page.evaluate(() => $('pomHouse').toyTl.duration())).toBeGreaterThan(1);
+  }
+  // Every color draws
+  const drawn = await page.evaluate(ids => ids.flatMap(id => ITEMS[id].colors.map(look => toyFace(look, 'x').includes('<svg'))), ids);
+  expect(drawn).toHaveLength(42); // the dino has no green and the truck no red, which look like their classic ones
+  expect(drawn.every(Boolean)).toBe(true);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.locator('#toyShelf .toy-btn[data-id="rocket"]').click();
+  const moved = await page.evaluate(() => {
+    const tl = $('pomHouse').toyTl;
+    tl.pause().seek(0.6);
+    const fx = $('pomHouse').querySelector('.toy-fx');
+    return [fx.className, Math.round(gsap.getProperty(fx, 'y')) || 0, gsap.getProperty(fx, 'scaleY')];
+  });
+  expect(moved).toEqual(['toy-fx rocket', 0, 1]); // still on the floor at what would be the top of its flight
+  expect(errors).toEqual([]);
+});
+
+test('the Service Dog Vest comes off to play and goes back on to teach', async ({ page }) => {
+  const vest = id => page.evaluate(id => $(id).querySelector('.acc-body').innerHTML !== '', id);
+  const opacity = id => page.evaluate(id => Number(getComputedStyle($(id).querySelector('.acc-body')).opacity), id);
+  await page.evaluate(() => { state.gems = 500; state.rooms.push('bedroom'); state.toys.ball = 'ball'; state.owned.push('ball'); saveState(); });
+  await page.reload();
+  await page.locator('#houseBtn').click();
+  await page.locator('#closetBtn').click();
+  await page.locator('.closet-tab[data-slot="body"]').click();
+  await page.locator('.closet-items .item').filter({ hasText: 'Service' }).click();
+  await page.locator('#colorRow .color-btn').first().click();
+  await page.locator('#buyBtn').click();
+  await expect(page.locator('#closetBubble')).toContainText("When my vest is on, I'm working");
+  // Off while she plays with a toy, then back on
+  await page.evaluate(() => playToy($('pomCloset'), 'ball'));
+  await expect.poll(() => opacity('pomCloset')).toBe(0);
+  await expect.poll(() => opacity('pomCloset'), { timeout: 4000 }).toBe(1);
+  // Off at home and in the start screen's room peek, on to teach
+  await page.locator('#closetBackBtn').click();
+  await expect(page.locator('#houseBubble')).toContainText('Vest off. Play time!');
+  await expect.poll(() => vest('pomHouse')).toBe(false);
+  await page.locator('#houseBackBtn').click();
+  expect(await vest('pomStart')).toBe(true);
+  expect(await vest('pomPeek')).toBe(false);
+  await expect.poll(() => opacity('pomStart')).toBe(1);
+  expect(await page.evaluate(() => state.worn.body)).toBe('helpervest');
+  // Each line is said only once
+  await page.locator('#houseBtn').click();
+  await expect(page.locator('#houseBubble')).not.toContainText('Vest off');
+  // Other suits stay on at home
+  await page.evaluate(() => { state.owned.push('dinosuit'); state.worn.body = 'dinosuit'; dressAllPoms(); });
+  expect(await vest('pomHouse')).toBe(true);
 });
 
 test('the Bedroom needs 20 stickers, but the Closet works before that', async ({ page }) => {
@@ -2197,7 +2442,8 @@ test('an older plain cookie still loads, and is saved again compressed', async (
     divide: DIVIDE_KEYS.filter(hasSticker).length,
   }));
   // The 210 shared stickers are now 400: 20 squares like 3 × 3, and 190 pairs like 3 × 7 and 7 × 3
-  expect(saved).toEqual({ gems: 8, lz: true, cookie: 26, local: 26, times: 400, divide: 0 });
+  const v = await page.evaluate(() => SAVE_VERSION);
+  expect(saved).toEqual({ gems: 8, lz: true, cookie: v, local: v, times: 400, divide: 0 });
 });
 
 test('older stickers get spread-out first visits, and review dates survive a reload', async ({ page }) => {

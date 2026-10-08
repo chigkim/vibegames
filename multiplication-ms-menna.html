@@ -162,21 +162,25 @@
   .gem-badge.drop { animation: bankDrop 0.45s ease; }
   .fly-gem { position: absolute; font-size: 1.6rem; line-height: 1; }
 
-  .pom-container.bounce { animation: pomBounce 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+  /* Bounce crouches first, stretches up as she hops, squashes on landing, then settles. */
+  .pom-container.bounce { animation: pomBounce 0.6s ease-in-out; transform-origin: 50% 100%; }
   @keyframes pomBounce {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.2) rotate(-6deg) translateY(-8px); }
-    70% { transform: scale(0.95) rotate(3deg); }
-    100% { transform: scale(1) rotate(0deg); }
+    0% { transform: none; }
+    15% { transform: scale(1.08, 0.9); }
+    40% { transform: translateY(-14px) rotate(-5deg) scale(0.95, 1.1); }
+    65% { transform: scale(1.07, 0.93); }
+    82% { transform: rotate(2deg) scale(0.98, 1.02); }
+    100% { transform: none; }
   }
 
-  .pom-container.shake { animation: pomShake 0.5s ease; }
+  /* Shake rocks on her feet and dies down, like a puzzled wobble. */
+  .pom-container.shake { animation: pomShake 0.5s ease; transform-origin: 50% 100%; }
   @keyframes pomShake {
     0%,100% { transform: rotate(0deg); }
-    20% { transform: rotate(-8deg); }
-    40% { transform: rotate(8deg); }
-    60% { transform: rotate(-6deg); }
-    80% { transform: rotate(6deg); }
+    20% { transform: rotate(-7deg); }
+    40% { transform: rotate(6deg); }
+    60% { transform: rotate(-4deg); }
+    80% { transform: rotate(2deg); }
   }
 
   /* Tricks for answers right in a row */
@@ -539,6 +543,48 @@
     85% { transform: translateY(0) scale(1); }
   }
 
+  /* Picture toys: GSAP moves the toy, CSS moves her whole picture. */
+  .toy-fx.dino, .toy-fx.chest { left: 84%; top: 82%; }
+  .toy-fx.rocket { left: 84%; top: 80%; }
+  .toy-fx.truck { left: 16%; top: 86%; }
+  .toy-fx.toy-spark { font-size: calc(var(--s) * clamp(0.9rem, 2.6vmin, 1.2rem)); z-index: 3; }
+  /* Dino: she jumps back at the rawr, lands, then giggles. */
+  .pom-container.play-dino > svg { animation: pomStartle 1.4s ease-in-out; transform-origin: 50% 100%; }
+  @keyframes pomStartle {
+    0%, 55%, 100% { transform: none; }
+    62% { transform: translate(calc(-8px * var(--s)), calc(-12px * var(--s))) rotate(-6deg); }
+    72% { transform: translate(calc(-8px * var(--s)), 0) scale(1.06, 0.92); }
+    80% { transform: translate(calc(-6px * var(--s)), 0); }
+  }
+  /* Rocket: she leans back to watch it go up, then hops when it lands. */
+  .pom-container.play-rocket > svg { animation: pomWatchUp 1.45s ease-in-out; transform-origin: 50% 100%; }
+  @keyframes pomWatchUp {
+    0%, 15%, 100% { transform: none; }
+    30%, 62% { transform: translateY(calc(2px * var(--s))) rotate(-4deg); }
+    80% { transform: none; }
+    86% { transform: translateY(calc(3px * var(--s))) scale(1.06, 0.93); }
+    92% { transform: translateY(calc(-12px * var(--s))); }
+  }
+  /* Fire truck: she bounces with excitement as it drives in, and jumps at the honk. */
+  .pom-container.play-truck > svg { animation: pomExcited 1.4s ease-in-out; transform-origin: 50% 100%; }
+  @keyframes pomExcited {
+    0%, 100% { transform: none; }
+    12%, 36% { transform: translateY(calc(-5px * var(--s))); }
+    24%, 48% { transform: scale(1.03, 0.97); }
+    60%, 72% { transform: none; }
+    78% { transform: translateY(calc(-14px * var(--s))) rotate(-4deg); }
+    88% { transform: scale(1.05, 0.94); }
+  }
+  /* Treasure chest: she leans in to look, gasps up at the treasure, then settles. */
+  .pom-container.play-chest > svg { animation: pomGasp 1.45s ease-in-out; transform-origin: 50% 100%; }
+  @keyframes pomGasp {
+    0%, 100% { transform: none; }
+    25%, 40% { transform: translateX(calc(6px * var(--s))) rotate(4deg); }
+    46% { transform: translateX(calc(6px * var(--s))) scale(1.04, 0.95); }
+    54% { transform: translate(calc(3px * var(--s)), calc(-10px * var(--s))) scale(0.97, 1.05); }
+    66% { transform: none; }
+  }
+
   /* Pom's toys on the start screen */
   .toy-shelf { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 2px 0 12px; }
   .toy-shelf[hidden] { display: none; }
@@ -677,6 +723,8 @@
   }
 
   h1 span { color: var(--orange); }
+  /* On narrow phones the title keeps clear of the mute button in the top corner. */
+  @media (max-width: 480px) { .card > h1:first-child { padding: 0 40px; } }
 
   .version { font-size: 11px; opacity: 0.4; font-family: monospace; margin-bottom: 12px; }
 
@@ -1269,9 +1317,11 @@
   .trick-choice span { font-size: clamp(2rem, 5vmin, 2.6rem); line-height: 1; }
 
   /* ===== POM'S CLOSET ===== */
-  .closet-pom { width: clamp(150px, 26vmin, 220px); height: clamp(150px, 26vmin, 220px); margin: 4px auto 18px; }
-  .closet-tabs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 12px; }
-  @media (max-width: 560px) { .closet-tabs { grid-template-columns: repeat(4, 1fr); } }
+  .closet-pom { width: clamp(150px, 26vmin, 220px); height: clamp(150px, 26vmin, 220px); margin: 4px auto 30px; }
+  /* Lower than elsewhere, so her paws and anything on them show while she tries things on */
+  .closet-pom .gem-badge { bottom: -20px; }
+  .closet-tabs { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin-bottom: 12px; }
+  @media (max-width: 560px) { .closet-tabs { grid-template-columns: repeat(5, 1fr); } }
   .closet-tab {
     min-width: 0;
     padding: 6px 2px;
@@ -1358,6 +1408,11 @@
     50% { filter: sepia(0.6) saturate(2) hue-rotate(280deg) brightness(1.45) drop-shadow(0 0 6px #FFD166); }
   }
   .toy-btn .toy-ico, .toy-fx .toy-ico { display: inline-block; }
+  .toy-pic { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: middle; }
+  .item .toy-pic { margin: 0 auto; }
+  .item .suit-pic { width: 1.75em; height: 1.35em; }
+  .toy-fx .toy-pic { width: 1.7em; height: 1.7em; }
+  .toy-pic svg { display: block; width: 100%; height: 100%; overflow: visible; }
   .btn-buy[hidden] { display: none; }
   .btn-buy { background: linear-gradient(135deg, #A994F5, #7B5BE0); color: white; width: 100%; }
   .closet-help { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin-top: 10px; }
@@ -1369,7 +1424,9 @@
   .house-peek { border-radius: 18px; pointer-events: none; }
   .house-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; padding-right: 52px; } /* clear of the mute button */
   .house-head h1 { margin: 0; white-space: nowrap; font-size: clamp(1.3rem, 6.5vw, 2.2rem); }
-  .house-head .gem-badge { position: static; transform: none; display: inline-block; }
+  .house-head .gem-badge { position: static; transform: none; display: inline-block; flex-shrink: 0; }
+  /* On phones the title wraps, so it never pushes the gem count under the mute button. */
+  @media (max-width: 480px) { .house-head h1 { white-space: normal; min-width: 0; text-align: left; } }
   .room-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
   .room-tab { padding: 4px 2px; }
   .room-tab .ico { font-size: 1.3em; }
@@ -1586,6 +1643,8 @@
       <ellipse cx="108" cy="62" rx="10" ry="7" class="f2" fill="#F0B870" transform="rotate(-30 108 62)"/>
     </g>
     <ellipse cx="65" cy="70" rx="22" ry="14" class="f3" fill="#F5C27A"/>
+    <g class="acc acc-body"></g>
+    <g class="acc acc-front"></g>
     <g class="pom-head">
       <ellipse cx="65" cy="52" rx="26" ry="24" class="f1" fill="#E8A85A"/>
       <ellipse cx="36" cy="52" rx="12" ry="16" class="f2" fill="#F0B870"/>
@@ -1624,6 +1683,7 @@
     <g class="pom-leg-r">
       <rect x="68" y="108" width="12" height="16" rx="6" class="f4" fill="#D4924A"/>
       <ellipse cx="74" cy="124" rx="8" ry="4" class="f5" fill="#C0824A"/>
+      <g class="acc acc-paws"></g>
     </g>
     <!-- Front paws hide in her fluff until a trick raises them. -->
     <g class="pom-arm-l" opacity="0">
@@ -1645,7 +1705,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v49 - Updated 2026-10-08 09:07 EDT</p>
+    <p class="version">v50 - Updated 2026-10-08 14:48 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1911,7 +1971,9 @@ const COOKIE_NAME = 'mennaMult';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 400; // Browsers cap cookie lifetime at 400 days.
 const COOKIE_MAX = 3900; // longest cookie copy, under the 4 KB browsers keep
 const COOKIE_LZ = 'lz'; // a v22 cookie is compressed and starts with this; older ones are plain JSON, starting with %7B
-const SAVE_VERSION = 26; // a save without this is in an older format and is saved again in the new one
+// The save format, in every copy: 25 split shared stickers (v25), 26 easy facts at 2 dots (v46), 27 `ownBits` (v50).
+// A save without this is in an older format and is saved again in the new one. Older versions only check `v >=`.
+const SAVE_VERSION = 27;
 const SPLIT_VERSION = 25; // saves before this had one sticker for 3 × 7 and 7 × 3, and one for 56 ÷ 7 and 56 ÷ 8
 const EASY_VERSION = 26; // saves before this (v46) needed 3 dots for facts with 0, 1 or 10
 const PICK_COLORS = ['#FFB3C6', '#FFD6B0', '#FFE08A', '#C8F0B0', '#A8DAFF', '#C9B8FF', '#FFC4A8',
@@ -1994,6 +2056,8 @@ const CLOSET_SLOTS = [
   { id: 'face', ico: '👓', name: 'Glasses' },
   { id: 'neck', ico: '🎀', name: 'Neck' },
   { id: 'back', ico: '🦸', name: 'Back' },
+  { id: 'body', ico: '🦖', name: 'Suits' },
+  { id: 'paws', ico: '⌚', name: 'Paws' },
   { id: 'fur', ico: '🎨', name: 'Fur' },
   { id: 'toy', ico: '🧸', name: 'Toys' },
   { id: 'treat', ico: '🍪', name: 'Treats' },
@@ -2012,6 +2076,446 @@ const TREATS = [
 ];
 const TREAT = Object.fromEntries(TREATS.map(t => [t.id, t]));
 const MAX_TREATS = 99; // of each kind
+
+// Drawings shared by an item's classic look and its colors.
+// A four-point twinkle around (x, y).
+const sparkle = (x, y, r, fill = '#fff') =>
+  `<path d="M${x} ${y - r} Q${x} ${y} ${x + r} ${y} Q${x} ${y} ${x} ${y + r} Q${x} ${y} ${x - r} ${y} Q${x} ${y} ${x} ${y - r} Z" fill="${fill}"/>`;
+// A soft felt hood: round spikes, floppy felt teeth, and big googly eyes that peek down at her.
+const dinoHood = (m, d, a) => `<g fill="${a}" stroke="${d}" stroke-width="1.2" stroke-linejoin="round">` +
+  '<path d="M50 19 Q50 9 55 6 Q60 9 61 15 Z"/><path d="M59 15 Q60 3 65 1 Q70 3 71 15 Z"/><path d="M69 15 Q70 9 75 6 Q80 9 80 19 Z"/></g>' +
+  `<path d="M38 40 Q37 13 65 13 Q93 13 92 40 Q80 33 65 33 Q50 33 38 40 Z" fill="${m}" stroke="${d}" stroke-width="1.5"/>` +
+  `<g fill="${a}" opacity="0.55"><circle cx="84" cy="27" r="2.6"/><circle cx="88" cy="33" r="1.6"/><circle cx="45" cy="28" r="1.8"/></g>` +
+  '<path d="M44 27 Q49 18 59 16" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.4"/>' +
+  `<g fill="#fff" stroke="${d}" stroke-width="0.8" stroke-linejoin="round">` +
+  [[45, 36.5], [53, 34.2], [61, 33.2], [69, 33.2], [77, 34.2], [85, 36.5]].map(([x, y]) => `<path d="M${x - 3} ${y} Q${x} ${y + 6} ${x + 3} ${y} Z"/>`).join('') + '</g>' +
+  `<g fill="#fff" stroke="${d}" stroke-width="1"><circle cx="55" cy="22" r="4.3"/><circle cx="75" cy="22" r="4.3"/></g>` +
+  '<g fill="#3D2B1F"><circle cx="56" cy="23.6" r="2.3"/><circle cx="74" cy="23.6" r="2.3"/></g>' +
+  '<g fill="#fff"><circle cx="56.8" cy="22.7" r="0.8"/><circle cx="74.8" cy="22.7" r="0.8"/></g>' +
+  '<g fill="#FF8FB1" opacity="0.7"><ellipse cx="49" cy="27.5" rx="2.6" ry="1.5"/><ellipse cx="81" cy="27.5" rx="2.6" ry="1.5"/></g>';
+// A tall swirly horn with a little flower on each side and twinkles around the tip.
+const unicornHorn = (m, d, a) => `<path d="M58.5 30 Q61 14 65 1 Q69 14 71.5 30 Q65 32 58.5 30 Z" fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"/>` +
+  `<path d="M59.5 25 Q65 23 70.5 20 M61 18 Q65 16.5 69 13.5 M62.5 11 Q65 10 67 8" stroke="${d}" stroke-width="1.6" fill="none" stroke-linecap="round"/>` +
+  '<path d="M62 27 Q63 16 65 6" stroke="#fff" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.6"/>' +
+  [[54, 30], [76, 30]].map(([x, y]) => `<g fill="${a}">` + [0, 72, 144, 216, 288].map(t =>
+    `<circle cx="${(x + 2.6 * Math.sin(t * Math.PI / 180)).toFixed(1)}" cy="${(y - 2.6 * Math.cos(t * Math.PI / 180)).toFixed(1)}" r="2"/>`).join('') +
+    `</g><circle cx="${x}" cy="${y}" r="1.4" fill="#FFD93D"/>`).join('') +
+  sparkle(74, 7, 3.5, '#FFD93D') + sparkle(56, 13, 2.5, '#FFD93D') + sparkle(77, 17, 1.8);
+// Five flowers across the top of her head with leaves between them; the petal colors take turns.
+const flowerCrown = (petals, middle) => '<path d="M40 33 Q65 18 90 33" stroke="#5CC46A" stroke-width="2.5" fill="none"/>' +
+  '<g fill="#5CC46A">' + [[47, 29, -50], [59, 24, -15], [71, 24, 15], [83, 29, 50]].map(([x, y, r]) =>
+    `<ellipse cx="${x}" cy="${y - 1}" rx="1.6" ry="3.4" transform="rotate(${r} ${x} ${y})"/>`).join('') + '</g>' +
+  [[42, 32], [53, 26], [65, 23], [77, 26], [88, 32]].map(([x, y], i) => `<g fill="${petals[i % petals.length]}">` +
+    [0, 72, 144, 216, 288].map(t => `<circle cx="${(x + 3.6 * Math.sin(t * Math.PI / 180)).toFixed(1)}" cy="${(y - 3.6 * Math.cos(t * Math.PI / 180)).toFixed(1)}" r="2.8"/>`).join('') +
+    `</g><circle cx="${x}" cy="${y}" r="2" fill="${middle}"/>`).join('');
+// A see-through bubble over her whole head, with a glowing light on top and star stickers on the rim.
+const spaceHelmet = (m, d, a) => `<circle cx="65" cy="48" r="35" fill="rgba(200,230,255,0.08)" stroke="${m}" stroke-width="4"/>` +
+  `<circle cx="65" cy="48" r="37" fill="none" stroke="${d}" stroke-width="1"/>` +
+  '<path d="M40 33 Q48 22 60 19" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.8"/>' +
+  '<circle cx="38" cy="40" r="1.6" fill="#fff" opacity="0.8"/>' +
+  `<path d="${starPath(36, 66, 3.6)} ${starPath(94, 66, 3.6)}" fill="#FFD93D" stroke="${d}" stroke-width="0.6" stroke-linejoin="round"/>` +
+  `<rect x="62" y="8" width="6" height="6" rx="1" fill="${d}"/><circle cx="65" cy="7" r="6" fill="${a}" opacity="0.3"/>` +
+  `<circle cx="65" cy="7" r="3" fill="${a}"/><circle cx="64" cy="6" r="1" fill="#fff" opacity="0.85"/>`;
+
+// A headband with two boingy springs and glowing tips, and a tiny bolt in each ear cup.
+const robotAntenna = (m, d, a) => `<path d="M42 34 Q65 16 88 34" stroke="${d}" stroke-width="4" fill="none" stroke-linecap="round"/>` +
+  `<path d="M54 23 Q50 20 54 18 Q58 16 54 14 Q50 12 54 10 Q58 8 54 6 M76 23 Q80 20 76 18 Q72 16 76 14 Q80 12 76 10 Q72 8 76 6" stroke="${d}" stroke-width="1.8" fill="none" stroke-linecap="round"/>` +
+  `<g fill="${m}" stroke="${d}" stroke-width="1"><rect x="49" y="21" width="10" height="7" rx="2.5"/><rect x="71" y="21" width="10" height="7" rx="2.5"/></g>` +
+  `<g fill="${d}"><circle cx="54" cy="24.5" r="1.2"/><circle cx="76" cy="24.5" r="1.2"/></g>` +
+  `<g fill="${a}" opacity="0.3"><circle cx="54" cy="4" r="6"/><circle cx="76" cy="4" r="6"/></g>` +
+  `<g fill="${a}"><circle cx="54" cy="4" r="3.5"/><circle cx="76" cy="4" r="3.5"/></g>` +
+  '<g fill="#fff" opacity="0.85"><circle cx="53" cy="2.8" r="1.2"/><circle cx="75" cy="2.8" r="1.2"/></g>';
+// A three-cornered hat with a gold star and a curly feather, not a skull, so it stays friendly.
+const pirateHat = (m, d, a) => `<path d="M47 26 Q48 9 65 9 Q82 9 83 26 Z" fill="${d}"/>` +
+  `<path d="M33 14 Q48 27 65 29 Q82 27 97 14 Q94 34 65 37 Q36 34 33 14 Z" fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"/>` +
+  `<path d="M35 18 Q49 30 65 32 Q81 30 95 18" stroke="${a}" stroke-width="1.5" fill="none"/>` +
+  `<path d="${starPath(65, 23.5, 5)}" fill="${a}" stroke="${d}" stroke-width="0.6" stroke-linejoin="round"/>` +
+  '<path d="M80 23 Q82 8 97 3 Q99 7 95 10 Q97 12 92 15 Q93 18 87 19 Q84 22 80 23 Z" fill="#fff" stroke="#C9C2D6" stroke-width="1" stroke-linejoin="round"/>' +
+  '<path d="M81 22 Q86 12 96 4.5" stroke="#C9C2D6" stroke-width="1" fill="none"/>' +
+  '<path d="M53 16 Q57 12 63 11" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.35"/>';
+// A round helmet with a long back brim and a badge on the front.
+const fireHelmet = (m, d, a) => `<path d="M36 33 Q65 42 94 33 Q95 29 90 29 L40 29 Q35 29 36 33 Z" fill="${d}"/>` +
+  `<path d="M44 30 Q43 9 65 9 Q87 9 86 30 Z" fill="${m}" stroke="${d}" stroke-width="1.5"/>` +
+  `<path d="M65 10 L65 29" stroke="${d}" stroke-width="2"/>` +
+  `<path d="M58 15 L72 15 L71 25 Q65 29 59 25 Z" fill="${a}" stroke="${d}" stroke-width="1"/>` +
+  `<path d="${starPath(65, 20.5, 3.6)}" fill="${d}"/>` +
+  '<path d="M48 24 Q48 14 57 11" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.5"/>';
+// A shiny race helmet sitting high on her head, with a racing stripe and the visor tipped up.
+const racingHelmet = (m, d, a) => `<path d="M42 34 Q40 8 65 8 Q90 8 88 34 Q65 28 42 34 Z" fill="${m}" stroke="${d}" stroke-width="1.5"/>` +
+  `<path d="M60 8.5 L70 8.5 L70 29.5 Q65 29 60 29.5 Z" fill="${a}"/>` +
+  '<path d="M44 33 Q65 23 86 33 L84 25 Q65 16 46 25 Z" fill="#2C3440" stroke="#16161C" stroke-width="1"/>' +
+  '<path d="M50 26 Q58 21 66 21" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.6"/>' +
+  '<g fill="#16161C"><rect x="76" y="12" width="3" height="3"/><rect x="79" y="15" width="3" height="3"/><rect x="76" y="18" width="3" height="3"/></g>' +
+  '<g fill="#fff"><rect x="79" y="12" width="3" height="3"/><rect x="76" y="15" width="3" height="3"/><rect x="79" y="18" width="3" height="3"/></g>' +
+  '<path d="M48 17 Q51 12 57 11" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.7"/>' +
+  `<path d="M53 13 L49 19.5 L52 19.5 L49.5 25 L56 17.5 L53 17.5 L55.5 13 Z" fill="#FFD93D" stroke="${d}" stroke-width="0.6" stroke-linejoin="round"/>`;
+
+// A five-point star path around (x, y), r is the outer size.
+const starPath = (x, y, r) => 'M' + [...Array(10)].map((_, i) => {
+  const t = i * Math.PI / 5, s = i % 2 ? r * 0.5 : r;
+  return `${(x + s * Math.sin(t)).toFixed(1)} ${(y - s * Math.cos(t)).toFixed(1)}`;
+}).join(' L') + ' Z';
+const starGlasses = (m, d) => `<path d="${starPath(57, 50, 9)} ${starPath(73, 50, 9)}" fill="${m}" fill-opacity="0.6" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` +
+  `<path d="M63.5 49 Q65 47 66.5 49" stroke="${d}" stroke-width="2" fill="none"/>` +
+  '<g fill="#fff" opacity="0.7"><circle cx="54.5" cy="47.5" r="1.5"/><circle cx="70.5" cy="47.5" r="1.5"/></g>' +
+  sparkle(46, 42, 2.6, '#FFD93D') + sparkle(84, 41, 3, '#FFD93D') + sparkle(87, 47, 1.6);
+// A round patch with a little heart over one eye; the other eye still winks out.
+const eyePatch = (m, d, a) => `<path d="M46 40 L86 56" stroke="${d}" stroke-width="1.8"/>` +
+  `<circle cx="73" cy="50" r="7.5" fill="${m}" stroke="${d}" stroke-width="1.5"/>` +
+  `<path d="M73 54 C69 51 69.5 47.5 73 49 C76.5 47.5 77 51 73 54 Z" fill="${a}"/>`;
+// A mask across both eyes, with holes so her eyes show and ribbon ties that flutter out behind.
+const heroMask = (m, d) => `<path d="M46 47 Q47 41 57 42 Q65 44 73 42 Q83 41 84 47 Q83 57 73 56 Q65 53 57 56 Q47 57 46 47 Z ` +
+  `M51 49.5 a6 5.5 0 1 0 12 0 a6 5.5 0 1 0 -12 0 Z M67 49.5 a6 5.5 0 1 0 12 0 a6 5.5 0 1 0 -12 0 Z" fill="${m}" fill-rule="evenodd" stroke="${d}" stroke-width="1.2"/>` +
+  `<path d="M46 45 Q41 40 36 42 Q38 44 35 47 Q41 47 46 47 Z M84 45 Q89 40 94 42 Q92 44 95 47 Q89 47 84 47 Z" fill="${m}" stroke="${d}" stroke-width="1" stroke-linejoin="round"/>` +
+  '<path d="M50 45 Q53 42.5 57 43" stroke="#fff" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.6"/>';
+// Racing goggles: thick rims, a strap to each side, and a shine on the lenses.
+const goggles = (m, d) => `<path d="M42 49 L49 49 M81 49 L88 49" stroke="${d}" stroke-width="3.5" stroke-linecap="round"/>` +
+  `<g fill="rgba(170,220,255,0.35)" stroke="${m}" stroke-width="3.5"><circle cx="57" cy="50" r="7.5"/><circle cx="73" cy="50" r="7.5"/></g>` +
+  `<path d="M63 49 L67 49" stroke="${d}" stroke-width="3"/>` +
+  '<path d="M53 47 Q55 45 57.5 45 M69 47 Q71 45 73.5 45" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.8"/>';
+// Flowers all the way around her neck with leaves tucked between; the petal colors take turns.
+const flowerLei = (petals, middle) => '<g fill="#5CC46A">' + [[48, 71, -60], [54.5, 75, -30], [61.5, 77, -8], [68.5, 77, 8], [75.5, 75, 30], [82, 71, 60]].map(([x, y, r]) =>
+  `<ellipse cx="${x}" cy="${y}" rx="1.4" ry="3" transform="rotate(${r} ${x} ${y})"/>`).join('') + '</g>' + [[45, 67], [51, 71.5], [58, 74.5], [65, 75.5], [72, 74.5], [79, 71.5], [85, 67]].map(([x, y], i) =>
+  `<g fill="${petals[i % petals.length]}">` + [0, 72, 144, 216, 288].map(t =>
+    `<circle cx="${(x + 3.4 * Math.sin(t * Math.PI / 180)).toFixed(1)}" cy="${(y - 3.4 * Math.cos(t * Math.PI / 180)).toFixed(1)}" r="2.6"/>`).join('') +
+  `</g><circle cx="${x}" cy="${y}" r="1.7" fill="${middle}"/>`).join('');
+
+// Squishy round-tipped spikes poking out along both sides of her body, bigger near the middle.
+const dinoSpikes = (m, d, a) => [[31, 71, 13], [28, 86, 15], [32, 101, 12]].map(([x, y, s]) => {
+  // Each spike is a cone whose tip curls a little upward and ends in a soft round bump.
+  const h = s * 0.42, ty = y - 2.5, side = (k, tip, dir) =>
+    `<path d="M${k} ${y - h} L${tip + dir * 2.5} ${ty - 1.8} Q${tip} ${ty} ${tip + dir * 2.5} ${ty + 1.8} L${k} ${y + h} Z"/>`;
+  return side(x + 4, x - s, 1) + side(130 - x - 4, 130 - x + s, -1);
+}).join('').replace(/^/, `<g fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round">`) + '</g>' +
+  `<g fill="${a}" opacity="0.8"><circle cx="20" cy="84" r="1.8"/><circle cx="110" cy="84" r="1.8"/></g>`;
+// Two rocket tanks behind her shoulders, with puffy flames, rivets and a star sticker.
+const jetpack = (m, d, a) => '<g fill="#FF7A45"><path d="M17 95 Q16 104 20 106 Q22 111 24 114 Q26 111 28 106 Q32 104 31 95 Z M99 95 Q98 104 102 106 Q104 111 106 114 Q108 111 110 106 Q114 104 113 95 Z"/></g>' +
+  '<g fill="#FFD93D"><path d="M20 95 Q20 102 24 107 Q28 102 28 95 Z M102 95 Q102 102 106 107 Q110 102 110 95 Z"/></g>' +
+  '<g fill="#FFF6D6"><ellipse cx="24" cy="98" rx="2" ry="3"/><ellipse cx="106" cy="98" rx="2" ry="3"/></g>' +
+  `<g fill="${d}"><rect x="19" y="88" width="10" height="8" rx="2"/><rect x="101" y="88" width="10" height="8" rx="2"/></g>` +
+  `<g fill="${m}" stroke="${d}" stroke-width="1.5"><rect x="16" y="56" width="16" height="34" rx="8"/><rect x="98" y="56" width="16" height="34" rx="8"/></g>` +
+  `<g fill="${a}"><rect x="16.7" y="70" width="14.6" height="4"/><rect x="98.7" y="70" width="14.6" height="4"/></g>` +
+  '<path d="M20 62 L20 68 M102 62 L102 68" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.6"/>' +
+  `<g fill="${d}"><circle cx="24" cy="79" r="1"/><circle cx="24" cy="84" r="1"/><circle cx="106" cy="79" r="1"/><circle cx="106" cy="84" r="1"/></g>` +
+  `<path d="${starPath(24, 64, 3.2)}" fill="#FFD93D" stroke="${d}" stroke-width="0.5"/>`;
+// Big top wings and small bottom wings, with a lighter inner panel and heart spots.
+const butterflyWings = (m, d, a) => `<g fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round">` +
+  '<path d="M44 72 Q24 40 10 48 Q2 60 16 76 Q28 84 44 80 Z M86 72 Q106 40 120 48 Q128 60 114 76 Q102 84 86 80 Z"/>' +
+  '<path d="M44 82 Q24 84 18 96 Q20 108 32 104 Q42 98 46 88 Z M86 82 Q106 84 112 96 Q110 108 98 104 Q88 98 84 88 Z"/></g>' +
+  '<g fill="#fff" opacity="0.3"><path d="M42 72 Q28 50 17 54 Q12 62 20 72 Q30 79 42 77 Z M88 72 Q102 50 113 54 Q118 62 110 72 Q100 79 88 77 Z"/></g>' +
+  `<g fill="${a}" stroke="${d}" stroke-width="0.6">` + [[22, 59, 5], [108, 59, 5], [28, 96, 3.2], [102, 96, 3.2]].map(([x, y, r]) =>
+    `<path d="M${x} ${y + r} C${x - r * 1.4} ${y} ${x - r * 0.9} ${y - r} ${x} ${y - r * 0.35} C${x + r * 0.9} ${y - r} ${x + r * 1.4} ${y} ${x} ${y + r} Z"/>`).join('') + '</g>' +
+  '<g fill="#fff" opacity="0.7"><circle cx="14" cy="66" r="2.5"/><circle cx="116" cy="66" r="2.5"/></g>';
+
+// Body suits cover her body and haunches, under her head and legs, so her face and paws always show.
+// The shapes are drawn twice, outlined then filled, so they read as one soft suit with a single outline.
+const suitBody = (m, d) => {
+  const shapes = '<ellipse cx="65" cy="85" rx="38.5" ry="30.5"/><ellipse cx="40" cy="89" rx="14.5" ry="12.5"/><ellipse cx="90" cy="89" rx="14.5" ry="12.5"/>';
+  return `<g fill="${m}" stroke="${d}" stroke-width="3">${shapes}</g><g fill="${m}">${shapes}</g>` +
+    '<path d="M33 80 Q35 69 44 63" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.4"/>';
+};
+const heartPath = (x, y, r) => `M${x} ${y + r} C${x - r * 1.4} ${y} ${x - r * 0.9} ${y - r} ${x} ${y - r * 0.35} C${x + r * 0.9} ${y - r} ${x + r * 1.4} ${y} ${x} ${y + r} Z`;
+// A cozy dino onesie: a striped tummy and soft spots.
+const dinoSuit = (m, d, a) => suitBody(m, d) +
+  `<ellipse cx="65" cy="95" rx="17" ry="13" fill="${a}" stroke="${d}" stroke-width="1.2"/>` +
+  `<path d="M50 90 Q65 93.5 80 90 M50.5 98 Q65 101.5 79.5 98" stroke="${d}" stroke-width="1.2" fill="none" opacity="0.45"/>` +
+  `<g fill="${d}" opacity="0.3">` + [[34, 81, 3], [30, 93, 2], [96, 81, 3], [100, 94, 2], [42, 104, 2.2], [88, 104, 2.2]]
+    .map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join('') + '</g>';
+// A sparkly unicorn onesie with a little rainbow and fluffy clouds on the tummy.
+const uniSuit = (m, d, a) => suitBody(m, d) +
+  [['#FF7EB6', 14], ['#FFD93D', 10.5], ['#6FC3F2', 7]].map(([c, r]) =>
+    `<path d="M${65 - r} 104 A${r} ${r} 0 0 1 ${65 + r} 104" stroke="${c}" stroke-width="3.5" fill="none"/>`).join('') +
+  `<g fill="#fff" stroke="${d}" stroke-width="0.8">` + [51, 79].map(x =>
+    `<circle cx="${x - 3}" cy="105" r="3"/><circle cx="${x + 3}" cy="105" r="3"/><circle cx="${x}" cy="102.5" r="3.6"/>`).join('') + '</g>' +
+  `<g fill="#fff">` + [51, 79].map(x => `<rect x="${x - 4}" y="103" width="8" height="3"/>`).join('') + '</g>' +
+  `<path d="${heartPath(33, 92, 3.2)} ${heartPath(98, 78, 2.8)}" fill="${a}" stroke="${d}" stroke-width="0.6"/>` +
+  sparkle(36, 78, 3, '#FFD93D') + sparkle(99, 92, 2.6, '#FFD93D') + sparkle(43, 103, 2) + sparkle(89, 103, 2);
+// A puffy space suit: a control panel with three buttons, a belt and a star patch.
+const astroSuit = (m, d, a) => suitBody(m, d) +
+  `<path d="M30 99 Q65 113 100 99" stroke="${d}" stroke-width="4" fill="none" stroke-linecap="round"/>` +
+  `<rect x="54" y="80" width="22" height="15" rx="3" fill="#fff" stroke="${d}" stroke-width="1.2"/>` +
+  `<g stroke="${d}" stroke-width="0.6"><circle cx="59" cy="87.5" r="2.2" fill="#E94B4B"/><circle cx="65" cy="87.5" r="2.2" fill="#FFD93D"/>` +
+  `<circle cx="71" cy="87.5" r="2.2" fill="${a}"/></g>` +
+  `<circle cx="38" cy="87" r="6" fill="#2A3A6E" stroke="${d}" stroke-width="1"/><path d="${starPath(38, 87, 3.8)}" fill="#FFD93D"/>` +
+  `<path d="M89 80 L98 84 M87 86 L96 90" stroke="${a}" stroke-width="2.5" stroke-linecap="round"/>`;
+// A friendly robot suit: a chest plate with a glowing heart, bolts, a dial and side vents.
+const roboSuit = (m, d, a) => suitBody(m, d) +
+  `<rect x="51" y="79" width="28" height="21" rx="4" fill="#fff" fill-opacity="0.3" stroke="${d}" stroke-width="1.4"/>` +
+  `<circle cx="65" cy="89" r="7" fill="${a}" opacity="0.3"/><path d="${heartPath(65, 89, 4.2)}" fill="${a}" stroke="${d}" stroke-width="0.8"/>` +
+  `<g fill="${d}"><circle cx="54.5" cy="82.5" r="1.2"/><circle cx="75.5" cy="82.5" r="1.2"/><circle cx="54.5" cy="96.5" r="1.2"/><circle cx="75.5" cy="96.5" r="1.2"/></g>` +
+  `<path d="M33 85 H43 M32 89.5 H43 M33 94 H43" stroke="${d}" stroke-width="1.6" stroke-linecap="round" opacity="0.7"/>` +
+  `<circle cx="92" cy="87" r="4.5" fill="#fff" stroke="${d}" stroke-width="1.2"/><path d="M92 87 L94.5 84.5" stroke="${d}" stroke-width="1.2" stroke-linecap="round"/>` +
+  `<circle cx="92" cy="87" r="1" fill="${a}"/>`;
+
+// Stripes across the suit at these heights, each as wide as her body is there.
+const suitStripes = (ys, color, width) => ys.map(y => {
+  const w = 38.5 * Math.sqrt(1 - ((y - 85) / 30.5) ** 2) - 3;
+  return `<path d="M${(65 - w).toFixed(1)} ${y} Q65 ${y + 4} ${(65 + w).toFixed(1)} ${y}" stroke="${color}" stroke-width="${width}" fill="none" stroke-linecap="round"/>`;
+}).join('');
+// A striped pirate shirt with a sash belt, a gold buckle and an anchor patch.
+const pirateSuit = (m, d, a) => suitBody(m, d) + suitStripes([79, 88, 106], a, 3.5) +
+  `<path d="M30 96 Q65 108 100 96" stroke="#6B4226" stroke-width="6" fill="none" stroke-linecap="round"/>` +
+  `<rect x="60" y="98" width="10" height="8" rx="1.5" fill="none" stroke="#FFD166" stroke-width="2"/>` +
+  `<path d="M92 100 L97 109 M93 100 L89 108" stroke="#6B4226" stroke-width="3" stroke-linecap="round"/>` +
+  `<circle cx="39" cy="86" r="6" fill="#fff" stroke="${d}" stroke-width="1"/>` +
+  `<path d="M39 82.5 V90 M36.5 84.5 H41.5 M35.5 87.5 Q39 91.5 42.5 87.5" stroke="#2A3A6E" stroke-width="1.2" fill="none" stroke-linecap="round"/>` +
+  '<circle cx="39" cy="82" r="1" fill="none" stroke="#2A3A6E" stroke-width="0.9"/>';
+// A firefighter coat: shiny reflective bands, a front zip with clasps and a star badge.
+const fireSuit = (m, d, a) => suitBody(m, d) +
+  suitStripes([97], a, 5) + suitStripes([97], '#fff', 1.4) +
+  `<path d="M65 74 V113" stroke="${d}" stroke-width="1.4"/>` +
+  `<g fill="#34343E">` + [80, 88, 106].map(y => `<rect x="62.5" y="${y}" width="5" height="2.6" rx="1"/>`).join('') + '</g>' +
+  `<circle cx="44" cy="84" r="5" fill="#FFD166" stroke="#C99A2E" stroke-width="1"/><path d="${starPath(44, 84, 3.2)}" fill="#fff"/>` +
+  `<path d="M84 80 H94 M84 84 H92" stroke="${a}" stroke-width="2" stroke-linecap="round"/>`;
+// A racing suit: two stripes down the front, a number 1 patch and a checkered flag patch.
+const raceSuit = (m, d, a) => suitBody(m, d) +
+  `<path d="M59 74 V114 M71 74 V114" stroke="${a}" stroke-width="4.5"/>` +
+  `<path d="M59 74 V114 M71 74 V114" stroke="${d}" stroke-width="0.6" opacity="0.4"/>` +
+  `<circle cx="40" cy="87" r="7" fill="#fff" stroke="${d}" stroke-width="1.2"/>` +
+  `<path d="M38 84.5 L40.5 83 V91.5 M38 91.5 H43" stroke="#34343E" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` +
+  `<rect x="85" y="82" width="12" height="9" rx="1" fill="#fff" stroke="${d}" stroke-width="1"/>` +
+  '<g fill="#34343E">' + [[85, 82], [93, 82], [89, 85], [85, 88], [93, 88]].map(([x, y]) =>
+    `<rect x="${x}" y="${y}" width="4" height="3"/>`).join('') + '</g>' +
+  `<path d="M30 99 Q65 112 100 99" stroke="${d}" stroke-width="1.4" fill="none" opacity="0.5"/>`;
+// A superhero suit: a star on a shield, and a belt with a round buckle.
+const heroSuit = (m, d, a) => suitBody(m, d) +
+  `<path d="M30 99 Q65 112 100 99" stroke="${a}" stroke-width="5" fill="none" stroke-linecap="round"/>` +
+  `<circle cx="65" cy="105.2" r="4.2" fill="#fff" stroke="${d}" stroke-width="1.2"/>` +
+  `<path d="M53 79 H77 Q77 91 65 98 Q53 91 53 79 Z" fill="${a}" stroke="${d}" stroke-width="1.4" stroke-linejoin="round"/>` +
+  `<path d="${starPath(65, 86.5, 6)}" fill="${a === '#FFFFFF' ? '#FFD93D' : '#fff'}" stroke="${d}" stroke-width="0.7"/>` +
+  sparkle(37, 82, 2.6) + sparkle(94, 86, 2.2);
+
+// A fairy dress: a flared petal skirt with a ribbon waist, little flowers and sparkles.
+const fairyDress = (m, d, a) => {
+  const hem = [...Array(5)].map((_, i) => {
+    const x = 108 - i * 17.2;
+    return `Q${(x - 8.6).toFixed(1)} 117 ${(x - 17.2).toFixed(1)} 110`;
+  }).join(' ');
+  const skirt = `M28 92 Q65 101 102 92 L108 110 ${hem} Z`;
+  return suitBody(m, d) +
+    `<path d="${skirt}" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` +
+    `<path d="M46 97 L42 111 M65 100 V113 M84 97 L88 111" stroke="${d}" stroke-width="1" opacity="0.35"/>` +
+    `<path d="M28 92 Q65 101 102 92" stroke="${a}" stroke-width="4" fill="none" stroke-linecap="round"/>` +
+    `<g fill="${a}" stroke="${d}" stroke-width="0.6">` + [[34, 105], [96, 105]].map(([x, y]) =>
+      [0, 72, 144, 216, 288].map(r => `<ellipse cx="${x}" cy="${y - 2.4}" rx="1.6" ry="2.4" transform="rotate(${r} ${x} ${y})"/>`).join('')).join('') + '</g>' +
+    '<g fill="#FFD93D"><circle cx="34" cy="105" r="1.3"/><circle cx="96" cy="105" r="1.3"/></g>' +
+    sparkle(44, 82, 2.6) + sparkle(87, 80, 2.2) + sparkle(65, 107, 2.2) + sparkle(55, 88, 1.6, '#FFD93D');
+};
+// A butterfly suit: a wing pattern on each side with spots, and a soft striped middle.
+const butterSuit = (m, d, a) => suitBody(m, d) +
+  `<g fill="${a}" stroke="${d}" stroke-width="1.2">` +
+  '<path d="M55 80 Q38 70 31 82 Q30 94 55 92 Z"/><path d="M55 95 Q36 96 38 106 Q46 112 55 100 Z"/>' +
+  '<path d="M75 80 Q92 70 99 82 Q100 94 75 92 Z"/><path d="M75 95 Q94 96 92 106 Q84 112 75 100 Z"/></g>' +
+  `<g fill="#fff" stroke="${d}" stroke-width="0.6"><circle cx="39" cy="83" r="2.6"/><circle cx="91" cy="83" r="2.6"/>` +
+  '<circle cx="44" cy="103" r="1.8"/><circle cx="86" cy="103" r="1.8"/></g>' +
+  `<rect x="59" y="74" width="12" height="38" rx="6" fill="${d}" opacity="0.85"/>` +
+  `<path d="M59.5 82 H70.5 M59.5 90 H70.5 M59.5 98 H70.5 M59.5 106 H70.5" stroke="${m}" stroke-width="1.4" opacity="0.7"/>`;
+// A chef jacket: two rows of buttons, a neck scarf with a knot, and a pocket with a spoon.
+const chefSuit = (m, d, a) => suitBody(m, d) +
+  `<path d="M47 72 L65 112 M83 72 L65 84" stroke="${d}" stroke-width="1.2" fill="none" opacity="0.6"/>` +
+  `<g fill="#fff" stroke="${d}" stroke-width="0.9">` + [[58, 88], [72, 88], [58, 98], [72, 98]].map(([x, y]) =>
+    `<circle cx="${x}" cy="${y}" r="2.1"/>`).join('') + '</g>' +
+  `<g fill="${a}" stroke="${d}" stroke-width="1" stroke-linejoin="round"><path d="M46 68 Q65 80 84 68 L80 77 Q65 85 50 77 Z"/>` +
+  '<path d="M65 79 L56 92 L63 91 Z"/><path d="M65 79 L74 92 L67 91 Z"/><circle cx="65" cy="79.5" r="3.6"/></g>' +
+  `<path d="M89 94 V90" stroke="#9AA3B5" stroke-width="1.6" stroke-linecap="round"/><ellipse cx="89" cy="88" rx="2" ry="2.6" fill="#BFC8D6" stroke="#6B7A90" stroke-width="0.6"/>` +
+  `<rect x="83" y="93" width="12" height="9" rx="2" fill="${m}" stroke="${d}" stroke-width="1.1"/>` +
+  `<path d="M83.5 95.5 H94.5" stroke="${a}" stroke-width="1.6"/>`;
+// A wizard robe: a crescent moon and stars, and a rope belt with a tassel.
+const wizRobe = (m, d, a) => suitBody(m, d) +
+  `<path d="M65 72 V114" stroke="${d}" stroke-width="1.2" opacity="0.5"/>` +
+  `<path d="M29 96 Q65 108 101 96" stroke="${a}" stroke-width="2.6" fill="none" stroke-linecap="round"/>` +
+  `<path d="M80 101 Q82 106 81 110" stroke="${a}" stroke-width="2" fill="none" stroke-linecap="round"/>` +
+  `<path d="M78.5 109 L81 115 L83.5 109 Z" fill="${a}" stroke="${d}" stroke-width="0.6" stroke-linejoin="round"/>` +
+  `<path d="M42 80 A7.5 7.5 0 1 0 49 92 A6 6 0 1 1 42 80 Z" fill="${a}" stroke="${d}" stroke-width="0.8"/>` +
+  `<g fill="${a}" stroke="${d}" stroke-width="0.6"><path d="${starPath(86, 84, 4)}"/><path d="${starPath(94, 95, 2.6)}"/>` +
+  `<path d="${starPath(50, 104, 2.6)}"/></g>` + sparkle(76, 80, 1.8) + sparkle(38, 98, 1.6);
+
+// Where the suit's bottom edge is at x, for trims that follow the hem.
+const suitHem = x => 85 + 30.5 * Math.sqrt(Math.max(0, 1 - ((x - 65) / 38.5) ** 2));
+const suitTummy = (a, d, rx = 18, ry = 14, cy = 95) =>
+  `<ellipse cx="65" cy="${cy}" rx="${rx}" ry="${ry}" fill="${a}" stroke="${d}" stroke-width="1.2"/>`;
+// A cowboy vest over a shirt: an open front with buttons, a star badge and a fringed hem.
+const cowVest = (m, d, a) => suitBody(m, d) +
+  `<path d="M56 72 L65 100 L74 72 Z M65 100 V114" fill="#FFF3C4" stroke="${d}" stroke-width="1.2" stroke-linejoin="round"/>` +
+  `<g fill="${d}"><circle cx="65" cy="80" r="1.2"/><circle cx="65" cy="88" r="1.2"/></g>` +
+  `<path d="${starPath(43, 85, 5.5)}" fill="${a}" stroke="${d}" stroke-width="0.8"/><circle cx="43" cy="85" r="1.4" fill="#fff" opacity="0.8"/>` +
+  `<path d="M83 86 H97 V93 Q90 96 83 93 Z" fill="${m}" stroke="${d}" stroke-width="1.2" stroke-linejoin="round"/>` +
+  `<path d="M83 86 H97 L95 89.5 H85 Z" fill="${d}" opacity="0.35"/><circle cx="90" cy="90.5" r="0.9" fill="${d}"/>` +
+  `<g stroke="${d}" stroke-width="2.2" stroke-linecap="round">` + [32, 37, 42, 47, 83, 88, 93, 98].map(x => {
+    const y = suitHem(x) - 3;
+    return `<path d="M${x} ${y.toFixed(1)} V${(y + 5).toFixed(1)}"/>`;
+  }).join('') + '</g>';
+// A ball gown: a sweetheart top with pearls, a big bow and a two-tier ruffled skirt with little gems.
+const gown = (m, d, a) => {
+  const ruffle = (y0, y1, x0, x1, n) => {
+    const w = (x1 - x0) / n;
+    return `M${65 - (x1 - x0) / 2 + 6} ${y0} Q65 ${y0 + 6} ${65 + (x1 - x0) / 2 - 6} ${y0} L${x1} ${y1} ` + [...Array(n)].map((_, i) =>
+      `Q${(x1 - w * (i + 0.5)).toFixed(1)} ${y1 + 6} ${(x1 - w * (i + 1)).toFixed(1)} ${y1}`).join(' ') + ' Z';
+  };
+  return suitBody(m, d) +
+    `<path d="${ruffle(98, 112, 20, 110, 6)}" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` +
+    `<path d="${ruffle(92, 103, 28, 102, 5)}" fill="${m}" stroke="${d}" stroke-width="1.6" stroke-linejoin="round"/>` +
+    `<path d="M38 79 Q51 73 65 80 Q79 73 92 79" stroke="#fff" stroke-width="2.4" fill="none" stroke-dasharray="0.1 4.2" stroke-linecap="round"/>` +
+    `<g fill="${a}" stroke="${d}" stroke-width="1" stroke-linejoin="round"><path d="M65 92 L54 86 L55 98 Z"/><path d="M65 92 L76 86 L75 98 Z"/>` +
+    '<circle cx="65" cy="92" r="3"/></g>' +
+    `<g fill="${a}" stroke="${d}" stroke-width="0.6">` + [[38, 108], [56, 110], [74, 110], [92, 108], [44, 99], [86, 99]].map(([x, y]) =>
+      `<path d="M${x} ${y - 2.4} L${x + 2} ${y} L${x} ${y + 2.4} L${x - 2} ${y} Z"/>`).join('') + '</g>' +
+    sparkle(44, 86, 2.2) + sparkle(87, 87, 2.2);
+};
+// A bumblebee suit: fuzzy stripes and a little heart.
+const beeSuit = (m, d, a) => suitBody(m, d) + suitStripes([83, 95, 107], a, 6.5) +
+  `<path d="M36 77 Q38 74 41 75 M88 74 Q92 74 94 77" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.7"/>` +
+  `<path d="${heartPath(88, 89, 3.4)}" fill="#fff" stroke="${d}" stroke-width="0.7"/>`;
+// A ladybug suit: a line down the middle and round spots on each side.
+const ladySuit = (m, d, a) => suitBody(m, d) +
+  `<path d="M65 72 V115" stroke="${a}" stroke-width="2.4"/>` +
+  `<g fill="${a}">` + [[48, 80, 5], [82, 80, 5], [40, 95, 4.5], [90, 95, 4.5], [54, 104, 3.6], [76, 104, 3.6]].map(([x, y, r]) =>
+    `<circle cx="${x}" cy="${y}" r="${r}"/>`).join('') + '</g>' +
+  '<g fill="#fff" opacity="0.5"><circle cx="46.5" cy="78.5" r="1.3"/><circle cx="80.5" cy="78.5" r="1.3"/></g>';
+// A lion suit: a cream tummy with a paw print and soft tufts on the haunches.
+const pawPrint = (x, y, r, fill) => `<g fill="${fill}"><ellipse cx="${x}" cy="${y + r * 0.4}" rx="${r}" ry="${r * 0.8}"/>` +
+  [[-1.1, -0.7], [-0.4, -1.3], [0.4, -1.3], [1.1, -0.7]].map(([dx, dy]) =>
+    `<circle cx="${(x + dx * r).toFixed(1)}" cy="${(y + dy * r).toFixed(1)}" r="${(r * 0.42).toFixed(2)}"/>`).join('') + '</g>';
+const lionSuit = (m, d, a) => suitBody(m, d) + suitTummy(a, d) + pawPrint(65, 96, 4, d) +
+  `<path d="M30 92 Q33 89 36 92 Q39 89 42 92 M88 92 Q91 89 94 92 Q97 89 100 92" stroke="${d}" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.6"/>`;
+// A bunny suit: a fluffy tummy and a carrot pocket.
+const bunSuit = (m, d, a) => suitBody(m, d) +
+  `<g fill="#fff" stroke="${d}" stroke-width="1.2">` + [...Array(10)].map((_, i) => {
+    const t = i / 10 * Math.PI * 2;
+    return `<circle cx="${(65 + 13 * Math.cos(t)).toFixed(1)}" cy="${(95 + 10 * Math.sin(t)).toFixed(1)}" r="5"/>`;
+  }).join('') + '</g><ellipse cx="65" cy="95" rx="14" ry="11" fill="#fff"/>' +
+  `<path d="${heartPath(65, 95, 4.6)}" fill="${a === '#FFFFFF' ? '#FF9EC8' : a}" stroke="${d}" stroke-width="0.7"/>` +
+  `<path d="M89 82 L94 98 L99 82 Z" fill="#FF9F43" stroke="#D9771C" stroke-width="1" stroke-linejoin="round"/>` +
+  '<path d="M93 85 H96 M94 89 H97" stroke="#D9771C" stroke-width="0.8"/>' +
+  '<path d="M94 82 Q92 77 90 76 M94 82 Q94 76 96 75 M94 82 Q97 78 99 78" stroke="#5CC46A" stroke-width="1.8" fill="none" stroke-linecap="round"/>' +
+  `<g fill="${a}" opacity="0.8"><circle cx="38" cy="84" r="2.6"/><circle cx="34" cy="94" r="1.8"/></g>`;
+// A kitty suit: a white tummy, tabby stripes and a fish patch.
+const catSuit = (m, d, a) => suitBody(m, d) + suitTummy(a, d, 16, 14) +
+  `<path d="M30 82 Q35 80 39 83 M29 90 Q34 88 38 91 M91 83 Q95 80 100 82 M92 91 Q96 88 101 90 M57 75 L58 80 M65 74 V79 M73 75 L72 80" ` +
+  `stroke="${d}" stroke-width="2" fill="none" stroke-linecap="round"/>` +
+  `<path d="M58 96 Q65 90 71 96 Q65 102 58 96 Z M71 96 L75 92.5 V99.5 Z" fill="#6FC3F2" stroke="#2A6FA0" stroke-width="0.8" stroke-linejoin="round"/>` +
+  '<circle cx="61.5" cy="95.3" r="0.9" fill="#2A3A6E"/>';
+// A teddy bear suit: a round tummy with stitches and a heart patch.
+const bearSuit = (m, d, a) => suitBody(m, d) + suitTummy(a, d, 18, 15) +
+  `<ellipse cx="65" cy="95" rx="14.5" ry="11.5" fill="none" stroke="${d}" stroke-width="0.9" stroke-dasharray="2 1.6" opacity="0.6"/>` +
+  `<path d="${heartPath(65, 95, 5)}" fill="#FF7EB6" stroke="${d}" stroke-width="0.8"/>` +
+  `<path d="M34 80 L38 84 M38 80 L34 84" stroke="${d}" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>`;
+// A froggy suit: a pale tummy, spots and a lily pad with a flower.
+const frogSuit = (m, d, a) => suitBody(m, d) + suitTummy(a, d, 19, 13, 97) +
+  `<g fill="${d}" opacity="0.35"><circle cx="38" cy="81" r="3.4"/><circle cx="92" cy="81" r="3.4"/><circle cx="32" cy="92" r="2.2"/><circle cx="98" cy="92" r="2.2"/></g>` +
+  `<path d="M58 95 Q65 100 72 95" stroke="${d}" stroke-width="1.4" fill="none" stroke-linecap="round" opacity="0.5"/>` +
+  `<path d="M91 87 L91 80 A7.5 7.5 0 1 0 97 82.5 Z" fill="#5CC46A" stroke="#2E7A3A" stroke-width="0.9" stroke-linejoin="round"/>` +
+  '<g fill="#FF9EC8" stroke="#E0457F" stroke-width="0.5"><ellipse cx="88" cy="86" rx="1.6" ry="2.6" transform="rotate(-30 88 86)"/>' +
+  '<ellipse cx="91" cy="85" rx="1.6" ry="2.8"/><ellipse cx="94" cy="86" rx="1.6" ry="2.6" transform="rotate(30 94 86)"/></g>';
+// A friendly dragon suit: a ridged belly and little scales on the sides.
+const dragSuit = (m, d, a) => suitBody(m, d) +
+  `<path d="M52 76 Q65 72 78 76 L76 110 Q65 115 54 110 Z" fill="${a}" stroke="${d}" stroke-width="1.2" stroke-linejoin="round"/>` +
+  `<path d="M53 84 Q65 88 77 84 M53.5 93 Q65 97 76.5 93 M54 102 Q65 106 76 102" stroke="${d}" stroke-width="1.1" fill="none" opacity="0.55"/>` +
+  `<g stroke="${d}" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.5">` + [[36, 82], [42, 88], [36, 94], [88, 82], [94, 88], [88, 94]].map(([x, y]) =>
+    `<path d="M${x - 3} ${y} Q${x} ${y + 4} ${x + 3} ${y}"/>`).join('') + '</g>';
+// A mermaid suit: shimmering scales, a seashell belt and little fins at the sides.
+const merSuit = (m, d, a) => {
+  const scales = [];
+  [80, 87, 94, 101, 108].forEach((y, row) => {
+    for (let x = 33 + (row % 2) * 4; x <= 97; x += 8)
+      if (((x - 65) / 35) ** 2 + ((y - 85) / 27) ** 2 < 1) scales.push(`M${x - 4} ${y} A4 4 0 0 0 ${x + 4} ${y}`);
+  });
+  return `<g fill="${a}" stroke="${d}" stroke-width="1.4" stroke-linejoin="round">` +
+    '<path d="M30 100 Q16 98 12 108 Q22 106 30 110 Z"/><path d="M100 100 Q114 98 118 108 Q108 106 100 110 Z"/></g>' + suitBody(m, d) +
+    `<path d="${scales.join(' ')}" stroke="${d}" stroke-width="1" fill="none" opacity="0.45"/>` +
+    `<path d="M30 92 Q65 104 100 92" stroke="${a}" stroke-width="3" fill="none" stroke-linecap="round"/>` +
+    `<path d="M59 101 L65 92 L71 101 Q65 104 59 101 Z" fill="#FFF3C4" stroke="#D9A86C" stroke-width="1" stroke-linejoin="round"/>` +
+    '<path d="M65 93 V102 M62 94.5 L61.5 101.5 M68 94.5 L68.5 101.5" stroke="#D9A86C" stroke-width="0.7"/>' +
+    sparkle(42, 84, 2.4) + sparkle(89, 82, 2) + sparkle(78, 106, 1.8);
+};
+// A penguin suit: a big white tummy and little flippers.
+const pengSuit = (m, d, a) => `<g fill="${m}" stroke="${d}" stroke-width="1.6">` +
+  '<ellipse cx="26" cy="90" rx="6" ry="14" transform="rotate(20 26 90)"/><ellipse cx="104" cy="90" rx="6" ry="14" transform="rotate(-20 104 90)"/></g>' +
+  suitBody(m, d) + suitTummy(a, d, 24, 22, 92) +
+  `<path d="M50 80 Q53 77 57 78" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" opacity="0.8"/>`;
+
+// A service dog vest: a padded panel around her chest with a paw patch, side buckles and a reflective stripe.
+const serviceVest = (m, d, a) => `<path d="M31 79 Q65 69 99 79 L97 99 Q65 111 33 99 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` +
+  '<path d="M35 94 Q65 105 95 94" stroke="#fff" stroke-width="2.6" fill="none" opacity="0.85"/>' +
+  `<path d="M35 94 Q65 105 95 94" stroke="${d}" stroke-width="0.6" fill="none" stroke-dasharray="2 2" opacity="0.5"/>` +
+  `<g fill="${a}" stroke="${d}" stroke-width="0.9"><rect x="30" y="84" width="7" height="7" rx="1.5"/><rect x="93" y="84" width="7" height="7" rx="1.5"/></g>` +
+  `<rect x="53" y="80" width="24" height="15" rx="4" fill="#fff" stroke="${d}" stroke-width="1.2"/>` +
+  `<g fill="${d}"><ellipse cx="65" cy="89.6" rx="3.6" ry="2.9"/><circle cx="60.4" cy="85.6" r="1.5"/><circle cx="63.3" cy="83.6" r="1.5"/>` +
+  '<circle cx="66.7" cy="83.6" r="1.5"/><circle cx="69.6" cy="85.6" r="1.5"/></g>' +
+  '<path d="M36 82 Q45 77 54 76" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.45"/>';
+// A bead necklace with a heart charm, hanging under her chin.
+const necklace = (m, d, a) => `<path d="M47 66 Q65 80 83 66" stroke="${d}" stroke-width="1" fill="none"/>` +
+  `<g fill="${m}" stroke="${d}" stroke-width="0.7">` + [0.08, 0.19, 0.3, 0.41, 0.59, 0.7, 0.81, 0.92].map(t =>
+    `<circle cx="${(47 + 36 * t).toFixed(1)}" cy="${(66 + 28 * t * (1 - t)).toFixed(1)}" r="2.2"/>`).join('') + '</g>' +
+  `<path d="${heartPath(65, 77.5, 4)}" fill="${a}" stroke="${d}" stroke-width="1"/>` +
+  '<circle cx="63.3" cy="75.6" r="0.9" fill="#fff" opacity="0.8"/>';
+// A school backpack peeking out on both sides, with side pockets. Its straps are `backpackStraps`, drawn in front.
+const backpack = (m, d, a) => `<rect x="20" y="60" width="90" height="46" rx="16" fill="${m}" stroke="${d}" stroke-width="2"/>` +
+  `<g fill="${m}" stroke="${d}" stroke-width="1.5"><rect x="15" y="80" width="14" height="19" rx="5"/><rect x="101" y="80" width="14" height="19" rx="5"/></g>` +
+  `<path d="M15.5 86 H28.5 M101.5 86 H114.5" stroke="${d}" stroke-width="1.2"/>` +
+  `<g fill="${a}" stroke="${d}" stroke-width="0.6"><circle cx="22" cy="89" r="1.6"/><circle cx="108" cy="89" r="1.6"/></g>` +
+  '<path d="M24 70 Q25 64 31 62" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>';
+const backpackStraps = (m, d, a) => `<path d="M50 69 Q44 84 28 92 M80 69 Q86 84 102 92" stroke="${d}" stroke-width="7" fill="none" stroke-linecap="round"/>` +
+  `<path d="M50 69 Q44 84 28 92 M80 69 Q86 84 102 92" stroke="${m}" stroke-width="4.6" fill="none" stroke-linecap="round"/>` +
+  `<g fill="${a}" stroke="${d}" stroke-width="0.8"><rect x="42" y="81" width="6" height="4.5" rx="1.2" transform="rotate(-35 45 83)"/>` +
+  '<rect x="82" y="81" width="6" height="4.5" rx="1.2" transform="rotate(35 85 83)"/></g>';
+// A wristwatch and a bead bracelet on her right leg. They are drawn in the leg, so they move with it.
+const wristWatch = (m, d, a) => `<rect x="65.5" y="111.5" width="17" height="6" rx="3" fill="${m}" stroke="${d}" stroke-width="1"/>` +
+  `<circle cx="74" cy="114.5" r="5.2" fill="#fff" stroke="${d}" stroke-width="1.5"/>` +
+  `<path d="M74 114.5 V111.3 M74 114.5 H76.5" stroke="#3D2B1F" stroke-width="0.9" stroke-linecap="round"/>` +
+  `<circle cx="74" cy="114.5" r="0.7" fill="${a === '#FFFFFF' ? d : a}"/>`;
+const beadBracelet = (m, d, a) => [66.8, 70.4, 74, 77.6, 81.2].map((x, i) =>
+  `<circle cx="${x}" cy="${i % 2 ? 115.3 : 114.6}" r="2.4" fill="${i % 2 ? a : m}" stroke="${d}" stroke-width="0.6"/>`).join('') +
+  `<path d="${heartPath(74, 119.2, 1.9)}" fill="${m}" stroke="${d}" stroke-width="0.6"/>`;
+
+// Picture toys are SVG on a 40×40 box, drawn with paint(main, dark, accent) like accessories.
+// Parts that move on their own while she plays have a class: the chest lid, rocket flame and truck siren.
+const TOY_FACE = '#3B2416';
+const toyEye = (x, y) => `<circle cx="${x}" cy="${y}" r="2.6" fill="#fff" stroke="${TOY_FACE}" stroke-width="0.8"/>` +
+  `<circle cx="${x + 0.5}" cy="${y + 0.3}" r="1.5" fill="${TOY_FACE}"/><circle cx="${x + 1}" cy="${y - 0.4}" r="0.55" fill="#fff"/>`;
+// A round little dino with back plates, spots, a soft muzzle and a big smile.
+const toyDino = (m, d, a) => `<g fill="${a}" stroke="${d}" stroke-width="1.2" stroke-linejoin="round">` +
+  '<path d="M7 22 Q8 16 11 19 Q12 13 15.5 17 Q17 12 20 16.5 Q22 13 23.5 17 Z"/></g>' +
+  `<g fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round">` +
+  '<path d="M9 26 Q2 27 2.5 19 Q6 24 11 22 Z"/><rect x="10" y="29" width="5.5" height="7" rx="2.6"/><rect x="19" y="29" width="5.5" height="7" rx="2.6"/>' +
+  '<ellipse cx="17" cy="25.5" rx="10" ry="7.5"/><ellipse cx="28" cy="15.5" rx="9" ry="7.5"/></g>' +
+  `<path d="M21 20 Q24 22 26 21" fill="none" stroke="${m}" stroke-width="3"/>` +
+  '<ellipse cx="17" cy="27.5" rx="6" ry="4" fill="#fff" opacity="0.3"/><ellipse cx="31.5" cy="18" rx="5" ry="3.4" fill="#fff" opacity="0.5"/>' +
+  `<g fill="${a}" opacity="0.9"><circle cx="12" cy="23" r="1.6"/><circle cx="16.5" cy="21" r="1.2"/><circle cx="23" cy="10.5" r="1.2"/></g>` +
+  toyEye(29, 13) + '<ellipse cx="34.5" cy="15" rx="0.6" ry="0.45" fill="#3B2416"/><ellipse cx="25.5" cy="18.5" rx="1.8" ry="1.1" fill="#FF8FA3" opacity="0.7"/>' +
+  `<path d="M29.5 18.6 Q32.5 21.4 35.5 18.4" fill="none" stroke="${TOY_FACE}" stroke-width="1" stroke-linecap="round"/>`;
+// A rocket with a round window, fins, a cheeky smile and a flickering flame.
+const toyRocket = (m, d, a) => '<g class="toy-flame"><path d="M15 30 Q14 35 20 39 Q26 35 25 30 Z" fill="#FF7A45"/><path d="M17 30 Q17 34 20 36.5 Q23 34 23 30 Z" fill="#FFD93D"/></g>' +
+  `<g fill="${a}" stroke="${d}" stroke-width="1.3" stroke-linejoin="round"><path d="M13 20 Q6 23 6.5 31 L13 28.5 Z M27 20 Q34 23 33.5 31 L27 28.5 Z"/>` +
+  '<rect x="14.5" y="28.5" width="11" height="3" rx="1.5"/></g>' +
+  `<path d="M20 2 Q29 9 28 21 L27.5 29 L12.5 29 L12 21 Q11 9 20 2 Z" fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"/>` +
+  `<path d="M20 2 Q24.5 5 26 9.5 Q20 8 14 9.5 Q15.5 5 20 2 Z" fill="${a}" stroke="${d}" stroke-width="1.2" stroke-linejoin="round"/>` +
+  '<path d="M15.5 12 Q14.5 18 15 25" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity="0.55"/>' +
+  `<circle cx="20" cy="16" r="4.6" fill="#BFE6FF" stroke="${d}" stroke-width="1.5"/><path d="M17.5 14.5 A3 3 0 0 1 20.5 12.6" fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/>` +
+  `<path d="M17.5 23.6 Q20 25.8 22.5 23.6" fill="#fff" stroke="${TOY_FACE}" stroke-width="0.9" stroke-linecap="round"/>` +
+  '<g fill="#FFD93D"><path d="' + starPath(4.5, 9, 2) + '"/><path d="' + starPath(35, 5, 1.6) + '"/></g>';
+// A chunky fire truck with a ladder, siren, smiling headlight and bouncy wheels.
+const toyTruck = (m, d, a) => '<g stroke="#9AA3B5" stroke-width="1" fill="#F4F4F8"><rect x="4" y="11.5" width="20" height="4" rx="1.2"/></g>' +
+  '<path d="M8 11.8 V15.2 M12 11.8 V15.2 M16 11.8 V15.2 M20 11.8 V15.2" stroke="#9AA3B5" stroke-width="1"/>' +
+  '<g class="toy-siren"><path d="M27 13 Q27 9 30 9 Q33 9 33 13 Z" fill="#6FC3F2" stroke="#2A6FA0" stroke-width="1"/><circle cx="29.2" cy="10.8" r="0.8" fill="#fff"/></g>' +
+  `<g fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"><path d="M2.5 17 Q2.5 15.5 4 15.5 L25 15.5 L25 30 L2.5 30 Z"/>` +
+  '<path d="M24 30 L24 15 Q24 12.5 26.5 12.5 L32 12.5 Q35 12.5 36 16 L37.5 22 Q38 24 38 26 L38 30 Z"/></g>' +
+  `<path d="M26.5 15 L31.5 15 Q33 15 33.6 16.6 L34.8 21 L26.5 21 Z" fill="#BFE6FF" stroke="${d}" stroke-width="1.2" stroke-linejoin="round"/>` +
+  `<rect x="2.5" y="23" width="35.5" height="3" fill="${a}"/><path d="M6 18.5 H21" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.45"/>` +
+  `<circle cx="36" cy="20" r="1.9" fill="#FFF3B0" stroke="${d}" stroke-width="0.8"/><path d="M35 20.3 Q36 21.4 37 20.3" fill="none" stroke="${TOY_FACE}" stroke-width="0.6"/>` +
+  '<g fill="#3A3A44" stroke="#22222A" stroke-width="1"><circle cx="10" cy="31" r="4.6"/><circle cx="30" cy="31" r="4.6"/></g>' +
+  '<g fill="#D9DCE6"><circle cx="10" cy="31" r="1.9"/><circle cx="30" cy="31" r="1.9"/></g>';
+// A treasure chest with metal bands and a heart lock. Its lid opens on a pile of gold coins and gems.
+const toyChest = (m, d, a) => '<g fill="#FFD93D" stroke="#D4A90C" stroke-width="0.8"><circle cx="13" cy="20" r="3"/><circle cx="27" cy="20" r="3"/><circle cx="20" cy="19" r="3.2"/></g>' +
+  '<path d="M23 17.5 L25 15 L27 17.5 L25 20 Z" fill="#FF7EB6" stroke="#E0457F" stroke-width="0.6"/>' +
+  `<g fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"><rect x="5" y="20" width="30" height="15" rx="2.5"/></g>` +
+  `<g fill="${a}" stroke="${d}" stroke-width="0.8"><rect x="9.5" y="20" width="3.5" height="15"/><rect x="27" y="20" width="3.5" height="15"/></g>` +
+  '<path d="M8 24 H32" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity="0.3"/>' +
+  `<g class="toy-lid"><path d="M5 21 L5 16 Q5 8 20 8 Q35 8 35 16 L35 21 Z" fill="${m}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"/>` +
+  `<g fill="${a}" stroke="${d}" stroke-width="0.8"><path d="M9.5 21 L9.5 10.2 Q11 9.4 13 9 L13 21 Z M27 21 L27 9 Q29 9.4 30.5 10.2 L30.5 21 Z"/></g>` +
+  '<path d="M9 13 Q20 9.5 31 13" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity="0.4"/>' +
+  `<path d="M20 25.5 C16.2 22.5 16.8 18.8 20 20.5 C23.2 18.8 23.8 22.5 20 25.5 Z" fill="${a}" stroke="${d}" stroke-width="1" stroke-linejoin="round"/></g>` +
+  '<g fill="#fff"><path d="' + starPath(35, 6, 1.8) + '"/><path d="' + starPath(4, 9, 1.3) + '"/></g>';
 
 // Accessories are SVG drawn on Pom's 130×130 picture. Fur items recolor her five fur shades.
 // svg is an accessory's classic look; paint(main, dark, accent) draws it in one of the COLORS.
@@ -2051,6 +2555,18 @@ const CLOSET = [
     '<circle cx="65" cy="24" r="3" fill="#FF6B6B"/><circle cx="55" cy="26" r="2" fill="#6FC3F2"/><circle cx="75" cy="26" r="2" fill="#6FC3F2"/>',
     paint: (m, d, a) => `<path d="M48 30 L48 14 L56 22 L65 9 L74 22 L82 14 L82 30 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` +
       `<circle cx="65" cy="24" r="3" fill="${a}"/><circle cx="55" cy="26" r="2" fill="#fff"/><circle cx="75" cy="26" r="2" fill="#fff"/>` },
+  { id: 'dinohood', slot: 'hat', name: 'Dino Hood', ico: '🦖', price: 50, svg: dinoHood('#5CC46A', '#3A9447', '#FFD166'), paint: dinoHood },
+  { id: 'unicorn', slot: 'hat', name: 'Unicorn Horn', short: 'Horn', ico: '🦄', price: 45, view: '48 0 34 34', svg: unicornHorn('#FFF3C4', '#E0A800', '#FF7EB6'), paint: unicornHorn },
+  { id: 'flowers', slot: 'hat', name: 'Flower Crown', ico: '🌸', price: 35, svg: flowerCrown(['#FF7EB6', '#FFD93D', '#C9B8FF'], '#FF9F43'),
+    paint: (m, d, a) => flowerCrown([m], a) },
+  { id: 'astro', slot: 'hat', name: 'Space Helmet', short: 'Helmet', ico: '🧑‍🚀', price: 70, view: '26 8 78 80',
+    svg: spaceHelmet('#FFFFFF', '#8C9AAE', '#E94B4B'), paint: spaceHelmet },
+  { id: 'antenna', slot: 'hat', name: 'Robot Antenna', short: 'Antenna', ico: '🤖', price: 40, svg: robotAntenna('#BFC8D6', '#6B7A90', '#5CE1E6'),
+    paint: robotAntenna },
+  { id: 'pirate', slot: 'hat', name: 'Pirate Hat', ico: '🏴‍☠️', price: 55, svg: pirateHat('#34343E', '#16161C', '#FFD166'), paint: pirateHat },
+  { id: 'firehat', slot: 'hat', name: 'Firefighter Helmet', short: 'Fire Helmet', ico: '🚒', price: 60, svg: fireHelmet('#E94B4B', '#B83232', '#FFD166'),
+    paint: fireHelmet },
+  { id: 'racing', slot: 'hat', name: 'Racing Helmet', ico: '🏁', price: 65, svg: racingHelmet('#4FA3E8', '#2A6FA0', '#FFFFFF'), paint: racingHelmet },
   { id: 'specs', slot: 'face', name: 'Smart Glasses', short: 'Glasses', ico: '👓', price: 20, svg:
     '<g stroke="#3D2B1F" stroke-width="2"><circle cx="57" cy="50" r="7" fill="rgba(255,255,255,0.25)"/>' +
     '<circle cx="73" cy="50" r="7" fill="rgba(255,255,255,0.25)"/><path d="M64 49 Q65 47 66 49" fill="none"/></g>',
@@ -2066,6 +2582,10 @@ const CLOSET = [
     '<path d="M63 48 L67 48" stroke="#E0457F" stroke-width="2"/>',
     paint: (m, d) => `<path d="M57 57 C46 50 49 41 57 46 C65 41 68 50 57 57 Z M73 57 C62 50 65 41 73 46 C81 41 84 50 73 57 Z" fill="${m}" opacity="0.92"/>` +
       `<path d="M63 48 L67 48" stroke="${d}" stroke-width="2"/>` },
+  { id: 'stars', slot: 'face', name: 'Star Glasses', ico: '🤩', price: 30, svg: starGlasses('#FFD93D', '#E0A800'), paint: starGlasses },
+  { id: 'patch', slot: 'face', name: 'Eye Patch', short: 'Patch', ico: '🏴', price: 20, svg: eyePatch('#34343E', '#16161C', '#FF7EB6'), paint: eyePatch },
+  { id: 'mask', slot: 'face', name: 'Hero Mask', short: 'Mask', ico: '🦸', price: 35, svg: heroMask('#4FA3E8', '#2A6FA0'), paint: heroMask },
+  { id: 'goggles', slot: 'face', name: 'Racing Goggles', short: 'Goggles', ico: '🥽', price: 30, svg: goggles('#FF9F43', '#5C3D1E'), paint: goggles },
   { id: 'bandana', slot: 'neck', name: 'Bandana', ico: '🟥', price: 6, svg:
     '<path d="M44 67 Q65 77 86 67 L65 88 Z" fill="#E94B4B"/>' +
     '<g fill="#fff"><circle cx="58" cy="75" r="1.5"/><circle cx="72" cy="75" r="1.5"/><circle cx="65" cy="81" r="1.5"/></g>',
@@ -2088,6 +2608,10 @@ const CLOSET = [
     paint: (m, d, a) => `<path d="M54 66 L65 82 L76 66" stroke="${d}" stroke-width="4" fill="none"/>` +
       `<circle cx="65" cy="86" r="7" fill="${m}" stroke="${d}" stroke-width="2"/>` +
       `<text x="65" y="89.5" font-size="9" text-anchor="middle" fill="${a}">★</text>` },
+  { id: 'lei', slot: 'neck', name: 'Flower Lei', short: 'Lei', ico: '🌺', price: 30, svg: flowerLei(['#FF7EB6', '#FFD93D', '#FF9F43', '#C9B8FF'], '#fff'),
+    paint: (m, d, a) => flowerLei([m], a) },
+  { id: 'necklace', slot: 'neck', name: 'Heart Necklace', short: 'Necklace', ico: '📿', price: 40,
+    svg: necklace('#FFF8F0', '#C9B38E', '#FF7EB6'), paint: necklace },
   { id: 'wings', slot: 'back', name: 'Fairy Wings', short: 'Wings', ico: '🧚', price: 80, svg:
     '<g fill="#C9B8FF" stroke="#A994F5" stroke-width="1.5" opacity="0.9">' +
     '<ellipse cx="30" cy="64" rx="18" ry="11" transform="rotate(-30 30 64)"/><ellipse cx="32" cy="84" rx="12" ry="7" transform="rotate(20 32 84)"/>' +
@@ -2095,9 +2619,45 @@ const CLOSET = [
     paint: (m, d) => `<g fill="${m}" stroke="${d}" stroke-width="1.5" opacity="0.9">` +
       '<ellipse cx="30" cy="64" rx="18" ry="11" transform="rotate(-30 30 64)"/><ellipse cx="32" cy="84" rx="12" ry="7" transform="rotate(20 32 84)"/>' +
       '<ellipse cx="100" cy="64" rx="18" ry="11" transform="rotate(30 100 64)"/><ellipse cx="98" cy="84" rx="12" ry="7" transform="rotate(-20 98 84)"/></g>' },
+  { id: 'spikes', slot: 'back', name: 'Dino Spikes', short: 'Spikes', ico: '🦕', price: 80, svg: dinoSpikes('#5CC46A', '#3A9447'), paint: dinoSpikes },
+  { id: 'jetpack', slot: 'back', name: 'Jetpack', ico: '🚀', price: 100, svg: jetpack('#BFC8D6', '#6B7A90', '#E94B4B'), paint: jetpack },
+  { id: 'butterfly', slot: 'back', name: 'Butterfly Wings', short: 'Wings', ico: '🦋', price: 90,
+    svg: butterflyWings('#FF9F43', '#D9771C', '#FFD93D'), paint: butterflyWings },
+  { id: 'backpack', slot: 'back', name: 'Backpack', ico: '🎒', price: 70, svg: backpack('#4FA3E8', '#2A6FA0', '#FFD166'), paint: backpack,
+    front: backpackStraps('#4FA3E8', '#2A6FA0', '#FFD166'), paintFront: backpackStraps },
   { id: 'cape', slot: 'back', name: 'Super Cape', short: 'Cape', ico: '🦸', price: 100, svg:
     '<path d="M45 66 Q26 100 30 120 L100 120 Q104 100 85 66 Z" fill="#E94B4B" stroke="#C43A3A" stroke-width="2"/>',
     paint: (m, d) => `<path d="M45 66 Q26 100 30 120 L100 120 Q104 100 85 66 Z" fill="${m}" stroke="${d}" stroke-width="2"/>` },
+  // `offToPlay`: a working dog's vest comes off to play (see swapVest).
+  { id: 'helpervest', slot: 'body', name: 'Service Dog Vest', short: 'Service Vest', ico: '🦮', price: 110,
+    svg: serviceVest('#E94B4B', '#B83232', '#FFD166'), paint: serviceVest, offToPlay: true },
+  { id: 'watch', slot: 'paws', name: 'Wristwatch', short: 'Watch', ico: '⌚', price: 50, svg: wristWatch('#FF7EB6', '#E0457F', '#FFD166'), paint: wristWatch },
+  { id: 'bracelet', slot: 'paws', name: 'Bead Bracelet', short: 'Bracelet', ico: '📿', price: 35,
+    svg: beadBracelet('#9B7BF0', '#6A4BC4', '#FFD93D'), paint: beadBracelet },
+  { id: 'dinosuit', slot: 'body', name: 'Dino Suit', ico: '🦖', price: 120, svg: dinoSuit('#5CC46A', '#3A9447', '#FFF3C4'), paint: dinoSuit },
+  { id: 'unisuit', slot: 'body', name: 'Unicorn Suit', short: 'Unicorn', ico: '🦄', price: 130, svg: uniSuit('#FBF4FF', '#C9A8E8', '#FF7EB6'), paint: uniSuit },
+  { id: 'astrosuit', slot: 'body', name: 'Space Suit', ico: '🧑‍🚀', price: 150, svg: astroSuit('#F4F6FA', '#9AA3B5', '#4FA3E8'), paint: astroSuit },
+  { id: 'robosuit', slot: 'body', name: 'Robot Suit', ico: '🤖', price: 140, svg: roboSuit('#BFC8D6', '#6B7A90', '#5CE1E6'), paint: roboSuit },
+  { id: 'piratesuit', slot: 'body', name: 'Pirate Suit', short: 'Pirate', ico: '🏴‍☠️', price: 130, svg: pirateSuit('#FFFFFF', '#9AA3B5', '#E94B4B'), paint: pirateSuit },
+  { id: 'firesuit', slot: 'body', name: 'Firefighter Suit', short: 'Fire Suit', ico: '🚒', price: 140, svg: fireSuit('#E94B4B', '#B83232', '#FFD93D'), paint: fireSuit },
+  { id: 'racesuit', slot: 'body', name: 'Racing Suit', ico: '🏁', price: 140, svg: raceSuit('#4FA3E8', '#2A6FA0', '#FFFFFF'), paint: raceSuit },
+  { id: 'fairydress', slot: 'body', name: 'Fairy Dress', short: 'Fairy', ico: '🧚', price: 130, svg: fairyDress('#E3D8FF', '#A994F5', '#FF9EC8'), paint: fairyDress },
+  { id: 'buttersuit', slot: 'body', name: 'Butterfly Suit', short: 'Butterfly', ico: '🦋', price: 130, svg: butterSuit('#FF9F43', '#B5601A', '#FFD93D'), paint: butterSuit },
+  { id: 'chefsuit', slot: 'body', name: 'Chef Suit', ico: '👨‍🍳', price: 120, svg: chefSuit('#FFFFFF', '#C9BFB3', '#E94B4B'), paint: chefSuit },
+  { id: 'wizrobe', slot: 'body', name: 'Wizard Robe', short: 'Wizard', ico: '🧙', price: 140, svg: wizRobe('#7B5BE0', '#4A3194', '#FFD166'), paint: wizRobe },
+  { id: 'cowvest', slot: 'body', name: 'Cowboy Vest', short: 'Cowboy', ico: '🤠', price: 120, svg: cowVest('#B5784A', '#6B4226', '#FFD166'), paint: cowVest },
+  { id: 'gown', slot: 'body', name: 'Ball Gown', short: 'Gown', ico: '👗', price: 180, svg: gown('#FFB3D9', '#E0457F', '#FFD166'), paint: gown },
+  { id: 'beesuit', slot: 'body', name: 'Bee Suit', ico: '🐝', price: 130, svg: beeSuit('#FFD93D', '#C99A2E', '#3D2B1F'), paint: beeSuit },
+  { id: 'ladysuit', slot: 'body', name: 'Ladybug Suit', short: 'Ladybug', ico: '🐞', price: 130, svg: ladySuit('#E94B4B', '#A82E2E', '#2B2B33'), paint: ladySuit },
+  { id: 'lionsuit', slot: 'body', name: 'Lion Suit', ico: '🦁', price: 140, svg: lionSuit('#F2B04A', '#B87420', '#FFF3C4'), paint: lionSuit },
+  { id: 'bunsuit', slot: 'body', name: 'Bunny Suit', ico: '🐰', price: 130, svg: bunSuit('#F4EEF6', '#BFB3C6', '#FF9EC8'), paint: bunSuit },
+  { id: 'catsuit', slot: 'body', name: 'Kitty Suit', ico: '🐱', price: 130, svg: catSuit('#9AA3B5', '#5E6B80', '#FFFFFF'), paint: catSuit },
+  { id: 'bearsuit', slot: 'body', name: 'Teddy Bear Suit', short: 'Teddy Suit', ico: '🧸', price: 130, svg: bearSuit('#A0673A', '#6B4226', '#F5D6A8'), paint: bearSuit },
+  { id: 'frogsuit', slot: 'body', name: 'Frog Suit', ico: '🐸', price: 130, svg: frogSuit('#5CC46A', '#2E7A3A', '#DFF5C9'), paint: frogSuit },
+  { id: 'dragsuit', slot: 'body', name: 'Dragon Suit', ico: '🐲', price: 170, svg: dragSuit('#3FC1B0', '#22857A', '#FFE08A'), paint: dragSuit },
+  { id: 'mersuit', slot: 'body', name: 'Mermaid Suit', short: 'Mermaid', ico: '🧜', price: 170, svg: merSuit('#3FC1B0', '#22857A', '#FF9EC8'), paint: merSuit },
+  { id: 'pengsuit', slot: 'body', name: 'Penguin Suit', ico: '🐧', price: 140, svg: pengSuit('#34343E', '#16161C', '#FFFFFF'), paint: pengSuit },
+  { id: 'herosuit', slot: 'body', name: 'Superhero Suit', short: 'Hero Suit', ico: '🦸', price: 150, svg: heroSuit('#4FA3E8', '#2A6FA0', '#FFD93D'), paint: heroSuit },
   { id: 'classic', slot: 'fur', name: 'Classic', price: 0, fur: ['#E8A85A', '#F0B870', '#F5C27A', '#D4924A', '#C0824A'] },
   { id: 'cream', slot: 'fur', name: 'Cream', price: 50, fur: ['#EADBC0', '#F3E8D4', '#FAF3E6', '#D9C5A3', '#C9B38E'] },
   { id: 'choc', slot: 'fur', name: 'Chocolate', price: 50, fur: ['#8B5A35', '#9C6A42', '#B07D52', '#6E4527', '#5E3A20'] },
@@ -2107,7 +2667,7 @@ const CLOSET = [
   { id: 'lavender', slot: 'fur', name: 'Lavender', price: 80, fur: ['#BBA6EE', '#CAB9F2', '#DDD1F7', '#9F88DC', '#8B74C8'] },
   { id: 'lemon', slot: 'fur', name: 'Lemon', price: 80, fur: ['#F2D35E', '#F6DE7E', '#FAEAAA', '#DDBB45', '#C9A633'] },
   { id: 'snow', slot: 'fur', name: 'Snow White', price: 100, fur: ['#E6EAF0', '#F0F3F7', '#FFFFFF', '#CFD6E0', '#BCC4D2'] },
-  { id: 'midnight', slot: 'fur', name: 'Midnight Black', price: 100, fur: ['#4A4A5C', '#5A5A6E', '#8C8CA4', '#3A3A4A', '#2C2C3A'] },
+  { id: 'midnight', slot: 'fur', name: 'Midnight Black', price: 100, fur: ['#4A4A5C', '#5A5A6E', '#A9A9C0', '#3A3A4A', '#2C2C3A'] },
   // Toys are kept, not worn. Pom plays with them when tapped and during streak tricks.
   { id: 'ball', slot: 'toy', name: 'Bouncy Ball', short: 'Ball', ico: '⚽', price: 20, say: 'Fetch! I got it! 🐾' },
   { id: 'duck', slot: 'toy', name: 'Squeaky Duck', short: 'Duck', ico: '🐤', price: 25, say: 'Squeak squeak! Hee hee!' },
@@ -2115,6 +2675,15 @@ const CLOSET = [
   { id: 'frisbee', slot: 'toy', name: 'Flying Disc', short: 'Disc', ico: '🥏', price: 50, say: 'Wheee! Nice catch, me! ✨' },
   { id: 'bubbles', slot: 'toy', name: 'Bubbles', ico: '🧼', price: 60, say: 'Pop! Pop! I love bubbles!' },
   { id: 'box', slot: 'toy', name: 'Hidey Box', short: 'Box', ico: '📦', price: 80, say: 'Peekaboo!' },
+  // Picture toys: ico is used in text, svg everywhere a toy is shown.
+  { id: 'dino', slot: 'toy', name: 'Toy Dino', short: 'Dino', ico: '🦖', price: 60, say: 'Rawr! Hee hee, it tickles! 🦖',
+    svg: toyDino('#5CC46A', '#3A9447', '#FFD166'), paint: toyDino },
+  { id: 'rocket', slot: 'toy', name: 'Toy Rocket', short: 'Rocket', ico: '🚀', price: 70, say: '3, 2, 1... blast off! 🚀',
+    svg: toyRocket('#F4F4F8', '#8A93A8', '#E94B4B'), paint: toyRocket },
+  { id: 'truck', slot: 'toy', name: 'Fire Truck', short: 'Truck', ico: '🚒', price: 80, say: 'Wee-ooo! Here comes the truck! 🚒',
+    svg: toyTruck('#E94B4B', '#B83232', '#FFD166'), paint: toyTruck },
+  { id: 'chest', slot: 'toy', name: 'Treasure Chest', short: 'Chest', ico: '💰', price: 90, say: 'Ooh, treasure! So shiny! ✨',
+    svg: toyChest('#B07D52', '#6E4527', '#FFD166'), paint: toyChest },
 ];
 
 // Every accessory and toy also comes in these colors, and each color is its own item to buy.
@@ -2139,6 +2708,12 @@ const PAINT_DEFS = '<linearGradient id="rainbow" x2="1" y2="0.5"><stop offset="0
   '<circle cx="2" cy="2" r="1" fill="#fff"/><circle cx="6" cy="4.5" r="0.8" fill="#FFD166"/><circle cx="3.5" cy="6.5" r="0.7" fill="#FF7EB6"/>' +
   '<circle cx="7" cy="7.5" r="0.5" fill="#fff"/><circle cx="6.5" cy="0.8" r="0.5" fill="#6FC3F2"/></pattern>';
 
+// Colors that v48 and earlier sold although they draw exactly like the classic look. They are no longer sold,
+// but stay valid for anyone who bought one. Any other color like that is left out altogether.
+const OLD_SAME = ['bandana.r', 'toybox.o', 'beanbag.p', 'drum.r', 'poolfloat.k'];
+// Colors of v50 items that look almost like the classic look. They were never sold, so they aren't made.
+const NEAR_SAME = ['watch.k', 'firesuit.r', 'herosuit.b', 'spikes.g', 'bracelet.p', 'butterfly.o', 'patch.n', 'stars.y', 'dinosuit.g'];
+
 const ITEMS = {};
 for (const item of CLOSET) {
   item.base = item.id;
@@ -2150,7 +2725,10 @@ for (const item of CLOSET) {
     const colored = {
       ...item, id: item.id + '.' + c.code, color: c, name: `${c.name} ${item.short || item.name}`,
       price: c.fancy ? price + 10 : price, svg: item.paint && item.paint(c.m, c.d, c.a),
+      front: item.paintFront && item.paintFront(c.m, c.d, c.a),
     };
+    colored.same = !!item.svg && colored.svg === item.svg && colored.front === item.front;
+    if (colored.same && !OLD_SAME.includes(colored.id) || NEAR_SAME.includes(colored.id)) continue;
     item.colors.push(colored);
     ITEMS[colored.id] = colored;
   }
@@ -2493,6 +3071,8 @@ for (const f of FURNITURE) {
       ...f, id: f.id + '.' + c.code, color: c, name: `${c.name} ${f.short || f.name}`,
       price: c.fancy ? price + 10 : price, svg: f.paint(c.m, c.d, c.a),
     };
+    colored.same = colored.svg === f.svg;
+    if (colored.same && !OLD_SAME.includes(colored.id)) continue;
     f.colors.push(colored);
     FURN[colored.id] = colored;
   }
@@ -2503,7 +3083,7 @@ for (const f of FURNITURE) {
 function defaultState() {
   return {
     totalCents: 0, paidCents: 0, payouts: [], weights: {}, mastery: FACT_KEYS.map(() => 0), muted: false,
-    gems: 0, owned: [], worn: { ...DEFAULT_WORN }, toys: {}, treats: {}, furniture: [], home: {}, room: 'bedroom', savedAt: 0,
+    gems: 0, owned: [], ownBits: '', worn: { ...DEFAULT_WORN }, toys: {}, treats: {}, furniture: [], home: {}, room: 'bedroom', savedAt: 0,
     days: FACT_KEYS.map(() => 0), levels: FACT_KEYS.map(() => 0), easyPath: false,
     fastPath: false, newTries: '', // 4 new facts a round, and her last first answers to new facts
     missedDay: 0, missedKeys: [], // facts she missed on the path that day, oldest first
@@ -2522,11 +3102,14 @@ function defaultState() {
 
 // Owned items are saved as 'party,party.rgw,choc': the classic Party Hat, then its red, green and rainbow colors.
 // Saves from v12 and earlier only have plain ids, which read the same way. Furniture is saved the same way.
+// 'party.*' is every one of its colors. It is still read, but no longer written: older versions don't read it, and
+// one that saves a cookie with it would lose those colors.
 function encodeOwned(catalog = CLOSET, owned = state.owned) {
   const parts = [];
   for (const item of catalog) {
     if (owned.includes(item.id)) parts.push(item.id);
-    const codes = item.colors.filter(c => c.color && owned.includes(c.id)).map(c => c.color.code).join('');
+    const colors = item.colors.filter(c => c.color);
+    const codes = colors.filter(c => owned.includes(c.id)).map(c => c.color.code).join('');
     if (codes) parts.push(item.id + '.' + codes);
   }
   return parts.join(',');
@@ -2535,9 +3118,62 @@ function encodeOwned(catalog = CLOSET, owned = state.owned) {
 function decodeOwned(text, lookup = ITEMS) {
   const ids = text.split(',').flatMap(part => {
     const [base, codes] = part.split('.');
+    if (codes === '*') return lookup[base] ? lookup[base].colors.filter(c => c.color).map(c => c.id) : [];
     return codes ? [...codes].map(code => base + '.' + code) : [base];
   });
   return [...new Set(ids)].filter(id => lookup[id] && lookup[id].price > 0);
+}
+
+// From v50, closet items new since v49 are also saved as bits in `ownBits`, so the cookie fits many more of them.
+// Each item in PACK_ORDER has one bit for its classic look, then one for each color in PACK_COLORS order.
+// Never reorder, rename or remove anything in these two lists, or old saves would read as other items. Only add to the end.
+// A test pins both. Bits for items this version doesn't know, added by a later version, are kept and written back.
+const PACK_COLORS = 'roygbpknws';
+const PACK_ORDER = [
+  // v50 outfits and toys
+  'dinohood', 'unicorn', 'flowers', 'astro', 'antenna', 'pirate', 'firehat', 'racing', 'stars', 'patch', 'mask', 'goggles',
+  'lei', 'spikes', 'jetpack', 'butterfly', 'dino', 'rocket', 'truck', 'chest',
+  // v50 costume parts: body suits for outfits that already have a hat or back item
+  'dinosuit', 'unisuit', 'astrosuit', 'robosuit', 'piratesuit', 'firesuit', 'racesuit', 'herosuit', 'fairydress', 'buttersuit',
+  'chefsuit', 'wizrobe', 'cowvest', 'gown',
+  // and the new costumes, one to three parts each
+  'beesuit', 'bugears', 'beewings', 'ladysuit', 'ladyshell', 'lionmane', 'lionsuit', 'liontail', 'bunears', 'bunsuit', 'buntail',
+  'catears', 'catsuit', 'cattail', 'bearears', 'bearsuit', 'froghood', 'frogsuit', 'draghorns', 'dragsuit', 'dragwings',
+  'mersuit', 'shelltiara', 'penghood', 'pengsuit',
+  // v50 everyday items
+  'necklace', 'backpack', 'watch', 'bracelet', 'helpervest',
+];
+const PACK_BITS = 1 + PACK_COLORS.length;
+const PACK_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_'; // six bits each
+const packId = (i, j) => j ? PACK_ORDER[i] + '.' + PACK_COLORS[j - 1] : PACK_ORDER[i];
+
+// The bits of a saved `ownBits`. Anything that isn't one reads as no bits, and never touches `owned`.
+function packBits(text) {
+  if (typeof text !== 'string' || ![...text].every(ch => PACK_CHARS.includes(ch))) return [];
+  return [...text].flatMap(ch => [5, 4, 3, 2, 1, 0].map(b => PACK_CHARS.indexOf(ch) >> b & 1));
+}
+
+// The items this version knows that a saved `ownBits` owns.
+function decodePacked(text) {
+  const bits = packBits(text), ids = [];
+  PACK_ORDER.forEach((_, i) => {
+    for (let j = 0; j < PACK_BITS; j++) if (bits[i * PACK_BITS + j]) ids.push(packId(i, j));
+  });
+  return ids.filter(id => ITEMS[id] && ITEMS[id].price > 0);
+}
+
+// The bits for the PACK_ORDER items in `owned`, with the bits of items this version doesn't know taken from `keep`.
+function encodePacked(owned, ...keep) {
+  const have = new Set(owned), kept = keep.map(packBits);
+  const bits = Array(Math.max(PACK_ORDER.length * PACK_BITS, ...kept.map(k => k.length))).fill(0);
+  bits.forEach((_, k) => {
+    const i = Math.floor(k / PACK_BITS), id = i < PACK_ORDER.length && packId(i, k % PACK_BITS);
+    bits[k] = id && ITEMS[id] ? +have.has(id) : +kept.some(b => b[k]);
+  });
+  const used = bits.lastIndexOf(1) + 1;
+  let text = '';
+  for (let k = 0; k < used; k += 6) text += PACK_CHARS[parseInt(bits.slice(k, k + 6).join('').padEnd(6, '0'), 2)];
+  return text;
 }
 
 function readCookie() {
@@ -2560,6 +3196,36 @@ function readLocal() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch { return null; }
 }
 
+// Since v50 every closet item and piece of furniture she owns is also kept under its own key, in localStorage and
+// IndexedDB, which older versions never touch. An older version (an iPad tab left open from before an update, or a
+// rollback) drops the items it doesn't know and saves over all three copies, and this brings them back. Nothing she
+// owns is ever taken away, so loading always adds these in. Ids this version doesn't know are kept for a later one.
+const KEPT_KEY = STORE_KEY + '_items';
+function parseKept(saved) {
+  const ids = list => (Array.isArray(list) ? list.filter(id => typeof id === 'string') : []);
+  return { owned: ids(saved && saved.owned), furniture: ids(saved && saved.furniture) };
+}
+let kept = parseKept((() => { try { return JSON.parse(localStorage.getItem(KEPT_KEY)); } catch { return null; } })());
+// Until the IndexedDB copy is read, saves leave it alone, so it can still bring back what localStorage lost.
+let keptPending = !!window.indexedDB;
+
+// Adds the kept items this version knows to `state`. Returns whether any were missing.
+function addKept(state) {
+  const owned = kept.owned.filter(id => ITEMS[id] && ITEMS[id].price > 0 && !state.owned.includes(id));
+  const furniture = kept.furniture.filter(id => FURN[id] && FURN[id].price > 0 && !state.furniture.includes(id));
+  state.owned.push(...owned);
+  state.furniture.push(...furniture);
+  return owned.length + furniture.length > 0;
+}
+
+function saveKept() {
+  const union = (a, b) => [...new Set([...a, ...b])];
+  kept = { owned: union(kept.owned, state.owned), furniture: union(kept.furniture, state.furniture) };
+  const json = JSON.stringify(kept);
+  try { localStorage.setItem(KEPT_KEY, json); } catch { /* storage may be unavailable in private mode */ }
+  if (window.indexedDB && !keptPending) SaveDB.write(json, 'items');
+}
+
 // A third copy lives in IndexedDB. It loads after the page starts, so init() switches to it if it is newer.
 const SaveDB = {
   open() {
@@ -2573,7 +3239,7 @@ const SaveDB = {
     }
     return this.db;
   },
-  // The save is under 'state', the grown-up stats under 'stats'.
+  // The save is under 'state', the grown-up stats under 'stats', and the items she owns under 'items'.
   async read(key = 'state') {
     try {
       const db = await this.open();
@@ -2643,6 +3309,7 @@ function loadState(extra) {
   const saved = newestSave(extra);
   loadedPartial = !!saved.partial;
   const state = parseSave(saved);
+  addKept(state);
   savedBase = JSON.parse(JSON.stringify(state));
   return state;
 }
@@ -2717,6 +3384,10 @@ function parseSave(saved) {
   if (Number.isFinite(saved.gems)) state.gems = Math.max(0, Math.round(saved.gems));
   if (typeof saved.owned === 'string') {
     state.owned = decodeOwned(saved.owned);
+  }
+  if (packBits(saved.ownBits).length) {
+    state.ownBits = saved.ownBits;
+    state.owned = [...new Set([...state.owned, ...decodePacked(saved.ownBits)])];
   }
   if (saved.toys && typeof saved.toys === 'object') {
     for (const [base, id] of Object.entries(saved.toys)) {
@@ -2825,6 +3496,7 @@ function mergeNewer(stored) {
     .slice(0, MAX_PAYOUTS_KEPT);
   state.owned = [...new Set([...stored.owned, ...state.owned])];
   state.furniture = [...new Set([...stored.furniture, ...state.furniture])];
+  state.ownBits = encodePacked(state.owned, stored.ownBits, state.ownBits);
   for (const id of new Set([...Object.keys(stored.treats), ...Object.keys(state.treats)])) {
     const n = Math.min(MAX_TREATS, add(stored.treats[id] || 0, state.treats[id] || 0, base.treats[id] || 0));
     if (n) state.treats[id] = n;
@@ -2879,6 +3551,7 @@ function saveState() {
   }
   state.weights = weights;
   keepRoomsOpen();
+  state.ownBits = encodePacked(state.owned, state.ownBits);
   const save = {
     v: SAVE_VERSION, ...state, mastery: state.mastery.join(''), owned: encodeOwned(), weights: encodeWeights(),
     days: undefined, levels: undefined, review: encodeReview(),
@@ -2893,7 +3566,8 @@ function saveState() {
   // it and takes the list from IndexedDB. A browser drops a cookie over 4 KB. If it is still too big, it leaves out
   // the review dates and picker weights of facts above 10, then all picker weights, then all review dates.
   // Every sticker, dot, coin, gem, item and piece of furniture always stays in it.
-  const partial = { ...save, payouts: [], partial: true };
+  // The items in `ownBits` are left out of the cookie's `owned`. The other two copies list them in both.
+  const partial = { ...save, payouts: [], partial: true, owned: encodeOwned(CLOSET.filter(i => !PACK_ORDER.includes(i.id)), state.owned) };
   const upTo10 = i => Math.max(...factsOf(FACT_KEYS[i])) <= 10;
   const trims = [
     partial,
@@ -2908,6 +3582,7 @@ function saveState() {
   }
   document.cookie = `${COOKIE_NAME}=${cookie}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax${secure}`;
   savedBase = JSON.parse(JSON.stringify(state));
+  saveKept();
   saveStats();
 }
 
@@ -3139,6 +3814,27 @@ const sfx = {
       [784, 1047].forEach((f, i) => tone(f, { at: 0.95 + i * 0.08, dur: 0.5, vol: 0.22 }));
     },
     bubbles() { for (let i = 0; i < 5; i++) tone(PENTA[8 + i], { at: 0.75 + i * 0.1, voice: 'marimba', dur: 0.12, vol: 0.2 }); },
+    // A low silly rawr, then a giggle
+    dino() {
+      tone(147, { at: 0.83, voice: 'soft', dur: 0.35, vol: 0.28, glide: 1.5 });
+      [784, 880, 988].forEach((f, i) => tone(f, { at: 1.06 + i * 0.09, voice: 'marimba', dur: 0.12, vol: 0.2 }));
+    },
+    // Whoosh up, then a soft landing chime
+    rocket() {
+      tone(262, { at: 0.2, voice: 'soft', dur: 0.45, vol: 0.2, glide: 4 });
+      tone(1047, { at: 0.7, voice: 'soft', dur: 0.45, vol: 0.14, glide: 0.5 });
+      [659, 988].forEach((f, i) => tone(f, { at: 1.16 + i * 0.07, voice: 'bell', dur: 0.4, vol: 0.18 }));
+    },
+    // Wee-ooo siren, then two honks
+    truck() {
+      [0, 0.25, 0.5].forEach(at => { tone(880, { at, voice: 'soft', dur: 0.12, vol: 0.14 }); tone(660, { at: at + 0.12, voice: 'soft', dur: 0.12, vol: 0.14 }); });
+      [1.05, 1.21].forEach(at => tone(392, { at, voice: 'soft', dur: 0.12, vol: 0.26 }));
+    },
+    // A creak as the lid opens, then a twinkly run up
+    chest() {
+      tone(220, { at: 0.55, voice: 'soft', dur: 0.15, vol: 0.18, glide: 1.4 });
+      [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, { at: 0.66 + i * 0.07, voice: 'bell', dur: 0.5, vol: 0.16 }));
+    },
     box() {
       [330, 294].forEach((f, i) => tone(f, { at: i * 0.2, voice: 'soft', dur: 0.3, vol: 0.2 }));
       [784, 1047, 1319].forEach((f, i) => tone(f, { at: 0.9 + i * 0.07, dur: 0.6, vol: 0.22 }));
@@ -3273,13 +3969,102 @@ const reactionTrick = moment => knownTricks().find(t => t.cls === REACTIONS[mome
 const SURPRISE_TRICK = 0.25; // chance of a trick for a plain first-try answer
 const knownTricks = () => [...TRICKS, ...[...state.tricks].map(c => TEACHABLE[WEIGHT_CHARS.indexOf(c)]).filter(Boolean)];
 
-const TOY_CLASSES = ['ball', 'duck', 'rope', 'frisbee', 'bubbles', 'box'].map(id => 'play-' + id);
+const TOY_CLASSES = ['ball', 'duck', 'rope', 'frisbee', 'bubbles', 'box', 'dino', 'rocket', 'truck', 'chest'].map(id => 'play-' + id);
+
+// Picture toys move with GSAP: each gets the timeline, the toy, Pom's size (--s) and a way to throw sparkles.
+// Toys sit on the floor, so they squash and stretch from their bottom edge.
+const TOY_PLAYS = {
+  // The dino waddles in, crouches, pounces with a friendly rawr, and lands with a bounce.
+  dino: (tl, t, s) => tl
+    .from(t, { x: 60 * s, opacity: 0, duration: 0.55, ease: 'power1.out' }, 0)
+    .fromTo(t, { rotation: -8 }, { rotation: 8, duration: 0.11, yoyo: true, repeat: 4, ease: 'sine.inOut' }, 0)
+    .to(t, { y: -5 * s, duration: 0.055, yoyo: true, repeat: 9, ease: 'sine.out' }, 0)
+    .to(t, { rotation: 0, duration: 0.1 }, 0.55)
+    .to(t, { scaleX: 1.15, scaleY: 0.82, duration: 0.15, ease: 'power2.out' }, 0.68)
+    .to(t, { scaleX: 0.9, scaleY: 1.22, x: -10 * s, y: -14 * s, rotation: -10, duration: 0.13, ease: 'back.out(3)' }, 0.83)
+    .to(t, { scaleX: 1, scaleY: 1, x: 0, y: 0, rotation: 0, duration: 0.35, ease: 'bounce.out' }, 1.02)
+    .to(t, { opacity: 0, duration: 0.12 }, 1.38),
+  // The rocket rumbles, blasts off out of sight, then floats back down on its flame and lands with a squash.
+  rocket: (tl, t, s) => {
+    const flame = t.querySelector('.toy-flame');
+    gsap.set(flame, { svgOrigin: '20 30' });
+    tl.to(flame, { scaleY: 1.35, scaleX: 0.85, duration: 0.07, yoyo: true, repeat: 19, ease: 'sine.inOut' }, 0)
+      .to(t, { scaleX: 1.12, scaleY: 0.82, duration: 0.25, ease: 'power2.out' }, 0)
+      .to(t, { x: 1.5 * s, duration: 0.04, yoyo: true, repeat: 5 }, 0.02)
+      .to(t, { y: -170 * s, scaleX: 0.88, scaleY: 1.18, duration: 0.38, ease: 'power2.in' }, 0.25)
+      .to(t, { rotation: 6, duration: 0.1, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 0.3)
+      .to(t, { opacity: 0, duration: 0.06 }, 0.58)
+      .set(t, { x: -18 * s, rotation: 0, scaleX: 1, scaleY: 1 }, 0.66)
+      .to(t, { opacity: 1, duration: 0.1 }, 0.68)
+      .to(t, { y: 0, x: 0, duration: 0.48, ease: 'power2.out' }, 0.68)
+      .to(t, { scaleX: 1.12, scaleY: 0.86, duration: 0.07, ease: 'power1.out' }, 1.15)
+      .to(t, { scaleX: 1, scaleY: 1, duration: 0.22, ease: 'back.out(3)' }, 1.22);
+  },
+  // The truck drives in over little bumps with its siren flashing, nods forward as it brakes, and honks.
+  truck: (tl, t, s) => {
+    const siren = t.querySelector('.toy-siren');
+    gsap.set(siren, { svgOrigin: '30 13' });
+    tl.from(t, { x: -80 * s, opacity: 0, duration: 0.7, ease: 'power2.out' }, 0)
+      .to(t, { y: -3 * s, duration: 0.07, yoyo: true, repeat: 7, ease: 'sine.out' }, 0)
+      .to(siren, { scale: 1.3, opacity: 0.45, duration: 0.1, yoyo: true, repeat: 11, ease: 'sine.inOut' }, 0)
+      .to(t, { rotation: 7, duration: 0.1, ease: 'power2.out' }, 0.68)
+      .to(t, { rotation: -2, duration: 0.12, ease: 'sine.inOut' }, 0.78)
+      .to(t, { rotation: 0, duration: 0.14, ease: 'sine.out' }, 0.9)
+      .to(t, { scale: 1.15, duration: 0.08, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 1.05)
+      .to(t, { opacity: 0, duration: 0.12 }, 1.38);
+  },
+  // The chest pops up, wiggles as if something inside wants out, then flips its lid on sparkling treasure.
+  chest: (tl, t, s, sparkle) => {
+    const lid = t.querySelector('.toy-lid');
+    gsap.set(lid, { svgOrigin: '5 21' });
+    tl.from(t, { scale: 0, duration: 0.25, ease: 'back.out(2)' }, 0)
+      .fromTo(t, { rotation: -6 }, { rotation: 6, duration: 0.07, yoyo: true, repeat: 3, ease: 'sine.inOut' }, 0.3)
+      .to(t, { rotation: 0, duration: 0.05 }, 0.58)
+      .to(t, { scaleX: 1.1, scaleY: 0.88, duration: 0.07, yoyo: true, repeat: 1 }, 0.6)
+      .to(lid, { rotation: -24, duration: 0.15, ease: 'back.out(3)' }, 0.62)
+      .add(() => sparkle(['✨', '💎', '⭐', '✨']), 0.64)
+      .to(lid, { rotation: 0, duration: 0.14, ease: 'power2.in' }, 1.12)
+      .to(t, { scale: 0, duration: 0.18, ease: 'back.in(2)' }, 1.3);
+  },
+};
+
+// Sparkles burst up and out from a toy and fade.
+function toySparkles(el, toyEl, s, icons) {
+  icons.forEach((icon, i) => {
+    const fx = document.createElement('span');
+    fx.className = 'toy-fx toy-spark';
+    fx.textContent = icon;
+    fx.style.left = getComputedStyle(toyEl).left;
+    fx.style.top = getComputedStyle(toyEl).top;
+    fx.style.transform = 'none';
+    el.appendChild(fx);
+    const side = (i - (icons.length - 1) / 2) * 16 * s;
+    el.toyTl.fromTo(fx, { xPercent: -50, yPercent: -50, x: 0, y: -8 * s, scale: 0.3, opacity: 0 },
+      { x: side, y: (-44 - (i % 2) * 14) * s, scale: 1, opacity: 1, duration: 0.35, ease: 'power2.out' }, el.toyTl.time() + i * 0.04)
+      .to(fx, { y: `-=${10 * s}`, opacity: 0, duration: 0.3, ease: 'sine.in' }, el.toyTl.time() + 0.4 + i * 0.04);
+  });
+}
+
+// Picture toys play with GSAP. With Reduce Motion on, the toy just fades in, stays still, and fades out.
+function playPictureToy(el, fx, kind) {
+  if (!window.gsap) return;
+  const s = parseFloat(getComputedStyle(el).getPropertyValue('--s')) || 1;
+  fx.style.transform = 'none'; // GSAP owns the centering, so it doesn't read the CSS one as an offset
+  gsap.set(fx, { xPercent: -50, yPercent: -50, transformOrigin: '50% 100%' });
+  el.toyTl = gsap.timeline();
+  if (calmMotion.matches) {
+    el.toyTl.from(fx, { opacity: 0, duration: 0.25 }).to(fx, { opacity: 0, duration: 0.25 }, 1.15);
+    return;
+  }
+  TOY_PLAYS[kind](el.toyTl, fx, s, icons => toySparkles(el, fx, s, icons));
+}
 
 // Pom plays with a toy in one of its colors: her picture moves and the toy flies around her.
 function playToy(el, id) {
   const toy = ITEMS[id];
   const kind = toy.base;
   clearTimeout(el.toyTimer);
+  if (el.toyTl) el.toyTl.kill();
   el.querySelectorAll('.toy-fx, .treat-fx, .crumb-fx, .heart-fx').forEach(t => t.remove());
   el.classList.remove('bounce', 'shake', 'surprised', 'eating', ...TRICK_CLASSES, ...TOY_CLASSES);
   void el.offsetWidth;
@@ -3288,7 +4073,7 @@ function playToy(el, id) {
   const count = kind === 'bubbles' ? 5 : 1;
   for (let i = 0; i < count; i++) {
     const fx = document.createElement('span');
-    fx.className = 'toy-fx ' + kind + (toy.color && toy.color.fancy ? ' tint-' + toy.color.code : '');
+    fx.className = 'toy-fx ' + kind + (toy.color && toy.color.fancy && !toy.svg ? ' tint-' + toy.color.code : '');
     if (kind !== 'bubbles') fx.innerHTML = toyFace(toy, 'toy-ico'); // bubbles are drawn with CSS
     else if (toy.color) fx.style.filter = toy.color.tint || '';
     if (count > 1) {
@@ -3301,9 +4086,12 @@ function playToy(el, id) {
       fx.style.animationDelay = i ? '0.4s' : '0s';
     }
     el.appendChild(fx);
+    if (toy.svg) playPictureToy(el, fx, kind);
   }
   sfx.toy[kind]();
+  if (el.vestOn) swapVest(el, false);
   el.toyTimer = setTimeout(() => {
+    if (el.vestOn) swapVest(el, true);
     el.classList.remove('play-' + kind);
     el.querySelectorAll('.toy-fx').forEach(t => t.remove());
   }, 1500);
@@ -3555,6 +4343,34 @@ const POM_MOVES = {
     paw(tl, b, 'l', 145, 0.1, 0.42, 8); paw(tl, b, 'r', -145, 0.55, 0.88, 8);
     tl.to(b.head, { rotation: -10, duration: 0.2 }, 0.1).to(b.head, { rotation: 10, duration: 0.25 }, 0.5).to(b.head, { rotation: 0, duration: 0.2 }, 0.9);
     swing(tl, b.tail, 20, 0.275, 4);
+  },
+  // Dino: she glances at it coming, her eyes go wide and ears shoot up at the rawr, then she giggles.
+  'play-dino': (tl, b) => {
+    tl.to(b.eyes, { x: 2.5, duration: 0.12 }, 0.05).to(b.head, { rotation: 5, duration: 0.25 }, 0.15)
+      .to(b.eyes, { scaleX: 1.2, scaleY: 1.25, x: 0, duration: 0.07, ease: 'back.out(3)' }, 0.84).to(b.eyes, { scaleX: 1, scaleY: 1, duration: 0.15 }, 1.02)
+      .to(b.head, { rotation: -8, y: -2, duration: 0.08 }, 0.84);
+    ears(tl, b, -22, -5, 0.07, 0.84); ears(tl, b, 0, 0, 0.25, 1.05);
+    shutEyes(tl, b, 1.06, 1.3, 0.25); swing(tl, b.head, 5, 0.12, 2, 1.06); swing(tl, b.tail, 25, 0.2, 3, 0.85);
+  },
+  // Rocket: her eyes follow it up, then down, and she wags as it lands.
+  'play-rocket': (tl, b) => {
+    tl.to(b.eyes, { x: 2, y: 1.5, duration: 0.12 }, 0.05).to(b.eyes, { x: 1, y: -3, duration: 0.2 }, 0.3)
+      .to(b.head, { rotation: -6, y: -2, duration: 0.25 }, 0.3).to(b.eyes, { x: 0, y: 1, duration: 0.4, ease: 'sine.inOut' }, 0.75)
+      .to(b.head, { rotation: 0, y: 0, duration: 0.35 }, 0.8).to(b.eyes, { y: 0, duration: 0.15 }, 1.2);
+    ears(tl, b, -10, -2, 0.3, 0.3); ears(tl, b, 0, 0, 0.2, 1.1); tuck(tl, b, 0.25, 1, 1.25); swing(tl, b.tail, 25, 0.22, 2, 1.0);
+  },
+  // Fire truck: she watches it drive in with a fast wag, and her ears jump at the honk.
+  'play-truck': (tl, b) => {
+    tl.to(b.eyes, { x: -2.5, duration: 0.12 }, 0.05).to(b.head, { rotation: -5, duration: 0.25 }, 0.1)
+      .to(b.eyes, { x: 0, duration: 0.2 }, 1.2).to(b.head, { rotation: 0, duration: 0.2 }, 1.2);
+    swing(tl, b.tail, 25, 0.18, 7); ears(tl, b, -18, -4, 0.06, 1.05); ears(tl, b, 0, 0, 0.25, 1.25); tuck(tl, b, 0.3, 1, 1.07);
+  },
+  // Treasure chest: a curious head tilt while it wiggles, then a big wide-eyed gasp and a happy wiggle.
+  'play-chest': (tl, b) => {
+    tl.to(b.eyes, { x: 2.5, duration: 0.12 }, 0.05).to(b.head, { rotation: 9, duration: 0.3, ease: 'back.out(2)' }, 0.25)
+      .to(b.eyes, { scaleX: 1.2, scaleY: 1.3, x: 1, y: -1, duration: 0.08, ease: 'back.out(3)' }, 0.64).to(b.head, { rotation: 0, y: -2, duration: 0.12 }, 0.64)
+      .to(b.eyes, { scaleX: 1, scaleY: 1, x: 0, y: 0, duration: 0.2 }, 1.15).to(b.head, { y: 0, duration: 0.2 }, 1.15);
+    ears(tl, b, 15, 2, 0.25, 0.25); ears(tl, b, -20, -5, 0.08, 0.64); ears(tl, b, 0, 0, 0.25, 1.15); swing(tl, b.tail, 28, 0.18, 4, 0.66);
   },
   'play-box': (tl, b) => { ears(tl, b, 35, 4, 0.25, 0.1); ears(tl, b, 0, 0, 0.3, 1.1); swing(tl, b.tail, 25, 0.2, 2, 1); },
   eating: (tl, b) => { munch(tl, b, 0.3); shutEyes(tl, b, 0.4, 1.6, 0.4); swing(tl, b.tail, 18, 0.3, 6); },
@@ -4849,6 +5665,8 @@ function goHome() {
   renderPath();
   renderMedals();
   renderPeek();
+  const fromHouse = $('houseScreen').classList.contains('active');
+  if (fromHouse && $('pomStart').vestOn) vestBackOn($('pomStart'));
   if (!sleepyHello()) say('startBubble', pick([
     'Woof! Let\'s practice!',
     'Welcome back! 🐾',
@@ -4987,7 +5805,9 @@ function ownedToys() {
 }
 
 // A toy emoji in its color. Rainbow and glitter toys animate with CSS; the others use a filter.
+// Picture toys are drawn in their color instead.
 function toyFace(toy, cls) {
+  if (toy.svg) return `<span class="${cls} toy-pic"><svg viewBox="0 0 40 40" aria-hidden="true">${ownPaint(toy.svg, 'swatch')}</svg></span>`;
   const fancy = toy.color && toy.color.fancy ? ' tint-' + toy.color.code : '';
   const style = toy.color && toy.color.tint ? ` style="filter:${toy.color.tint}"` : '';
   return `<span class="${cls}${fancy}"${style}>${toy.ico}</span>`;
@@ -5024,10 +5844,17 @@ function renderToyShelf() {
 // Rainbow and glitter point at the fills inside this Pom's own picture.
 const ownPaint = (svg, suffix) => svg.replace(/url\(#(rainbow|glitter)\)/g, `url(#$1-${suffix})`);
 
-function dressPom(el, worn) {
-  for (const slot of ['hat', 'face', 'neck', 'back']) {
-    el.querySelector('.acc-' + slot).innerHTML = worn[slot] ? ownPaint(ITEMS[worn[slot]].svg, el.id) : '';
+// A Pom that is `playing` (walking around her house) leaves her Service Dog Vest off.
+function dressPom(el, worn, playing = false) {
+  el.vestOn = !!worn.body && !!ITEMS[worn.body].offToPlay && !playing;
+  for (const slot of ['hat', 'face', 'neck', 'back', 'body', 'paws']) {
+    const off = slot === 'body' && playing && ITEMS[worn.body] && ITEMS[worn.body].offToPlay;
+    el.querySelector('.acc-' + slot).innerHTML = worn[slot] && !off ? ownPaint(ITEMS[worn[slot]].svg, el.id) : '';
   }
+  gsap.set(el.querySelector('.acc-body'), { clearProps: 'all' }); // in case the vest was halfway off
+  // A back item's straps go over her body and suit
+  const front = worn.back && ITEMS[worn.back].front;
+  el.querySelector('.acc-front').innerHTML = front ? ownPaint(front, el.id) : '';
   ITEMS[worn.fur || 'classic'].fur.forEach((color, i) => el.style.setProperty('--fur' + (i + 1), color));
 }
 
@@ -5038,34 +5865,78 @@ function dressAllPoms() {
   dressPom($('pomSummary'), state.worn);
   dressPom($('pomCloset'), outfit);
   // The walkers leave the page while their room is locked, so use their own elements.
-  dressPom(houseWalker.pom, state.worn);
-  dressPom(peekWalker.pom, state.worn);
+  dressPom(houseWalker.pom, state.worn, true);
+  dressPom(peekWalker.pom, state.worn, true);
 }
+
+// A service dog is working while her vest is on, so Ms. Menna takes it off to play and puts it back on to teach.
+// Off: it lifts a little, then slides down and fades. On: it drops in, squashes and settles. Reduce Motion just fades it.
+// `done` runs when it is off, like clearing it from a walker.
+function swapVest(el, on, done) {
+  const vest = el.querySelector('.acc-body');
+  gsap.killTweensOf(vest);
+  gsap.set(vest, { svgOrigin: '65 106' }); // the bottom of her body, so it squashes onto her
+  const tl = gsap.timeline({ onComplete: () => { if (!on && done) done(); } });
+  if (calmMotion.matches) {
+    tl.fromTo(vest, { opacity: on ? 0 : 1 }, { opacity: on ? 1 : 0, duration: 0.3 });
+  } else if (on) {
+    tl.fromTo(vest, { y: -16, rotation: 0, opacity: 0, scaleY: 1 }, { y: 0, opacity: 1, duration: 0.3, ease: 'power2.in' })
+      .to(vest, { scaleY: 0.9, scaleX: 1.04, duration: 0.08, ease: 'sine.out' })
+      .to(vest, { scaleY: 1, scaleX: 1, duration: 0.35, ease: 'back.out(3)' });
+  } else {
+    tl.to(vest, { y: -4, scaleY: 1.05, duration: 0.15, ease: 'sine.out' })
+      .to(vest, { y: 18, rotation: -6, scaleY: 1, opacity: 0, duration: 0.4, ease: 'power2.in' });
+  }
+  if (on) sfx.tap(4);
+}
+
+// Back to teaching: the vest is hidden while the screen changes, then drops on.
+function vestBackOn(el) {
+  gsap.set(el.querySelector('.acc-body'), { opacity: 0 });
+  setTimeout(() => swapVest(el, true), 250);
+}
+
+// Tells something once ever, so a reminder doesn't repeat. Without storage it stays quiet.
+function firstTime(name) {
+  try {
+    if (localStorage.getItem(STORE_KEY + '_' + name)) return false;
+    localStorage.setItem(STORE_KEY + '_' + name, '1');
+    return true;
+  } catch { return false; }
+}
+
+const VEST_TOLD = 'When my vest is on, I\'m working. Please don\'t pet me! I take it off to play. 🦮';
 
 function itemPicture(item) {
   return item.fur
     ? `<span class="swatch" style="background:linear-gradient(135deg, ${item.fur[2]}, ${item.fur[0]} 60%, ${item.fur[3]})"></span>`
+    : item.slot === 'toy' && item.svg ? toyFace(item, 'ico')
+    : item.slot === 'body' ? `<span class="ico toy-pic suit-pic"><svg viewBox="${SLOT_VIEW.body}" aria-hidden="true">${ownPaint(item.svg, 'swatch')}</svg></span>`
     : `<span class="ico">${item.ico}</span>`;
 }
 
 // The part of Pom's 130×130 picture each slot is drawn in, so a color button shows just the item.
-const SLOT_VIEW = { hat: '30 0 70 45', face: '44 38 42 22', neck: '40 62 50 34', back: '8 50 114 74' };
+const SLOT_VIEW = { hat: '30 0 70 45', face: '44 38 42 22', neck: '40 62 50 34', back: '8 50 114 74', body: '22 52 86 66', paws: '62 106 24 18' };
 
 function colorPicture(item) {
   if (item.slot === 'toy') return toyFace(item, 'dot toy-dot');
-  return `<span class="dot"><svg viewBox="${SLOT_VIEW[item.slot]}" aria-hidden="true">${ownPaint(item.svg, 'swatch')}</svg></span>`;
+  return `<span class="dot"><svg viewBox="${item.view || SLOT_VIEW[item.slot]}" aria-hidden="true">${ownPaint(item.svg + (item.front || ''), 'swatch')}</svg></span>`;
 }
 
 const isUsing = item => item.slot === 'toy' ? toyInUse(ITEMS[item.base]) === item.id : state.worn[item.slot] === item.id;
+
+// The colors to show for an item: every color, minus copies of the classic look nobody here has bought.
+const forSale = (base, has) => base.colors.filter(c => !c.same || has(c.id));
 
 function renderColors() {
   const row = $('colorRow');
   const base = closetPick && ITEMS[closetPick];
   row.hidden = !base;
   if (!base) return;
-  const mine = base.colors.filter(c => owns(c.id)).length;
-  row.innerHTML = `<p class="color-title">Pick a color <span>${mine} of ${base.colors.length} are yours</span></p>` +
-    '<div class="color-grid">' + base.colors.map(c => {
+  const colors = forSale(base, owns);
+  const mine = colors.filter(c => owns(c.id)).length;
+  row.innerHTML = `<p class="color-title">Pick a color <span>${mine} of ${colors.length} are yours</span></p>` +
+    '<div class="color-grid">' + colors.map(c => {
       const owned = owns(c.id);
       const using = owned && isUsing(c);
       const cls = using ? ' owned wearing' : owned ? ' owned' : c.id === tryingOn ? ' trying' : c.price > state.gems ? ' too-much' : '';
@@ -5089,10 +5960,11 @@ function renderCloset() {
       cls = wearing ? ' owned wearing' : owns(item.id) ? ' owned' : item.id === tryingOn ? ' trying' : item.price > state.gems ? ' too-much' : '';
       price = wearing ? 'Wearing ✓' : owns(item.id) ? 'Yours!' : `💎 ${item.price}`;
     } else {
-      const mine = item.colors.filter(c => owns(c.id)).length;
-      const wearing = item.slot !== 'toy' && item.colors.some(c => owns(c.id) && isUsing(c));
+      const colors = forSale(item, owns);
+      const mine = colors.filter(c => owns(c.id)).length;
+      const wearing = item.slot !== 'toy' && colors.some(c => owns(c.id) && isUsing(c));
       cls = (item.id === closetPick ? ' picked' : '') + (wearing ? ' owned wearing' : mine ? ' owned' : '');
-      price = mine ? `🎨 ${mine} of ${item.colors.length}` : `🎨 from 💎 ${Math.min(...item.colors.map(c => c.price))}`;
+      price = mine ? `🎨 ${mine} of ${colors.length}` : `🎨 from 💎 ${Math.min(...colors.map(c => c.price))}`;
     }
     return `<button class="item${cls}" data-id="${item.id}">${itemPicture(item)}<span class="name">${item.name}</span><span class="price">${price}</span></button>`;
   }).join('');
@@ -5166,7 +6038,9 @@ function showCloset() {
   say('closetBubble', state.gems
     ? pick([`I have ${state.gems} 💎!`, 'What should I wear? 👗'])
     : 'Get answers right to earn 💎!');
+  const fromHouse = $('houseScreen').classList.contains('active');
   renderCloset();
+  if (fromHouse && $('pomCloset').vestOn) vestBackOn($('pomCloset'));
   showScreen('closetScreen');
 }
 
@@ -5216,7 +6090,8 @@ function onColorTap(id) {
     } else {
       state.worn[item.slot] = id;
       sfx.select(CLOSET.indexOf(ITEMS[item.base]) + (item.color ? COLORS.indexOf(item.color) + 1 : 0));
-      say('closetBubble', pick([`I love my ${item.name}! 🐾`, `How do I look? ✨`, `${item.name} time!`]));
+      say('closetBubble', item.offToPlay && firstTime('vestTold') ? VEST_TOLD
+        : pick([`I love my ${item.name}! 🐾`, `How do I look? ✨`, `${item.name} time!`]));
     }
     saveState();
   } else {
@@ -5250,7 +6125,7 @@ function buyItem() {
   setTimeout(sfx.milestone, 250);
   confetti(70);
   banner(`${item.ico || '🎨'} New ${item.name}!`);
-  say('closetBubble', `Yay! My new ${item.name}! 🐾`);
+  say('closetBubble', item.offToPlay && firstTime('vestTold') ? VEST_TOLD : `Yay! My new ${item.name}! 🐾`);
 }
 
 // ===== POM'S HOUSE =====
@@ -5445,10 +6320,11 @@ function renderFurnColors() {
   const base = housePick && FURN[housePick];
   row.hidden = !base;
   if (!base) return;
-  const mine = base.colors.filter(c => ownsFurn(c.id)).length;
+  const colors = forSale(base, ownsFurn);
+  const mine = colors.filter(c => ownsFurn(c.id)).length;
   const inSpot = placed(base.id);
-  row.innerHTML = `<p class="color-title">Pick a color for the ${base.name} <span>${mine} of ${base.colors.length} are yours</span></p>` +
-    '<div class="color-grid">' + base.colors.map(c => {
+  row.innerHTML = `<p class="color-title">Pick a color for the ${base.name} <span>${mine} of ${colors.length} are yours</span></p>` +
+    '<div class="color-grid">' + colors.map(c => {
       const owned = ownsFurn(c.id);
       const using = c.id === inSpot;
       const cls = using ? ' owned wearing' : owned ? ' owned' : c.id === houseTrying ? ' trying' : c.price > state.gems ? ' too-much' : '';
@@ -5465,9 +6341,10 @@ function renderHouse() {
   drawRoom($('houseRoom'), room, houseWalker);
   $('furnItems').hidden = !open;
   $('furnItems').innerHTML = open ? FURNITURE.filter(f => f.room === room.id).map(f => {
-    const mine = f.colors.filter(c => ownsFurn(c.id)).length;
+    const colors = forSale(f, ownsFurn);
+    const mine = colors.filter(c => ownsFurn(c.id)).length;
     const cls = (f.id === housePick ? ' picked' : '') + (mine ? ' owned' : '');
-    const price = mine ? `🎨 ${mine} of ${f.colors.length}` : `💎 ${f.price}`;
+    const price = mine ? `🎨 ${mine} of ${colors.length}` : `💎 ${f.price}`;
     return `<button class="item${cls}" data-id="${f.id}"><span class="pic">${furnSvg(f)}</span>` +
       `<span class="name">${f.name}</span><span class="price">${price}</span></button>`;
   }).join('') : '';
@@ -5493,6 +6370,13 @@ function showHouse(text) {
   dressAllPoms();
   showScreen('houseScreen');
   const room = ROOM[state.room];
+  // Home is play time, so she shows the vest coming off.
+  const pom = houseWalker.pom;
+  if (roomOpen(room) && ITEMS[state.worn.body] && ITEMS[state.worn.body].offToPlay) {
+    dressPom(pom, state.worn);
+    setTimeout(() => swapVest(pom, false, () => dressPom(pom, state.worn, true)), 350);
+    if (!text && firstTime('vestPlay')) text = 'Vest off. Play time! 🐾';
+  }
   // Even the Bedroom needs a few stickers. Until then her toys, treats and the Closet below the room still work.
   if (!roomOpen(room)) text = text || `${room.need - stickerCount()} more ⭐ to open my ${room.name}!`;
   say('houseBubble', text || pick([
@@ -5888,6 +6772,13 @@ function init() {
   } else if (state.savedAt) saveState(); // older saves are written again in the newest format
   // The stats come back from IndexedDB if localStorage lost them.
   if (window.indexedDB) SaveDB.read('stats').then(loadStatsCopy);
+  // So do the kept items, and any an older version dropped.
+  if (window.indexedDB) SaveDB.read('items').then(saved => {
+    const stored = parseKept(saved);
+    kept = { owned: [...new Set([...kept.owned, ...stored.owned])], furniture: [...new Set([...kept.furniture, ...stored.furniture])] };
+    keptPending = false;
+    if (addKept(state)) { saveState(); renderSaved(); } else saveKept();
+  });
   // Ask the browser never to clear Pom's save on its own.
   document.addEventListener('pointerdown', () => {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});

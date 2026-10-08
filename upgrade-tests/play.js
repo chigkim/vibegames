@@ -49,13 +49,18 @@ async function playRound(page) {
   return answered;
 }
 
-// Buys the cheapest closet item, treat and furniture piece she can afford, if any.
+// Buys the cheapest closet item, treat and furniture piece she can afford, if any. From v50 it also buys the cheapest
+// item saved in `ownBits`, so the cookie's bits get loaded by the next version.
 const shop = page => page.evaluate(() => {
   const got = [];
   const has = (list, id) => (list || []).includes(id);
   const cheapest = list => list.sort((a, b) => a.price - b.price)[0];
   if (typeof ITEMS !== 'undefined' && typeof buyItem === 'function') {
     const it = cheapest(Object.values(ITEMS).filter(i => i.price > 0 && i.slot && !has(state.owned, i.id) && i.price <= state.gems));
+    if (it) { tryingOn = it.id; buyItem(); if (has(state.owned, it.id)) got.push(it.id); }
+  }
+  if (typeof PACK_ORDER !== 'undefined' && typeof buyItem === 'function') {
+    const it = cheapest(Object.values(ITEMS).filter(i => i.price > 0 && PACK_ORDER.includes(i.id.split('.')[0]) && !has(state.owned, i.id) && i.price <= state.gems));
     if (it) { tryingOn = it.id; buyItem(); if (has(state.owned, it.id)) got.push(it.id); }
   }
   if (typeof TREAT !== 'undefined' && typeof buyTreat === 'function') {

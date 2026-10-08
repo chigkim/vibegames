@@ -2,93 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Save Test</title>
-  <style>
-    body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 20px; background: #fdf6ec; color: #333; }
-    h1 { font-size: 1.5rem; margin: 0 0 4px; }
-    .page { font-size: 0.9rem; opacity: 0.6; margin-bottom: 16px; word-break: break-all; }
-    table { border-collapse: collapse; width: 100%; max-width: 600px; margin-bottom: 20px; }
-    td { padding: 10px 8px; border-bottom: 1px solid #e3d6c3; font-size: 1.05rem; vertical-align: top; }
-    td:first-child { font-weight: 600; width: 40%; }
-    .code { font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
-    button { font-size: 1.1rem; padding: 14px 22px; margin: 0 10px 10px 0; border: none; border-radius: 12px; color: #fff; touch-action: manipulation; }
-    #save { background: #2e8b57; }
-    #clear { background: #b0413e; }
-  </style>
+  <!-- This page moved to test2.html. The script keeps any ?query or #hash; the meta tag covers no JavaScript. -->
+  <meta http-equiv="refresh" content="0; url=test2.html">
+  <script>location.replace('test2.html' + location.search + location.hash);</script>
 </head>
 <body>
-  <h1>Save Test</h1>
-  <div class="page" id="page"></div>
-  <table>
-    <tr><td>Running as</td><td id="mode"></td></tr>
-    <tr><td>Cookie</td><td class="code" id="cookie"></td></tr>
-    <tr><td>localStorage</td><td class="code" id="local"></td></tr>
-    <tr><td>IndexedDB</td><td class="code" id="idb"></td></tr>
-  </table>
-  <button id="save">Save new code</button>
-  <button id="clear">Delete test save</button>
-  <script>
-    // Saves one test code to the cookie, localStorage and IndexedDB the same way Ms. Menna's game does
-    // (cookie with path=/), so a later page can check that all three survive a redirect.
-    const KEY = 'redirTest';
-    const COOKIE_MAX_AGE = 60 * 60 * 24 * 400;
-
-    function openDb() {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open(KEY, 1);
-        req.onupgradeneeded = () => req.result.createObjectStore('save');
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-    }
-    async function idb(mode, fn) {
-      const db = await openDb();
-      return new Promise((resolve, reject) => {
-        const req = fn(db.transaction('save', mode).objectStore('save'));
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-    }
-
-    function readCookie() {
-      const match = document.cookie.match(new RegExp('(?:^|; )' + KEY + '=([^;]*)'));
-      return match ? decodeURIComponent(match[1]) : null;
-    }
-    function writeCookie(value, maxAge) {
-      const secure = location.protocol === 'https:' ? '; Secure' : '';
-      document.cookie = `${KEY}=${encodeURIComponent(value)}; max-age=${maxAge}; path=/; SameSite=Lax${secure}`;
-    }
-
-    function runningAs() {
-      const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
-      return standalone ? 'Home Screen app' : 'Browser tab';
-    }
-
-    async function show() {
-      document.getElementById('page').textContent = location.href;
-      document.getElementById('mode').textContent = runningAs();
-      document.getElementById('cookie').textContent = readCookie() || '(none)';
-      document.getElementById('local').textContent = localStorage.getItem(KEY) || '(none)';
-      let fromDb;
-      try { fromDb = await idb('readonly', s => s.get('code')); } catch (e) { fromDb = 'error: ' + e; }
-      document.getElementById('idb').textContent = fromDb || '(none)';
-    }
-
-    document.getElementById('save').addEventListener('click', async () => {
-      const code = Math.random().toString(36).slice(2, 8).toUpperCase() + ' ' + new Date().toLocaleString();
-      writeCookie(code, COOKIE_MAX_AGE);
-      localStorage.setItem(KEY, code);
-      await idb('readwrite', s => s.put(code, 'code'));
-      show();
-    });
-    document.getElementById('clear').addEventListener('click', async () => {
-      writeCookie('', 0);
-      localStorage.removeItem(KEY);
-      await idb('readwrite', s => s.delete('code'));
-      show();
-    });
-    window.addEventListener('pageshow', show);
-  </script>
+  <p>This page moved. <a href="test2.html">Tap here</a> if nothing happens.</p>
 </body>
 </html>

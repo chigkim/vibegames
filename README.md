@@ -9,8 +9,8 @@ Small browser games for young children, made to play on phones and tablets (espe
 | `rise.html` | Phaser + Tone.js + ZzFX | Rope-swinging arcade climber |
 | `flappy-birdie.html` | Phaser + Tone.js + ZzFX | Multi-level flappy bird |
 | `hero-rescue.html` | Phaser + Tone.js + ZzFX + NippleJS | Vehicle driving and rescue missions |
-| `ms-menna-math.html` | Plain JavaScript + Speech | Math quiz with spoken feedback |
-| `multiplication-ms-menna.html` | Plain JavaScript + ZzFX + lz-string + GSAP + Speech | Multiplication and division practice |
+| `ms-menna-math.html` | Plain JavaScript + Speech | Add & Subtract with Ms. Menna: addition and subtraction quiz with spoken feedback |
+| `multiplication-ms-menna.html` | Plain JavaScript + ZzFX + lz-string + GSAP + Speech | Math with Ms. Menna: multiplication and division practice |
 
 Each game is one self-contained HTML file with its CSS and JavaScript inline. The libraries it uses are stored in `libs/`:
 
@@ -41,7 +41,7 @@ The games are tested with [Playwright](https://playwright.dev) in headless Chrom
 
 - `tests/games.spec.js` runs the same smoke tests on every game: it loads without errors, starts and plays for a moment, draws on its canvas (Phaser games), and shows the same version number as its card on `index.html`. Add an entry to its `GAMES` list when you add a game.
 - `tests/rise.spec.js` has extra checks for Rise (screens, HUD, mute button, saved guide setting).
-- `tests/multiplication.spec.js` covers Multiplication with Ms. Menna. See [docs/multiplication-ms-menna.md](docs/multiplication-ms-menna.md) for what it checks and for the separate save-upgrade tests. The coins are exchanged for real money, so keep these passing.
+- `tests/multiplication.spec.js` covers Math with Ms. Menna (multiplication and division). See [docs/multiplication-ms-menna.md](docs/multiplication-ms-menna.md) for what it checks and for the separate save-upgrade tests. The coins are exchanged for real money, so keep these passing.
 - `tests/speech.spec.js` checks the shared voice: word swaps, the default voice, and that the voice and speed picked in one game are saved, survive a reload or a cleared localStorage, and carry over to the other game. It also checks that a line said `after` waits for the one being said, so praise isn't cut off by the next question, that only the newest waiting line is said, and that typing drops it.
 
 ### Requirements
@@ -99,7 +99,7 @@ Running 35 tests using 1 worker
 
 ### 4. Game-specific tests
 
-Some games have extra tests that aren't part of the regular run, such as the save-upgrade tests for Multiplication with Ms. Menna. Each is described in that game's doc in `docs/`.
+Some games have extra tests that aren't part of the regular run, such as the save-upgrade tests for Math with Ms. Menna. Each is described in that game's doc in `docs/`.
 
 ### Troubleshooting: browser install freezes
 

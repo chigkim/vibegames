@@ -1,4 +1,6 @@
-# Multiplication with Ms. Menna
+# Math with Ms. Menna
+
+The multiplication and division game in `multiplication-ms-menna.html`. Until v50 it was called "Multiplication with Ms. Menna!"; v51 renamed it and kept the file name, so links, Home Screen icons and saves keep working. The addition and subtraction game in `ms-menna-math.html` is now "Add & Subtract with Ms. Menna!".
 
 Game-specific rules for `multiplication-ms-menna.html`. Read this before changing the game. The general rules in `CLAUDE.md` and `README.md` still apply.
 

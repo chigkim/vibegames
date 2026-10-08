@@ -41,7 +41,7 @@ test.beforeEach(async ({ page }) => {
 
 const spoken = page => page.evaluate(() => window.__speech.spoken.map(s => s.text));
 
-test.describe('Multiplication with Ms. Menna', () => {
+test.describe('Math with Ms. Menna (multiplication-ms-menna.html)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/multiplication-ms-menna.html');
     await page.evaluate(() => {
@@ -226,7 +226,7 @@ test('a muted game still plays the sample in the picker', async ({ page }) => {
   await expect.poll(() => lastSpoken(page)).toMatchObject({ voice: 'Ava (Premium)', rate: 1.14 });
 });
 
-test.describe('Math with Ms. Menna', () => {
+test.describe('Add & Subtract with Ms. Menna', () => {
   test('greets the child by name and reads the question', async ({ page }) => {
     await page.goto('/ms-menna-math.html');
     await page.locator('#nameInput').fill('Ava');

@@ -1,5 +1,5 @@
 // @ts-check
-// Pay table and trade-in for Multiplication with Ms. Menna. A grown-up may trade the
+// Pay table and trade-in for Math with Ms. Menna. A grown-up may trade the
 // coins for something real, so earnings and trade-ins must be exact.
 const { test, expect } = require('@playwright/test');
 

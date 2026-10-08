@@ -1626,7 +1626,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v47 - Updated 2026-10-07 21:53 EDT</p>
+    <p class="version">v48 - Updated 2026-10-08 04:15 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -3644,24 +3644,22 @@ function changeBank(delta) {
 // ===== LEARNING PATH =====
 // Easy tables first, then families that build on each other (×2, ×4, ×8 by doubling; ×3, ×6, ×9), and ×7 last, each up to × 10.
 // A table is done when 80% of its facts have stickers, so the path follows her stickers and needs nothing new in the save.
-// With division on, every other question teaches division once she knows all the times tables, in the same order: ÷2, ÷10, ÷5, ÷1…
+// With division on, the path teaches division once she knows all the times tables, in the same order: ÷2, ÷10, ÷5, ÷1…
 const PATH = [[2], [10], [5], [0, 1], [4], [8], [3], [6], [9], [7]];
 const PATH_DONE_AT = 0.8;
-const PATH_NEW_AT = [1, 4, 7]; // questions that teach a fact without a sticker yet; the rest are review
-const PATH_NEW_AT_EASY = [2, 6]; // after a round with fewer than 7 first-try answers, until a round with 8 or more
-const PATH_NEW_AT_FAST = [1, 4, 6, 8]; // after a round with 9 or more, when she also got most of her recent new facts
-const REDO_PER_ROUND = 3; // facts she missed earlier today, asked again on review questions: 2 with 4 new facts, 1 when easier
+// Each path round asks one question per letter, the same for times and division:
+// N a new fact from the table she is learning, L a leftover without a sticker from a table before it,
+// P a sneak peek at a later table, M a fact she missed earlier today, R a fact she knows.
+// While she learns the times tables with division on, l and r ask division of the tables she has learned.
+// While she learns division, L also asks times facts without a sticker, and r asks division.
+// Once every table is learned, N, L and P ask any fact without a sticker. A slot with nothing to ask is review,
+// except L and l, which practice a leftover again, with no dot, once the leftovers had their dots today.
+const ROUND_SLOTS = 'RNLMNPlNMr';
+const ROUND_SLOTS_EASY = 'RNRMlPRNMr'; // after a round with fewer than 7 first-try answers, until a round with 8 or more
+const ROUND_SLOTS_FAST = 'RNLMNPlNNr'; // after a round with 9 or more, when she also got most of her recent new facts
+const TEACH_SLOTS = 'NLl'; // slots that keep their question: a retry waits for another, or the last question
 const FAST_RIGHT = 8; // of those, how many she got right first time for 4 new facts a round
-// Division questions, once division is on and she has learned a table. They come right after the new times facts,
-// which can't be followed by a fact missed earlier today anyway. One of them teaches a division fact without a sticker,
-// never the last question, which goes to retries first.
-const DIVIDE_AT = { all: [2, 5, 8], learn: 8 };
-const DIVIDE_AT_EASY = { all: [3, 7, 9], learn: 7 };
-const DIVIDE_AT_FAST = { all: [2, 5, 9], learn: 5 };
-const GUIDED_DIVIDE_AT = [1, 3, 5, 7, 9]; // division questions while the path teaches division
-const GUIDED_NEW_AT = [1, 5, 9]; // division questions that teach a fact without a sticker yet
-const GUIDED_NEW_AT_EASY = [3, 7];
-const GUIDED_TIMES_NEW_AT = [4]; // a times fact still without a sticker, while the path teaches division
+const DIVIDE_AT = [2, 5, 8]; // division questions in practice, when division is on
 const INVITE_EVERY = 3; // days between invitations to learn dividing after "Not yet"
 const AUTO_PICTURES = { lesson: 3, table: 2 }; // new division questions that show their picture right away
 
@@ -3747,15 +3745,22 @@ function poolsOf(steps, top, divide) {
   return { known: [...known], learning: [...learning] };
 }
 
-// Mostly facts she knows, with a few she is learning on the `newAt` questions, so most answers are wins.
+// Review asks facts she knows, and sleepy stickers. While she knows only a few, it asks facts she is learning too.
 // A fact that can't earn a dot today waits: one that had its dot today, or a miss.
 const REVIEW_KNOWN = 6; // stickers she needs before review questions ask only facts she knows
-function mixOf({ known, learning }, newAt) {
+function reviewOf(divide) {
+  const { known, learning } = !divide ? poolsOf(PATH_FACTS, game.step, false)
+    : game.guided ? poolsOf(DIVIDE_FACTS, game.divStep, true)
+    : game.step < PATH.length ? poolsOf(learnedDivide(), PATH.length, true) : poolsOf(DIVIDE_FACTS, PATH.length, true);
+  if (known.length >= REVIEW_KNOWN) return known;
   const open = learning.filter(canEarn);
-  const teach = open.length ? open : known.length ? [] : learning;
-  if (newAt.includes(game.index) && learning.length) return teach.length ? teach : known;
-  return known.length >= REVIEW_KNOWN ? known : [...known, ...teach];
+  return [...known, ...(open.length || known.length ? open : learning)];
 }
+
+// Facts without a sticker that the next right answer moves on.
+const teachable = keys => [...new Set(keys)].filter(k => !hasSticker(k) && canEarn(k));
+// Division of the tables she has learned, while she is still learning the times tables.
+const learnedDivide = () => DIVIDE_FACTS.filter((_, s) => tableDone(PATH_NEW, s));
 
 // A fact without a sticker that the next right answer moves on. One dot a day, and a miss uses up the day.
 function canEarn(key) {
@@ -3763,26 +3768,40 @@ function canEarn(key) {
   return state.mastery[i] < STICKER_AT && state.days[i] !== today();
 }
 
-// Facts without a sticker in the tables before `step`, the ones left when a table was done at 80%.
-const LEFTOVER_SLOTS = 2; // new-fact questions a round gives them first
-const leftovers = step => poolsOf(PATH_FACTS, step - 1, false).learning.filter(canEarn);
+// Facts a finished table left without a sticker at 80%. While she learns division, times facts without one too.
+// A division slot asks division of the tables she has learned.
+// With `again`, the ones that already had their dot today, to practice with no dot. Missed ones wait for their own question.
+function leftoversOf(divide, again = false) {
+  const keys = game.guided ? [...DIVIDE_FACTS.slice(0, game.divStep).flat(), ...MAIN_KEYS.filter(k => !k.startsWith('d'))]
+    : (divide ? learnedDivide() : PATH_FACTS.slice(0, game.step)).flat();
+  if (!again) return teachable(keys);
+  const missed = missedToday();
+  return [...new Set(keys)].filter(k => !hasSticker(k) && !canEarn(k) && !missed.includes(k) && k !== game.prevKey);
+}
 
+// The facts for this question's slot. Sneak peeks and facts missed earlier today are picked in nextQuestion.
 function pathPool() {
-  if (game.divideAt.includes(game.index)) {
-    if (game.guided) return mixOf(poolsOf(DIVIDE_FACTS, game.divStep, true), game.divNewAt);
-    // Division of every table she has learned, and any sleepy division sticker. Like the times tables, one
-    // question teaches a division fact without a sticker, so the last few get learned too.
-    const open = DIVIDE_FACTS.filter((_, s) => tableDone(PATH_NEW, s));
-    const pools = poolsOf(open, open.length - 1, true);
-    if (pools.known.length || pools.learning.length) return mixOf(pools, game.divNewAt);
+  const slot = game.slots[game.index];
+  const times = !game.guided && game.step < PATH.length; // still learning the times tables
+  const done = !game.guided && !times;
+  const divide = state.divOn && (slot === 'r' || (slot === 'l' && times));
+  // Teaching questions ask a fact that can earn a dot today first: new ones from the table she is learning, or
+  // leftovers, whichever the slot is for, then the other. Then times facts, if a division slot has none.
+  const current = () => teachable(game.guided ? DIVIDE_NEW[game.divStep] : PATH_NEW[game.step]);
+  const order = done ? ['NLlP'.includes(slot) && (() => teachable(shownKeys()))]
+    : slot === 'N' ? [current, () => leftoversOf(divide)]
+    : 'Ll'.includes(slot) ? [() => leftoversOf(divide), current, divide && (() => leftoversOf(false))] : [];
+  for (const keys of order) {
+    const teach = keys ? keys() : [];
+    if (teach.length) return teach;
   }
-  // The first new facts of the round are ones a finished table left without a sticker, while any can earn a dot today,
-  // so earlier tables get finished before much of the current one.
-  if (game.newAt.slice(0, LEFTOVER_SLOTS).includes(game.index) && game.step < PATH.length) {
-    const left = leftovers(game.step);
-    if (left.length) return left;
-  }
-  return mixOf(poolsOf(PATH_FACTS, game.step, false), game.newAt);
+  // Once the leftovers had their dots today, she practices them again rather than facts she knows.
+  const again = !done && 'Ll'.includes(slot) ? leftoversOf(divide, true) : [];
+  if (again.length) { game.againNow = true; return again; }
+  if (divide && reviewOf(true).length) return reviewOf(true);
+  if (game.guided && 'NP'.includes(slot)) return reviewOf(true);
+  if (done && state.divOn && slot !== 'R') return [...reviewOf(false), ...reviewOf(true)];
+  return reviewOf(false);
 }
 
 // Practice asks any fact with both numbers up to her number. Division leaves out 0.
@@ -3918,8 +3937,6 @@ function startRound(path, max = 0) {
     saveState();
   }
   const guided = path === 'main' && guidedDivide();
-  const easy = state.easyPath;
-  const divide = path === 'practice' ? DIVIDE_AT : easy ? DIVIDE_AT_EASY : state.fastPath ? DIVIDE_AT_FAST : DIVIDE_AT;
   game = {
     path,
     max,
@@ -3940,10 +3957,8 @@ function startRound(path, max = 0) {
     newStickers: [],
     woken: [],
     fixed: [], // facts missed earlier in the round, then right on a later try
-    newAt: path === 'practice' ? [] : guided ? GUIDED_TIMES_NEW_AT : easy ? PATH_NEW_AT_EASY
-      : state.fastPath ? PATH_NEW_AT_FAST : PATH_NEW_AT,
-    divNewAt: path === 'practice' ? [] : guided ? (easy ? GUIDED_NEW_AT_EASY : GUIDED_NEW_AT) : [divide.learn],
-    divideAt: !state.divOn ? [] : guided ? GUIDED_DIVIDE_AT : divide.all,
+    slots: path === 'practice' ? null : state.easyPath ? ROUND_SLOTS_EASY : state.fastPath ? ROUND_SLOTS_FAST : ROUND_SLOTS,
+    divideAt: path === 'practice' && state.divOn ? DIVIDE_AT : [],
     a: 0,
     b: 0,
     div: false,
@@ -3955,17 +3970,15 @@ function startRound(path, max = 0) {
     track: false, // this question is a new times fact, so her first answer counts toward 4 new facts a round
     redo: [], // facts she missed in an earlier round today, to practice again on review questions
     redoNow: false, // this question is one of them
+    againNow: false, // this question practices a leftover that already had its dot today
     peeked: false, // the round's sneak peek at a later table was asked
     peekNow: false, // this question is the sneak peek
-    hardBefore: false, // the last question was new, a retry, a sneak peek, a fact missed earlier today, or one without a sticker
-    // While she has only a few stickers, review asks facts she is learning too, and those don't hold back a peek.
-    fewKnown: poolsOf(PATH_FACTS, pathStep(), false).known.length < REVIEW_KNOWN,
     freeMisses: 0, // misses on sneak peeks and facts missed earlier today, which don't count toward easier mode or 4 new facts
   };
   carried = null;
   if (path === 'main') {
     const waiting = new Set(game.retries.map(r => r.key));
-    const most = easy ? 1 : game.newAt.length > PATH_NEW_AT.length ? REDO_PER_ROUND - 1 : REDO_PER_ROUND;
+    const most = [...game.slots].filter(s => s === 'M').length;
     game.redo = missedToday().filter(k => !waiting.has(k) && (!k.startsWith('d') || state.divOn)).slice(0, most);
   }
   showScreen('gameScreen');
@@ -4020,19 +4033,18 @@ function nextQuestion() {
     showSummary();
     return;
   }
-  // Questions that teach a new fact keep it: a retry waits for the next review question, or the last one.
-  const teaching = game.newAt.includes(game.index) ||
-    (game.divideAt.includes(game.index) && game.divNewAt.includes(game.index));
+  // Questions that teach a fact keep it: a retry waits for the next other question, or the last one.
+  const slot = game.slots ? game.slots[game.index] : 'R';
+  const teaching = TEACH_SLOTS.includes(slot);
   const last = game.index === QUESTIONS_PER_ROUND - 1;
   const due = teaching && !last ? -1 : game.retries.findIndex(r => r.at <= game.index && r.key !== game.prevKey);
   const retry = due >= 0 ? game.retries.splice(due, 1)[0] : null;
-  // A review question after one she knows can be the round's sneak peek at a later table, or a fact she missed
-  // earlier today, but not the fact just asked. So once she has a few stickers, a hard question comes after a sticker.
-  const open = !retry && !teaching && !game.hardBefore && !game.divideAt.includes(game.index);
-  const peek = open && !game.peeked ? peekFact() : null;
-  const redoAt = open && !peek ? game.redo.findIndex(k => k !== game.prevKey) : -1;
+  // The round's sneak peek at a later table, and facts she missed earlier today, but not the fact just asked.
+  const peek = !retry && slot === 'P' && !game.peeked ? peekFact() : null;
+  const redoAt = !retry && slot === 'M' ? game.redo.findIndex(k => k !== game.prevKey) : -1;
   const redo = redoAt >= 0 ? game.redo.splice(redoAt, 1)[0] : null;
   const extra = peek || redo;
+  game.againNow = false;
   const q = retry || (extra && { a: factsOf(extra)[0], b: factsOf(extra)[1], div: extra.startsWith('d') }) || pickQuestion();
   if (peek) game.peeked = true;
   // Asked again, it goes to the back, so the next round practices the others first.
@@ -4041,9 +4053,8 @@ function nextQuestion() {
   game.redoNow = !!redo;
   Object.assign(game, { a: q.a, b: q.b, div: !!q.div, attempts: 0, hinted: false, solved: false, input: '', locked: false });
   game.prevKey = keyOf(q);
-  game.hardBefore = teaching || !!retry || !!extra || (!game.fewKnown && !hasSticker(game.prevKey));
   game.asked.add(game.prevKey);
-  game.track = game.path === 'main' && !retry && !extra && !q.div && !hasSticker(game.prevKey) && !game.missed.some(m => keyOf(m) === game.prevKey);
+  game.track = game.path === 'main' && !retry && !extra && !game.againNow && !q.div && !hasSticker(game.prevKey) && !game.missed.some(m => keyOf(m) === game.prevKey);
 
   const cents = centsFor(q.a, q.b);
   $('worth').textContent = `This one pays ${cents}¢!`;
@@ -4234,9 +4245,13 @@ function onCorrect(answer) {
 
 // A fact from a table the path hasn't reached, to find tables she already knows. It earns a dot like any fact.
 // Peeks stay with a table while she gets them right, and move on to the next table after a miss.
-// They leave out 0 facts, which say little about a table.
+// They leave out 0 facts, which say little about a table. While she learns division, they peek at a later division table.
 function peekFact() {
-  if (game.path !== 'main' || game.guided) return null;
+  if (game.path !== 'main') return null;
+  if (game.guided) {
+    const later = DIVIDE_NEW.slice(game.divStep + 1).map(teachable).find(keys => keys.length);
+    return later ? pick(later) : null;
+  }
   const peekable = s => PATH_NEW[s].filter(k => !hasZero(k) && canEarn(k));
   const later = [];
   for (let s = game.step + 1; s < PATH.length; s++) if (peekable(s).length) later.push(s);
@@ -4266,10 +4281,11 @@ function onWrong(answer) {
     game.missed.push({ a: game.a, b: game.b, div: game.div });
     recordTry(false);
     noteMiss(key);
-    if (game.redoNow || game.peekNow) game.freeMisses++;
+    if (game.redoNow || game.peekNow || game.againNow) game.freeMisses++;
     // A missed sneak peek just waits for its table, and the next one tries the table after it.
-    if (game.peekNow) state.peekStep = PATH_NEW.findIndex(keys => keys.includes(key)) + 1;
-    else if (game.path === 'main' && MAIN_KEYS.includes(key)) {
+    if (game.peekNow) {
+      if (!game.div) state.peekStep = PATH_NEW.findIndex(keys => keys.includes(key)) + 1;
+    } else if (game.path === 'main' && MAIN_KEYS.includes(key)) {
       state.missedKeys = [...missedToday().filter(k => k !== key), key];
       state.missedDay = today();
     }

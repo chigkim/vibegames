@@ -164,7 +164,7 @@ test('a right answer after the picture pays 1¢ whatever the factors', async ({ 
 test('0 facts come up as often as other facts, pay 1¢, and the picture shows no dots', async ({ page }) => {
   const n = await page.evaluate(() => {
     startRound('main');
-    Object.assign(game, { index: game.newAt[0], asked: new Set(), prevKey: null });
+    Object.assign(game, { index: game.slots.indexOf('N'), asked: new Set(), prevKey: null });
     const n = { '0x2': 0, '1x2': 0 };
     for (let i = 0; i < 6000; i++) { const k = keyOf(pickQuestion()); if (k in n) n[k]++; }
     goHome();
@@ -1534,7 +1534,7 @@ test('sleepy facts come up more often', async ({ page }) => {
     const set = (k, ago, level) => { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today() - ago; state.levels[i] = level; };
     set('2x3', 30, 4);
     set('2x4', 0, 0);
-    game = { path: 'main', step: 9, index: 0, newAt: [], divideAt: [], asked: new Set(), prevKey: null };
+    game = { path: 'main', step: 9, index: 0, slots: ROUND_SLOTS, divideAt: [], asked: new Set(), prevKey: null };
     const n = { '2x3': 0, '2x4': 0 };
     for (let i = 0; i < 6000; i++) { const q = pickQuestion(); const k = factKey(q.a, q.b); if (k in n) n[k]++; }
     return n;
@@ -1547,7 +1547,7 @@ test('on the ×0 & ×1 step, 0 facts come up as often as ×1 facts', async ({ pa
     // ×2, ×10 and ×5 are done, so the path is on ×0 & ×1: 15 new 0 facts and 13 new ×1 facts
     for (const k of PATH_FACTS.slice(0, 3).flat()) { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
     startRound('main');
-    game.index = game.newAt[0];
+    game.index = game.slots.indexOf('N');
     let zeros = 0;
     const picks = 3000;
     for (let n = 0; n < picks; n++) if (hasZero(keyOf(pickQuestion()))) zeros++;
@@ -1574,7 +1574,7 @@ test('a table counts only the facts it adds, so ×9 and ×7 are taught and ×0 &
   await give(await page.evaluate(() => PATH_FACTS.slice(0, 8).flat()));
   await expect(page.locator('#pathNow')).toHaveText('Learning ×9 · 0 of 3 stickers');
   await page.locator('#pathBtn').click();
-  await page.evaluate(() => { game.index = game.newAt[0]; });
+  await page.evaluate(() => { game.index = game.slots.indexOf('N'); });
   const fresh = await page.evaluate(() => Array.from({ length: 30 }, () => keyOf(pickQuestion())));
   expect(fresh.every(k => ['9x7', '7x9', '9x9'].includes(k))).toBe(true);
   // One round can finish ×9 and ×7 together, and the summary names both
@@ -1600,13 +1600,16 @@ test('the last question is free for a retry', async ({ page }) => {
   expect(last).toBe('8x8');
 });
 
-test('after a hard round the path teaches 2 new facts instead of 3', async ({ page }) => {
+// How many questions of the round have the slot letter: N new, L leftover, M missed earlier today, P peek, R review.
+const slotCount = (page, letter) => page.evaluate(l => [...game.slots].filter(s => s.toUpperCase() === l).length, letter);
+
+test('after a hard round the path teaches 2 new facts and 1 leftover instead of 3 and 2', async ({ page }) => {
   await page.locator('#pathBtn').click();
-  expect(await page.evaluate(() => game.newAt.length)).toBe(3);
+  expect([await slotCount(page, 'N'), await slotCount(page, 'L')]).toEqual([3, 2]);
   await page.evaluate(() => { game.firstTry = 4; game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
   expect(await page.evaluate(() => state.easyPath)).toBe(true);
   await page.locator('#againBtn').click();
-  expect(await page.evaluate(() => game.newAt.length)).toBe(2);
+  expect([await slotCount(page, 'N'), await slotCount(page, 'L'), await slotCount(page, 'R')]).toEqual([2, 1, 4]);
   await page.evaluate(() => { game.firstTry = 7; game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
   expect(await page.evaluate(() => state.easyPath)).toBe(true); // 7 is not strong enough to go back
   await page.locator('#againBtn').click();
@@ -1633,11 +1636,11 @@ test('4 new facts a round only after a strong round with most new facts right', 
   expect(await end(10, '111111111')).toBe(false); // fewer than 10 new facts so far
   expect(await end(9, '1101111011')).toBe(true);
   await page.locator('#againBtn').click();
-  expect(await page.evaluate(() => game.newAt)).toEqual([1, 4, 6, 8]);
+  expect([await slotCount(page, 'N'), await slotCount(page, 'M')]).toEqual([4, 1]);
   expect(await end(10, '1101101011')).toBe(false); // 7 of the last 10 new facts
   expect(await end(8, '1111111111')).toBe(false); // 8 of 10 in the round
   await page.locator('#againBtn').click();
-  expect(await page.evaluate(() => game.newAt.length)).toBe(3);
+  expect(await slotCount(page, 'N')).toBe(3);
   expect(await end(9, '1111111111')).toBe(true);
   // Practice changes neither the 4 new facts nor easier mode, even after a hard round
   await page.evaluate(() => { goHome(); startRound('practice', 5); game.firstTry = 2; game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
@@ -1646,10 +1649,10 @@ test('4 new facts a round only after a strong round with most new facts right', 
   expect(await page.evaluate(() => [state.fastPath, state.newTries])).toEqual([true, '1111111111']);
   // A hard round turns easier mode on, which wins over 4 new facts
   await page.locator('#pathBtn').click();
-  expect(await page.evaluate(() => game.newAt.length)).toBe(4);
+  expect(await slotCount(page, 'N')).toBe(4);
   expect(await end(5, '1111111111')).toBe(false);
   await page.locator('#againBtn').click();
-  expect(await page.evaluate(() => game.newAt.length)).toBe(2);
+  expect(await slotCount(page, 'N')).toBe(2);
 });
 
 test('only the first answer to a new times fact counts toward 4 new facts', async ({ page }) => {
@@ -1677,7 +1680,7 @@ test('only the first answer to a new times fact counts toward 4 new facts', asyn
 test('a new fact that had its dot or a miss today waits, unless nothing else is left', async ({ page }) => {
   const picks = await page.evaluate(() => {
     startRound('main');
-    game.index = game.newAt[0];
+    game.index = game.slots.indexOf('N');
     const pool = () => pathPool();
     const step = PATH_FACTS[0];
     for (const k of step) { const i = FACT_INDEX[k]; state.mastery[i] = 2; state.days[i] = today(); }
@@ -1700,19 +1703,19 @@ test('a new fact that had its dot or a miss today waits, unless nothing else is 
 
 test('retries wait for review questions, and a late retry comes next round', async ({ page }) => {
   const out = await page.evaluate(() => {
-    // Stickers on every table, so new-fact questions have only the fact below and there is nothing to peek at
+    // Stickers on every table, so teaching questions have only the fact below and there is nothing to peek at
     for (const k of PATH_FACTS.flat()) { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
     state.mastery[FACT_INDEX['2x7']] = 0;
     state.days[FACT_INDEX['2x7']] = 0; // not tried today, so it can earn a dot
     startRound('main');
     const kinds = [];
-    // A retry due on question 2, a teaching question
-    game.index = 1;
+    // A retry due on question 2 and 3, a new fact and a leftover
     game.retries = [{ a: 2, b: 9, div: false, key: '2x9', at: 1 }];
-    for (let i = 1; i <= 2; i++) {
+    for (let i = 1; i <= 3; i++) {
       game.index = i;
       nextQuestion();
       kinds.push(keyOf(game));
+      state.days[FACT_INDEX['2x7']] = today(); // she answered it
     }
     // A retry that is never due this round carries into the next one
     game.retries = [{ a: 2, b: 8, div: false, key: '2x8', at: 11 }];
@@ -1729,8 +1732,10 @@ test('retries wait for review questions, and a late retry comes next round', asy
     goHome();
     return { kinds, next, practice };
   });
-  // Question 2 teaches 2 × 7, and question 3 has the retry
-  expect(out.kinds).toEqual(['2x7', '2x9']);
+  // Question 2 teaches 2 × 7, question 3 keeps its leftover slot for review, and question 4 has the retry
+  expect(out.kinds[0]).toBe('2x7');
+  expect(out.kinds[1]).not.toBe('2x9');
+  expect(out.kinds[2]).toBe('2x9');
   expect(out.next).toBe('2x8'); // the next round asks it first
   expect(out.practice).toBe(0);
 });
@@ -1750,15 +1755,15 @@ test('a retry in a real round doesn\'t take a teaching question', async ({ page 
         // She misses the first question, so it comes back
         if (i === 0) game.retries.push({ a: game.a, b: game.b, div: false, key: keyOf(game), at: 3 });
       }
-      rounds.push({ keys, newAt: game.newAt });
+      rounds.push({ keys, teach: [...game.slots].flatMap((s, i) => TEACH_SLOTS.includes(s) ? [i] : []) });
       clearTimers();
     }
     goHome();
     return rounds;
   });
-  for (const { keys, newAt } of out) {
+  for (const { keys, teach } of out) {
     // Every teaching question asks a fact without a sticker
-    for (const i of newAt) expect(['2x7', '7x2', '2x9'], keys.join(' ')).toContain(keys[i]);
+    for (const i of teach) expect(['2x7', '7x2', '2x9'], keys.join(' ')).toContain(keys[i]);
     expect(keys.filter((k, i) => i > 0 && k === keys[0]).length).toBeGreaterThan(0);
   }
 });
@@ -1770,8 +1775,8 @@ test('facts missed earlier today come back on review questions in later rounds, 
   await answer(page, false);
   await answer(page, true);
   const out = await page.evaluate(() => {
-    for (const k of ['2x8', '2x9', '7x2']) state.missedKeys.push(k);
-    // 16 of the 21 ×2 stickers, so review asks only stickers and never a missed fact right before its redo
+    for (const k of ['2x8', '2x9', '7x2']) { state.missedKeys.push(k); state.days[FACT_INDEX[k]] = today(); }
+    // 16 of the 21 ×2 stickers, so review asks only stickers, and new facts only 2 × 6, the one not missed today
     const left = ['2x6', '2x7', '2x8', '2x9', '7x2'];
     for (const k of PATH_FACTS[0].filter(k => !left.includes(k))) { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; }
     const rounds = [];
@@ -1782,11 +1787,11 @@ test('facts missed earlier today come back on review questions in later rounds, 
       for (let i = 0; i < QUESTIONS_PER_ROUND; i++) {
         game.index = i;
         if (i) nextQuestion();
-        kinds.push(game.redoNow ? keyOf(game) : game.peekNow ? 'peek' : game.newAt.includes(i) ? 'new' : 'review');
+        kinds.push(game.redoNow ? keyOf(game) : game.peekNow ? 'peek' : game.slots[i] === 'N' ? 'new' : 'review');
       }
       rounds.push(kinds);
     }
-    // 4 new facts leave room for 2, easier mode for 1, and tomorrow there are none
+    // 4 new facts leave room for 1, easier mode keeps 2, and tomorrow there are none
     const count = () => { clearTimers(); startRound('main'); return game.redo.length; };
     state.fastPath = true; const fast = count();
     state.easyPath = true; const easy = count();
@@ -1796,20 +1801,20 @@ test('facts missed earlier today come back on review questions in later rounds, 
     return { rounds, fast, easy, tomorrow, mastery: state.mastery[FACT_INDEX['2x7']] };
   });
   // The oldest misses first, then each one asked goes to the back, so all of them get practice
-  expect(out.rounds[0].filter(k => k.includes('x'))).toEqual(['2x7', '2x8', '2x9']);
-  expect(out.rounds[1].filter(k => k.includes('x'))).toEqual(['7x2', '2x7', '2x8']);
+  expect(out.rounds[0].filter(k => k.includes('x'))).toEqual(['2x7', '2x8']);
+  expect(out.rounds[1].filter(k => k.includes('x'))).toEqual(['2x9', '7x2']);
   for (const kinds of out.rounds) {
-    // 1 peek, 3 new, 3 missed and 3 review, and a hard question is always followed by one she knows
-    expect(kinds[0]).toBe('peek');
-    expect(kinds.filter(k => k.includes('x')).length).toBe(3);
-    kinds.forEach((k, i) => { if (k.includes('x')) expect(kinds[i - 1]).toBe('review'); });
+    // 1 peek, 3 new, 2 missed, and review, as ×2 has no leftovers: missed facts on questions 4 and 9, the peek on 6
+    expect(kinds[5]).toBe('peek');
+    expect([kinds[3], kinds[8]].every(k => k.includes('x'))).toBe(true);
+    expect(kinds.filter(k => k.includes('x')).length).toBe(2);
     expect(kinds.filter(k => k === 'new').length).toBe(3);
   }
-  expect([out.fast, out.easy, out.tomorrow]).toEqual([2, 1, 0]);
+  expect([out.fast, out.easy, out.tomorrow]).toEqual([1, 2, 0]);
   expect(out.mastery).toBe(0);
 });
 
-test('a fact missed earlier today never comes right after itself, nor after a fact she is learning', async ({ page }) => {
+test('a fact missed earlier today never comes right after itself', async ({ page }) => {
   const out = await page.evaluate(() => {
     // 16 of the 21 ×2 stickers, so review asks only stickers, and ×2 is not done
     const left = ['2x6', '2x7', '2x8', '2x9', '7x2'];
@@ -1819,25 +1824,17 @@ test('a fact missed earlier today never comes right after itself, nor after a fa
     const ask = prev => {
       clearTimers();
       startRound('main');
-      Object.assign(game, { index: 2, peeked: true, hardBefore: false, prevKey: prev, redo: ['2x3'] });
+      Object.assign(game, { index: game.slots.indexOf('M'), prevKey: prev, redo: ['2x3'] });
       nextQuestion();
-      return game.redoNow;
+      return [game.redoNow, keyOf(game) === prev];
     };
     const same = ask('2x3'); // she was just asked 2 × 3
-    const other = ask('2x4');
-    // With ×2 done, question 9 asks a division fact without a sticker, so question 10 is no redo
-    const i = FACT_INDEX['2x6']; state.mastery[i] = STICKER_AT; state.levels[i] = 0;
-    clearTimers();
-    startRound('main');
-    Object.assign(game, { index: 8, peeked: true, redo: ['2x3'], divideAt: [8], divNewAt: [8] });
-    nextQuestion();
-    const afterDiv = [game.div, hasSticker(keyOf(game)), game.hardBefore];
+    const other = ask('2x6'); // she is learning 2 × 6
     goHome();
-    return { same, other, afterDiv };
+    return { same, other };
   });
-  expect(out.same).toBe(false);
-  expect(out.other).toBe(true);
-  expect(out.afterDiv).toEqual([true, false, true]);
+  expect(out.same).toEqual([false, false]);
+  expect(out.other).toEqual([true, false]);
 });
 
 test('a missed fact asked again today pays but earns no dot, and its miss does not make the path easier', async ({ page }) => {
@@ -1862,7 +1859,7 @@ test('a missed fact asked again today pays but earns no dot, and its miss does n
   })).toEqual([1, false, ['6x7']]);
 });
 
-test('the first 2 new facts of a round go to facts a finished table left without a sticker', async ({ page }) => {
+test('leftover questions go to facts a finished table left without a sticker, and new ones to the current table', async ({ page }) => {
   const r = await page.evaluate(() => {
     // ×2 and ×10 are done with a few facts left at 0 dots, as in a save from before the path
     const left = [];
@@ -1875,31 +1872,41 @@ test('the first 2 new facts of a round go to facts a finished table left without
     let third = 0;
     for (let i = 0; i < 30; i++) {
       startRound('main');
-      for (const at of game.newAt.slice(0, 2)) {
-        game.index = at;
-        const q = pickQuestion();
-        picks.push(factKey(q.a, q.b));
-      }
-      // The third goes to the current table, or a leftover now and then as before
-      game.index = game.newAt[2];
-      const q = pickQuestion();
+      game.index = game.slots.indexOf('L');
+      let q = pickQuestion();
+      picks.push(factKey(q.a, q.b));
+      game.index = game.slots.indexOf('N');
+      q = pickQuestion();
       if (PATH_NEW[2].includes(factKey(q.a, q.b))) third++;
       clearTimers();
     }
-    // Once none can earn a dot today, that slot teaches the current table again
+    // Once none can earn a dot today, the leftover question teaches the current table
     for (const k of left) state.days[FACT_INDEX[k]] = today();
     startRound('main');
-    game.index = game.newAt[0];
-    const q = pickQuestion();
+    game.index = game.slots.indexOf('L');
+    nextQuestion();
+    const current = PATH_NEW[2].includes(keyOf(game));
+    // and once that had its dots too, it practices a leftover again, with no dot and a free miss
+    for (const k of PATH_NEW[2]) state.days[FACT_INDEX[k]] = today();
+    nextQuestion();
+    const again = [left.includes(keyOf(game)), game.againNow, game.track];
+    // A missed one waits for a missed-fact question, so with all of them missed it is review
+    state.missedDay = today();
+    state.missedKeys = [...left];
+    nextQuestion();
+    const missed = hasSticker(keyOf(game));
     clearTimers();
-    return { step: pathStep(), some: left.length > 0, all: picks.every(k => left.includes(k)), third: third > 15, after: PATH_NEW[2].includes(factKey(q.a, q.b)) };
+    return { step: pathStep(), some: left.length > 0, all: picks.every(k => left.includes(k)), third, current, again, missed };
   });
-  expect(r).toEqual({ step: 2, some: true, all: true, third: true, after: true });
+  expect(r).toEqual({ step: 2, some: true, all: true, third: 30, current: true, again: [true, true, false], missed: true });
 });
 
 test('a sneak peek at a later table earns a dot, stays with that table, and a miss costs nothing', async ({ page }) => {
   await page.locator('#pathBtn').click();
-  // On ×2 the first question peeks at ×10, the next table with facts that can earn a dot
+  // Goes to the peek question of the round
+  const toPeek = () => page.evaluate(() => { game.index = game.slots.indexOf('P'); nextQuestion(); });
+  await toPeek();
+  // On ×2 it peeks at ×10, the next table with facts that can earn a dot
   const first = await page.evaluate(() => [game.peekNow, PATH_NEW[1].includes(keyOf(game)), state.peekStep]);
   expect(first).toEqual([true, true, 1]);
   await askFact(page, 10, 3);
@@ -1910,6 +1917,8 @@ test('a sneak peek at a later table earns a dot, stays with that table, and a mi
   const missed = await page.evaluate(() => {
     clearTimers();
     startRound('main');
+    game.index = game.slots.indexOf('P');
+    nextQuestion();
     return [game.peekNow, PATH_NEW[1].includes(keyOf(game))];
   });
   expect(missed).toEqual([true, true]);
@@ -1921,6 +1930,7 @@ test('a sneak peek at a later table earns a dot, stays with that table, and a mi
   await page.evaluate(() => { clearTimers(); saveState(); });
   await page.reload();
   await page.locator('#pathBtn').click();
+  await toPeek();
   expect(await page.evaluate(() => [game.peekNow, PATH_NEW[2].includes(keyOf(game))])).toEqual([true, true]);
 });
 
@@ -2000,13 +2010,13 @@ test('after the times tables, Ms. Menna invites her to divide, and asks again 3 
   await expect(page.locator('#pathNow')).toHaveText('Learning ÷2 · 0 of 19 stickers');
 });
 
-test('outside division lessons, division comes after the new times facts, and question 9 teaches one', async ({ page }) => {
+test('outside division lessons, question 7 teaches division of a learned table, and question 10 reviews it', async ({ page }) => {
   const out = await page.evaluate(() => {
     const give = keys => { for (const k of keys) { const i = FACT_INDEX[k]; state.mastery[i] = STICKER_AT; state.days[i] = today(); state.levels[i] = 0; } };
     const fourth = () => Array.from({ length: 20 }, () => {
       clearTimers();
       startRound('main');
-      for (let i = 1; i <= 8; i++) { game.index = i; nextQuestion(); }
+      for (let i = 1; i <= 6; i++) { game.index = i; nextQuestion(); }
       return keyOf(game);
     });
     state.divOn = true;
@@ -2014,7 +2024,7 @@ test('outside division lessons, division comes after the new times facts, and qu
     give(PATH_FACTS[0]);
     give(DIVIDE_FACTS[0].filter(k => !['d2x7', 'd7x2'].includes(k)));
     const during = new Set(fourth());
-    // Division leaves questions 4 and 7 for facts missed earlier today, after the peek on question 1
+    // Facts missed earlier today on questions 4 and 9, the peek on 6
     state.missedDay = today();
     state.missedKeys = ['2x3', '2x4', '2x5'];
     clearTimers();
@@ -2030,7 +2040,7 @@ test('outside division lessons, division comes after the new times facts, and qu
       state.easyPath = easy; state.fastPath = fast;
       clearTimers();
       startRound('main');
-      return [game.divideAt, game.divNewAt];
+      return game.slots;
     });
     state.easyPath = state.fastPath = false;
     // Every times and division table is done, with 14 ÷ 2 left over. ÷9 adds only 3 facts, so one left there
@@ -2042,15 +2052,15 @@ test('outside division lessons, division comes after the new times facts, and qu
     goHome();
     return { during: [...during].sort(), after: [...after], guided, kinds, layouts };
   });
-  expect(out.kinds).toEqual(['peek', 'times', 'div', 'missed', 'times', 'div', 'missed', 'times', 'div', 'times']);
-  // Normal, easier and 4 new facts: division right after new times facts, and one teaches, never the last question
-  expect(out.layouts).toEqual([[[2, 5, 8], [8]], [[3, 7, 9], [7]], [[2, 5, 9], [5]]]);
+  expect(out.kinds).toEqual(['times', 'times', 'times', 'missed', 'times', 'peek', 'div', 'times', 'missed', 'div']);
+  // Normal, easier and 4 new facts
+  expect(out.layouts).toEqual(['RNLMNPlNMr', 'RNRMlPRNMr', 'RNLMNPlNNr']);
   expect(out.during).toEqual(['d2x7', 'd7x2']);
   expect(out.after).toEqual(['d2x7']);
   expect(out.guided).toBe(false);
 });
 
-test('the path teaches division table by table, about half the round', async ({ page }) => {
+test('the path teaches division table by table, with times facts on review and missed-fact questions', async ({ page }) => {
   await learnAllTimes(page);
   await divideOn(page);
   // While she knows few ÷2 facts, every division slot is one she is learning
@@ -2059,11 +2069,13 @@ test('the path teaches division table by table, about half the round', async ({ 
   await giveStickers(page, tableKeys(2, 1, 6).map(k => 'd' + k)); // 11 of the 19 ÷2 facts
   const rounds = await playRounds(page, 'main', 30);
   const divides = rounds.map(round => round.filter(q => q.div));
-  for (const d of divides) expect(d.length).toBe(5);
-  // ÷2 only, from both sides: 14 ÷ 2 and 14 ÷ 7
-  expect(divides.flat().filter(q => q.a !== 2 && q.b !== 2)).toEqual([]);
-  const newOnes = divides.map(d => d.filter(q => !q.sticker).length);
-  expect(Math.min(...newOnes)).toBe(3);
+  // With every times fact learned, leftover questions teach ÷2 too, so only R and the 2 M questions are times
+  for (const d of divides) expect(d.length).toBe(7);
+  // ÷2 only, from both sides: 14 ÷ 2 and 14 ÷ 7, and a sneak peek at ÷10
+  expect(divides.flat().filter(q => !q.peek && q.a !== 2 && q.b !== 2)).toEqual([]);
+  expect(divides.flat().filter(q => q.peek && q.a !== 10 && q.b !== 10)).toEqual([]);
+  const newOnes = divides.map(d => d.filter(q => !q.sticker && !q.peek).length);
+  expect(Math.min(...newOnes)).toBe(5);
   expect(rounds.flat().filter(q => !q.div && (q.a > 10 || q.b > 10))).toEqual([]);
 
   // At 80% of ÷2, it moves on to ÷10
@@ -2071,7 +2083,7 @@ test('the path teaches division table by table, about half the round', async ({ 
   await expect(page.locator('#pathNow')).toHaveText('Learning ÷10 · 0 of 17 stickers');
   const next = (await playRounds(page, 'main', 10)).flat().filter(q => q.div);
   // New facts are ÷10, or ÷2 facts still without a sticker, as on the times path
-  expect(next.filter(q => ![2, 10].includes(q.a) && ![2, 10].includes(q.b) && !q.sticker)).toEqual([]);
+  expect(next.filter(q => !q.peek && ![2, 10].includes(q.a) && ![2, 10].includes(q.b) && !q.sticker)).toEqual([]);
   expect(next.some(q => q.a === 10 || q.b === 10)).toBe(true);
 });
 

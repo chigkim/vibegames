@@ -8,6 +8,7 @@ Game-specific rules for `multiplication-ms-menna.html`. Read this before changin
 - Ms. Menna's Closet gems are separate from coins. Spending gems never touches the piggy bank.
 - A sticker needs first-try right answers on separate days, one dot a day. Most facts need 3 dots (`STICKER_AT`). Facts with 0, 1 or 10, plus ÷1 and ÷10, need 2 (`EASY_DOTS`, since v46).
 - Each fact order has its own sticker: 3 × 7 and 7 × 3 are two stickers, and so are 56 ÷ 7 and 56 ÷ 8 (since v25).
+- A Learn with Ms. Menna round follows a fixed 10-question layout (`ROUND_SLOTS`, since v48): 3 new facts, 2 leftovers from earlier tables, 2 facts missed earlier today, 1 sneak peek and 2 reviews. Easier mode and 4-new-facts mode have their own layouts. New and leftover questions ask a fact without a sticker that can earn a dot today first, and fall back to sticker review only when none is left. The 2 review questions always ask stickers. Changes to this mix need a play-test comparison and the user's approval.
 - Rooms open with stickers: Bedroom 20, Kitchen 40, Spa 60, Music 95, Playroom 121, Garden 145, Yard 171, Swimming Pool 190, Treehouse 205, Beach 221. A room that was open in an older save stays open (`oldNeed`), and an open later room opens the rooms before it.
 - Starter items and treats stay buyable at any time. The toy and treat shelf sits in the House and works before the Bedroom opens.
 - Don't add play limits, break prompts, countdowns, missed-day penalties, sad-pet pressure, random paid rewards or real-money purchases.

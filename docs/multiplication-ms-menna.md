@@ -64,4 +64,6 @@ npx playwright test --config upgrade-tests/playwright.config.js cookie-chain
 
 Each version's cookie and save, plus `report.txt`, are also written to `upgrade-tests/results/`. `vers/` and `results/` are git-ignored.
 
-When an old cookie loads into the current game, it may show more stickers or rooms than that version had. That comes from planned upgrades, such as split fact orders and 2-dot facts. The test only fails if something goes down.
+When an old cookie loads into the current game, it may show more stickers or rooms than that version had. That comes from planned upgrades, such as split fact orders and 2-dot facts. The test only fails if something goes down. Payouts are only checked for cookies that still carry the list: a cookie saved with `partial: true` (v49 and later) leaves it out on purpose, and the save is marked `partialCookie`.
+
+The backward test (`backward`, under a minute) opens a v50 save in v48 and v49, saves there, and checks that v50 gets everything back. It needs `vers/` built.

@@ -99,13 +99,14 @@ async function pay(page) {
 }
 
 // Everything in `exp` (a save as one version left it) must still be in `got` (as another version loaded it).
+// A cookie marked `partialCookie` (v49 and later) leaves out the payout list on purpose, so it isn't checked.
 function compare(exp, got) {
   const bad = [];
   const e = exp.state;
   const g = got.state;
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   for (const k of ['totalCents', 'paidCents', 'gems']) if (k in e && e[k] !== g[k]) bad.push(`${k} ${e[k]} -> ${g[k]}`);
-  if (e.payouts && !same(e.payouts, (g.payouts || []).slice(0, e.payouts.length))) bad.push(`payouts ${JSON.stringify(e.payouts)} -> ${JSON.stringify(g.payouts)}`);
+  if (e.payouts && !exp.partialCookie && !same(e.payouts, (g.payouts || []).slice(0, e.payouts.length))) bad.push(`payouts ${JSON.stringify(e.payouts)} -> ${JSON.stringify(g.payouts)}`);
   for (const k of ['owned', 'furniture', 'rooms']) {
     const lost = (e[k] || []).filter(id => !(g[k] || []).includes(id));
     if (lost.length) bad.push(`${k} lost ${lost.join(',')}`);
@@ -146,6 +147,7 @@ async function playAndSave(page, context, day) {
   await page.evaluate(() => saveState());
   await page.clock.runFor(1000);
   const expected = await snap(page);
+  expected.partialCookie = await page.evaluate(() => typeof readCookie === 'function' && !!(readCookie() || {}).partial);
   const cookie = (await context.cookies()).find(c => c.name === 'mennaMult')?.value || null;
   const note = `played ${answered} answers, bought ${bought.join(' ') || 'nothing'}${paid ? `, paid ${paid}¢` : ''}; ` +
     `${summary(expected)}; cookie ${(cookie || '').length} bytes`;

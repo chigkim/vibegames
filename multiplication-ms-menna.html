@@ -1472,7 +1472,9 @@
   .pay-rates { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin: 0 0 14px; }
   .pay-rates span { white-space: nowrap; }
   .btn-pay { background: linear-gradient(135deg, var(--green), var(--dark-green)); color: white; width: 100%; }
-  .btn-pay[hidden], .pay-confirm[hidden] { display: none; }
+  .btn-pay[hidden], .pay-confirm[hidden], .pay-pick[hidden] { display: none; }
+  .pay-pick { display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 800; color: var(--dark-brown); margin: 0 0 10px; }
+  .pay-pick input { width: 7em; font: inherit; font-size: 1.1rem; text-align: center; padding: 8px; border: 3px solid var(--peach); border-radius: 16px; }
   .pay-confirm { background: #FFF4D2; border: 3px solid var(--orange); border-radius: 24px; padding: 12px; }
   .pay-confirm p { font-weight: 800; color: var(--dark-brown); margin: 0 0 10px; font-size: 1.1rem; }
   .pay-confirm .row { display: flex; gap: 10px; }
@@ -1482,11 +1484,28 @@
   .parent-note[hidden] { display: none; }
   .parent-note h2 { font-family: 'Baloo 2', cursive; font-size: 1.1rem; color: var(--brown); margin: 0 0 4px; text-align: center; }
   .parent-note p { margin: 4px 0; }
-  .payout-list { margin: 16px 0 4px; text-align: left; font-weight: 700; color: var(--dark-brown); }
-  .payout-list h2 { font-family: 'Baloo 2', cursive; font-size: 1.1rem; color: var(--brown); margin-bottom: 6px; text-align: center; }
-  .payout-row { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 2px dashed var(--peach); }
-  .payout-row:last-child { border-bottom: none; }
-  .payout-empty { text-align: center; color: var(--brown); opacity: 0.7; }
+  .grown-stats { margin: 0 0 14px; text-align: left; font-weight: 700; color: var(--dark-brown); background: #F1F8FF; border: 3px solid #B8D8F5; border-radius: 20px; padding: 8px 14px; }
+  .grown-stats summary { font-family: 'Baloo 2', cursive; font-size: 1.1rem; color: var(--brown); text-align: center; cursor: pointer; }
+  .grown-stats h3 { font-family: 'Baloo 2', cursive; font-size: 1rem; color: var(--brown); margin: 12px 0 4px; }
+  .grown-stats p { margin: 4px 0; font-size: 0.9rem; }
+  .grown-stats .note { font-weight: 600; opacity: 0.75; font-size: 0.8rem; }
+  .stats-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; margin-top: 8px; }
+  .stats-tiles div { background: #fff; border-radius: 12px; padding: 6px 8px; font-size: 0.75rem; text-align: center; }
+  .stats-tiles b { display: block; font-size: 1.15rem; }
+  .stats-map { display: grid; gap: 2px; margin: 4px 0; }
+  .stats-map div { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: clamp(0.5rem, 2.2vmin, 0.75rem); background: #fff; }
+  .stats-map .head { background: none; font-weight: 800; }
+  .stats-map .got { background: #8FD694; }
+  .stats-map .sleepy { background: #B8C4F5; }
+  .stats-map .dot1 { background: #FFF1B8; }
+  .stats-map .dot2 { background: #FFD98A; }
+  .stats-key span { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 3px; border: 1px solid #B8D8F5; margin: 0 3px 0 8px; vertical-align: -1px; }
+  .stats-bars { display: flex; align-items: flex-end; gap: 2px; height: 70px; border-bottom: 2px solid #B8D8F5; }
+  .stats-bars div { flex: 1; background: #6FC3F2; border-radius: 3px 3px 0 0; min-height: 2px; }
+  .stats-bars div.none { background: #E5EEF7; }
+  .stats-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+  .stats-table th, .stats-table td { padding: 3px 2px; text-align: center; border-bottom: 1px dashed #B8D8F5; }
+  .stats-table td { white-space: nowrap; }
 
   @media (max-width: 420px) {
     .teacher-row { gap: 16px; }
@@ -1626,9 +1645,9 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v48 - Updated 2026-10-08 04:15 EDT</p>
+    <p class="version">v49 - Updated 2026-10-08 09:07 EDT</p>
 
-    <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
+    <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
     <p class="days-total" id="daysTotal" hidden></p>
 
@@ -1663,7 +1682,7 @@
     </button>
     <div class="btn-row">
       <button class="btn btn-secondary" id="stickersBtn">⭐ Stickers</button>
-      <button class="btn btn-secondary" id="cashoutBtn">💵 Cash Out</button>
+      <button class="btn btn-secondary" id="cashoutBtn">🐷 Trade In</button>
     </div>
   </div>
 </div>
@@ -1676,10 +1695,10 @@
         <button class="quit-btn" id="quitBtn">← Home</button>
         <button class="mute-btn bar-mute" id="barMuteBtn" aria-label="Mute sounds">🔊</button>
       </div>
-      <div class="bank" id="gameBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="gameBankAmount">$0.00</span></div>
+      <div class="bank" id="gameBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="gameBankAmount">0 coins</span></div>
       <div class="round-info">
         <div id="qCounter">1 / 10</div>
-        <div class="earned" id="roundEarned">+0¢</div>
+        <div class="earned" id="roundEarned">+0 coins</div>
       </div>
     </div>
     <div class="progress-wrap"><div class="progress-fill" id="progressFill"></div></div>
@@ -1740,8 +1759,8 @@
     </div>
     <div class="stat-row">
       <div class="stat"><b id="statFirstTry">0 / 10</b>right on first try</div>
-      <div class="stat"><b id="statEarned">+0¢</b>this round</div>
-      <div class="stat"><b id="statBank">$0.00</b>piggy bank</div>
+      <div class="stat"><b id="statEarned">+0 coins</b>this round</div>
+      <div class="stat"><b id="statBank">0 coins</b>piggy bank</div>
       <div class="stat"><b id="statGems">+0 💎</b>gems for Ms. Menna</div>
     </div>
     <div class="divide-invite" id="divideInvite" hidden>
@@ -1762,6 +1781,14 @@
   <div class="teach-trick">
     <p id="teachTitle">Pick a trick to teach Ms. Menna! 🐾</p>
     <div class="trick-choices" id="trickChoices"></div>
+  </div>
+</div>
+
+<!-- When she comes back after skipping a day: the browser could erase her things. Over the whole page until she taps OK. -->
+<div class="trick-modal" id="keepNotice" role="dialog" aria-modal="true" aria-labelledby="keepText" hidden>
+  <div class="teach-trick">
+    <p id="keepText"></p>
+    <button class="btn btn-primary" id="keepOkBtn">OK, got it! 👍</button>
   </div>
 </div>
 
@@ -1833,27 +1860,31 @@
   </div>
 </div>
 
-<!-- ===== CASH OUT SCREEN ===== -->
+<!-- ===== TRADE IN SCREEN ===== -->
 <div class="screen" id="cashoutScreen">
   <div class="card">
-    <h1>Cash Out 💵</h1>
+    <h1>Trade In 🐷</h1>
     <div class="parent-note" id="parentNote" hidden></div>
-    <div class="bank" id="cashBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="cashBankAmount">$0.00</span></div>
+    <div class="bank" id="cashBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="cashBankAmount">0 coins</span></div>
     <p class="bank-label">in the piggy bank right now</p>
-    <p class="pay-rates">Pay per right answer:<br><span>×0 or ×1 → 1¢</span> · <span>×2 or ×10 → 2¢</span> · <span>harder facts → up to 10¢</span><br><span>Right after a picture hint → 1¢</span> · <span>Wrong answers never cost money</span></p>
-    <button class="btn btn-pay" id="payBtn">Pay out $0.00</button>
+    <p class="pay-rates">Coins per right answer:<br><span>×0 or ×1 → 1 coin</span> · <span>×2 or ×10 → 2 coins</span> · <span>harder facts → up to 10 coins</span><br><span>Right after a picture hint → 1 coin</span> · <span>Wrong answers never cost coins</span></p>
+    <label class="pay-pick" id="payPick">Coins to trade in <input id="payAmount" type="number" inputmode="numeric" min="1" step="1"></label>
+    <button class="btn btn-pay" id="payBtn">Trade in 0 coins</button>
     <div class="pay-confirm" id="payConfirm" hidden>
-      <p id="payAsk">Did you pay $0.00?</p>
+      <p id="payAsk">Did you trade in 0 coins?</p>
       <div class="row">
         <button class="btn btn-no" id="payNoBtn">Not yet</button>
-        <button class="btn btn-pay" id="payYesBtn">Yes, paid ✓</button>
+        <button class="btn btn-pay" id="payYesBtn">Yes, traded ✓</button>
       </div>
     </div>
     <div class="stat-row">
-      <div class="stat"><b id="statPaid">$0.00</b>paid so far</div>
-      <div class="stat"><b id="statAllTime">$0.00</b>earned all-time</div>
+      <div class="stat"><b id="statPaid">0 coins</b>traded in so far</div>
+      <div class="stat"><b id="statAllTime">0 coins</b>earned all-time</div>
     </div>
-    <div class="payout-list" id="payoutList"></div>
+    <details class="grown-stats" id="grownStats">
+      <summary>📊 Grown-up stats</summary>
+      <div id="statsBody"></div>
+    </details>
     <button class="btn btn-secondary" id="cashBackBtn">← Back</button>
   </div>
 </div>
@@ -1874,7 +1905,7 @@ const MAX_NUMBER = 20;
 const MIN_PICK = 3; // the smallest number on the practice picker
 const OLD_MAX_NUMBER = 13; // v11 and earlier stopped at 13; their facts keep the first places in FACT_KEYS
 const MAX_PAYOUTS_KEPT = 30;
-const PAY_CONFIRM_DELAY = 1000; // ms before "Yes, paid" can be tapped
+const PAY_CONFIRM_DELAY = 1000; // ms before "Yes, traded" can be tapped
 const STORE_KEY = 'mennaMultiplication';
 const COOKIE_NAME = 'mennaMult';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 400; // Browsers cap cookie lifetime at 400 days.
@@ -1889,9 +1920,9 @@ const PICK_COLORS = ['#FFB3C6', '#FFD6B0', '#FFE08A', '#C8F0B0', '#A8DAFF', '#C9
 const ROW_COLORS = ['#FF9FBF', '#FFB870', '#FFD84D', '#8FDB7A', '#6FC3F2', '#A994F5', '#FF9E80',
   '#5FD6B8', '#F59BE0', '#8FB8F5', '#F2C94C', '#B79CF2', '#FF8A8A'];
 
-// Pay per right answer, the same on the path and in practice. Facts up to 10 pay 1¢ to 5¢, by how hard children find them:
+// Pay per right answer, the same on the path and in practice. Facts up to 10 pay 1 to 5 coins, by how hard children find them:
 // ×0 and ×1, then ×2, ×5 and ×10, then the rest by the size of the answer, since answers over 40 are missed most.
-// Facts with a number from 11 to 20 pay 6¢ to 10¢, so picking big numbers pays more only because they are harder.
+// Facts with a number from 11 to 20 pay 6 to 10 coins, so picking big numbers pays more only because they are harder.
 function centsFor(a, b) {
   const small = Math.min(a, b);
   const big = Math.max(a, b);
@@ -1950,13 +1981,13 @@ const STICKERS = ['⭐', '🐾', '🌈', '🦋', '🍓', '🌸', '🐶', '🍩',
 const stickerFor = key => STICKERS[(FACT_INDEX[key] * 7) % STICKERS.length];
 
 // ===== POM'S CLOSET =====
-// Gems are play money for Pom's outfits. They never touch the real-money piggy bank.
+// Gems are play money for Pom's outfits. They never touch the piggy bank's coins.
 const GEMS_PER_ANSWER = 1; // each first-try right answer
 const GEMS_PER_STICKER = 2;
 const GEMS_PER_WAKE = 1; // waking a sleepy sticker
 const GEMS_FOR_STARS = [0, 0, 1, 3]; // round bonus by stars
 const GIFT_EVERY = 10; // every 10th sticker brings a free treat, given at the end of the round
-const TRICKY_KEPT = 12; // facts kept in the count of misses since the last cash-out
+const TRICKY_KEPT = 12; // facts kept in the count of misses since the last trade-in
 
 const CLOSET_SLOTS = [
   { id: 'hat', ico: '🎩', name: 'Hats' },
@@ -2483,7 +2514,7 @@ function defaultState() {
     divPics: 0, // new division questions left that show their picture right away
     rooms: [], // rooms she has opened, which stay open
     tricks: '', // the tricks she has taught Ms. Menna, in the order she taught them (see TEACHABLE)
-    since: { s: 0, w: 0, m: {} }, // since the last cash-out: new stickers, stickers woken, and misses by fact
+    since: { s: 0, w: 0, m: {} }, // since the last trade-in: new stickers, stickers woken, and misses by fact
     gifts: 0, // free treats given, one for every GIFT_EVERY stickers
     playDays: 0, playDay: 0, // days with a finished round, and the last of them
   };
@@ -2542,21 +2573,22 @@ const SaveDB = {
     }
     return this.db;
   },
-  async read() {
+  // The save is under 'state', the grown-up stats under 'stats'.
+  async read(key = 'state') {
     try {
       const db = await this.open();
       const json = await new Promise((resolve, reject) => {
-        const req = db.transaction('save').objectStore('save').get('state');
+        const req = db.transaction('save').objectStore('save').get(key);
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
       });
       return json ? JSON.parse(json) : null;
     } catch { return null; }
   },
-  async write(json) {
+  async write(json, key = 'state') {
     try {
       const db = await this.open();
-      db.transaction('save', 'readwrite').objectStore('save').put(json, 'state');
+      db.transaction('save', 'readwrite').objectStore('save').put(json, key);
     } catch { /* IndexedDB may be unavailable in private mode */ }
   },
 };
@@ -2571,6 +2603,29 @@ function showHomeScreenTip() {
     localStorage.setItem(STORE_KEY + '_homeTip', '1');
   } catch { return; }
   say('startBubble', 'Tap Share ⬆️, then "Add to Home Screen" to keep your coins! 🏠');
+}
+
+// Safari may clear a website's saves after 7 days of use without a visit, and any browser clears them when a grown-up
+// clears its data. The first time she opens v49, and when she comes back after skipping 2 days or more, Ms. Menna tells
+// her so, with the last safe day. Skipping one day is fine. A new save has nothing to lose yet. Returns whether she said it.
+const KEEP_DAYS = 7;
+const KEEP_SKIPPED = 2; // days without play before Ms. Menna says it again
+function showKeepNotice() {
+  const key = STORE_KEY + '_keepNotice'; // the day it was last shown
+  const skipped = state.playDay > 0 && today() - state.playDay > KEEP_SKIPPED;
+  try {
+    const last = localStorage.getItem(key);
+    if (!state.savedAt || (last && !(skipped && Number(last) < today()))) return false;
+    localStorage.setItem(key, String(today()));
+  } catch { return false; }
+  // The last safe day, so any day she plays up to and including it is early enough.
+  const day = new Date(Date.now() + (KEEP_DAYS - 1) * 864e5).toLocaleDateString('en-US', { weekday: 'long' });
+  const text = `Just so you know: your stickers, coins, gems and rooms are all safe with me through next ${day}! 💛 ` +
+    `If we don't play by then, the web browser might erase them. Come visit me by next ${day}. 🐾`;
+  $('keepText').textContent = text;
+  $('keepNotice').hidden = false;
+  Speech.speak(text);
+  return true;
 }
 
 // True when the save came from a cookie copy without the payout list, so init() takes a full IndexedDB copy of the same age.
@@ -2742,12 +2797,8 @@ function encodeReview(keep = () => true) {
   }).join('').replace(/0+$/, '');
 }
 
-// The short payout list for a cookie that is too big with the plain one: "time:cents" in base 36, newest first,
-// each time after the first one counted back from the payout before it. Loading gets back the exact same list.
-function encodePays(payouts) {
-  return payouts.map((po, i) => (i ? payouts[i - 1].t - po.t : po.t).toString(36) + ':' + po.c.toString(36)).join(',');
-}
-
+// The short payout list that v47 and v48 cookies kept in `pays`: "time:cents" in base 36, newest first,
+// each time after the first one counted back from the payout before it.
 function decodePays(text) {
   const payouts = [];
   for (const part of text ? text.split(',') : []) {
@@ -2792,7 +2843,7 @@ function mergeNewer(stored) {
   else if (stored.missedDay === state.missedDay) state.missedKeys = [...new Set([...stored.missedKeys, ...state.missedKeys])];
   state.rooms = [...new Set([...stored.rooms, ...state.rooms])];
   state.tricks = [...new Set(stored.tricks + state.tricks)].join('');
-  // A cash-out in either tab clears what came before it, and each tab adds what it saw after.
+  // A trade-in in either tab clears what came before it, and each tab adds what it saw after.
   state.since.s = add(stored.since.s, state.since.s, base.since.s);
   state.since.w = add(stored.since.w, state.since.w, base.since.w);
   for (const key of new Set([...Object.keys(stored.since.m), ...Object.keys(state.since.m)])) {
@@ -2804,7 +2855,6 @@ function mergeNewer(stored) {
   state.playDays = Math.max(stored.playDays, state.playDays);
   state.playDay = Math.max(stored.playDay, state.playDay);
   // Choices like the outfit, toys, furniture spots and the room go to this tab, the one saving now.
-  // A payout row is lost only if the newest copy is the cookie without the list; paidCents is still right.
 }
 
 // Before coins or gems change: take in a newer save from another tab that this tab missed (a frozen iPad tab).
@@ -2838,16 +2888,14 @@ function saveState() {
   try { localStorage.setItem(STORE_KEY, json); } catch { /* storage may be unavailable in private mode */ }
   if (window.indexedDB) SaveDB.write(json);
   const secure = location.protocol === 'https:' ? '; Secure' : '';
-  // A browser drops a cookie over 4 KB. If it is too big, the cookie copy keeps the payout list short in `pays`, then
-  // leaves out the payout list, then the review dates and picker weights of facts above 10, then all picker weights,
-  // then all review dates. Every sticker, dot, coin, gem, item and piece of furniture always stays in it.
-  // A trimmed copy has an empty `payouts` and `partial: true`, the same as the trimmed cookies of v46 and older, so an
-  // older version still reads it and takes the payout list from IndexedDB.
+  // The cookie copy leaves out the payout list from before v49, kept only in localStorage and IndexedDB: an empty
+  // `payouts` and `partial: true`, the same as the trimmed cookies of v46 and older, so an older version still reads
+  // it and takes the list from IndexedDB. A browser drops a cookie over 4 KB. If it is still too big, it leaves out
+  // the review dates and picker weights of facts above 10, then all picker weights, then all review dates.
+  // Every sticker, dot, coin, gem, item and piece of furniture always stays in it.
   const partial = { ...save, payouts: [], partial: true };
   const upTo10 = i => Math.max(...factsOf(FACT_KEYS[i])) <= 10;
   const trims = [
-    save,
-    { ...partial, pays: encodePays(state.payouts) },
     partial,
     { ...partial, weights: encodeWeights(upTo10), review: encodeReview(upTo10) },
     { ...partial, weights: '', review: encodeReview(upTo10) },
@@ -2855,11 +2903,118 @@ function saveState() {
   ];
   let cookie;
   for (const copy of trims) {
-    cookie = packCookie(copy === save ? json : JSON.stringify(copy));
+    cookie = packCookie(JSON.stringify(copy));
     if (cookie.length <= COOKIE_MAX) break;
   }
   document.cookie = `${COOKIE_NAME}=${cookie}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax${secure}`;
   savedBase = JSON.parse(JSON.stringify(state));
+  saveStats();
+}
+
+// ===== LEARNING STATS FOR GROWN-UPS =====
+// A log of each day's play, kept apart from the save: in localStorage and IndexedDB, never in the cookie, and never
+// read by older versions. So it cannot change or lose any progress, and if it is cleared, the stats start again that day.
+const STATS_KEY = STORE_KEY + '_stats';
+const STATS_DAYS_KEPT = 730; // two years
+const QUICK_MS = 3000; // a first-try right answer this fast is quick recall
+const SLOW_MS = 6000; // and a fact whose last one took this long is still worked out
+const ANSWER_MS_MAX = 60000; // longer than this on one question is time away, not time answering
+// A day, by day number. Rounds: r on the path, p in practice. First answers: q, c of them right.
+// d dots, s new stickers, w stickers woken. v sleepy stickers asked, vc of them right, l stickers missed.
+// t ms answering questions. n first-try right answers timed, m their ms, k of them quick.
+// h pictures asked for or shown after two misses, a pictures shown on their own.
+const STATS_DAY_FIELDS = ['r', 'p', 'q', 'c', 'd', 's', 'w', 'v', 'vc', 'l', 't', 'n', 'm', 'k', 'h', 'a'];
+// A fact, by key: [first answers, right first time, ms of its last first-try right answer,
+// day first asked if it had no dots yet (0 if unknown), day of its sticker (0 if before the stats or not yet)].
+const emptyStats = () => ({ v: 1, start: today(), savedAt: 0, days: {}, facts: {} });
+
+function parseStats(saved) {
+  const stats = emptyStats();
+  if (!saved || typeof saved !== 'object') return stats;
+  if (Number.isInteger(saved.start) && saved.start > 0 && saved.start <= today()) stats.start = saved.start;
+  if (Number.isFinite(saved.savedAt)) stats.savedAt = saved.savedAt;
+  const count = n => (Number.isFinite(n) && n > 0 ? Math.round(n) : 0);
+  for (const [day, entry] of Object.entries(saved.days || {})) {
+    if (!/^\d+$/.test(day) || !entry || typeof entry !== 'object') continue;
+    const kept = {};
+    for (const f of STATS_DAY_FIELDS) if (count(entry[f])) kept[f] = count(entry[f]);
+    stats.days[day] = kept;
+  }
+  for (const [key, fact] of Object.entries(saved.facts || {})) {
+    if (key in FACT_INDEX && Array.isArray(fact)) stats.facts[key] = [0, 1, 2, 3, 4].map(i => count(fact[i]));
+  }
+  return stats;
+}
+
+function readStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)); } catch { return null; }
+}
+
+// Until the IndexedDB copy is read, saves leave it alone. If localStorage lost the stats, that copy is added in.
+let statsLost = !readStats();
+let statsPending = !!window.indexedDB;
+let stats = parseStats(readStats());
+let statsBase = JSON.parse(JSON.stringify(stats)); // the stats as this tab last loaded or saved them
+
+// Another tab saved stats since this tab last did: add this tab's new counts on top of that tab's.
+function mergeStats(stored) {
+  const base = statsBase;
+  const add = (theirs = 0, ours = 0, was = 0) => Math.max(0, theirs + ours - was);
+  for (const day of new Set([...Object.keys(stored.days), ...Object.keys(stats.days)])) {
+    const [theirs, ours, was] = [stored.days[day] || {}, stats.days[day] || {}, base.days[day] || {}];
+    const merged = {};
+    for (const f of STATS_DAY_FIELDS) if (add(theirs[f], ours[f], was[f])) merged[f] = add(theirs[f], ours[f], was[f]);
+    stats.days[day] = merged;
+  }
+  const firstOf = (x, y) => (x && y ? Math.min(x, y) : x || y);
+  for (const key of new Set([...Object.keys(stored.facts), ...Object.keys(stats.facts)])) {
+    const [theirs, ours, was] = [stored.facts[key] || [0, 0, 0, 0, 0], stats.facts[key] || [0, 0, 0, 0, 0], base.facts[key] || [0, 0, 0, 0, 0]];
+    stats.facts[key] = [add(theirs[0], ours[0], was[0]), add(theirs[1], ours[1], was[1]),
+      ours[2] !== was[2] ? ours[2] : theirs[2], firstOf(theirs[3], ours[3]), firstOf(theirs[4], ours[4])];
+  }
+  stats.start = Math.min(stats.start, stored.start);
+}
+
+// Takes in stats another tab saved, or the IndexedDB copy when localStorage lost them.
+function syncStats(saved = readStats()) {
+  const stored = saved && parseStats(saved);
+  if (!stored || stored.savedAt <= statsBase.savedAt) return;
+  mergeStats(stored);
+  stats.savedAt = stored.savedAt;
+  statsBase = stored;
+}
+
+function saveStats() {
+  syncStats();
+  const oldest = today() - STATS_DAYS_KEPT;
+  for (const day of Object.keys(stats.days)) if (+day < oldest) delete stats.days[day];
+  stats.savedAt = Math.max(Date.now(), statsBase.savedAt + 1);
+  const json = JSON.stringify(stats);
+  try { localStorage.setItem(STATS_KEY, json); } catch { /* storage may be unavailable in private mode */ }
+  if (window.indexedDB && !statsPending) SaveDB.write(json, 'stats');
+  statsBase = JSON.parse(json);
+}
+
+function loadStatsCopy(saved) {
+  const stored = saved && parseStats(saved);
+  if (stored && statsLost) {
+    const base = statsBase;
+    statsBase = emptyStats(); // this tab's counts since loading are all new
+    mergeStats(stored);
+    statsBase = base;
+  } else if (saved) syncStats(saved);
+  statsLost = statsPending = false;
+  saveStats();
+}
+
+// Adds to today's counts. They are saved with the next saveState().
+function logStat(field, n = 1) {
+  const entry = stats.days[today()] ||= {};
+  entry[field] = (entry[field] || 0) + n;
+}
+
+function factStats(key) {
+  return stats.facts[key] ||= [0, 0, 0, state.mastery[FACT_INDEX[key]] ? 0 : today(), 0];
 }
 
 let state = loadState();
@@ -3033,8 +3188,9 @@ function say(bubbleId, text, extra = '', after = false) {
 
 // ===== HELPERS =====
 const $ = id => document.getElementById(id);
-const formatMoney = cents => '$' + (cents / 100).toFixed(2);
-const formatDelta = cents => (cents >= 0 ? '+' : '−') + Math.abs(cents) + '¢';
+// The piggy bank counts coins. Saves still call them cents (`totalCents`), so 340¢ from an old save is 340 coins.
+const formatCoins = n => n.toLocaleString('en-US') + (n === 1 ? ' coin' : ' coins');
+const formatDelta = n => (n >= 0 ? '+' : '−') + formatCoins(Math.abs(n));
 const factKey = (a, b) => `${a}x${b}`;
 // A question is { a, b, div }. Division asks (a × b) ÷ a, so the answer is b. Each order is its own fact.
 const keyOf = q => (q.div ? 'd' : '') + factKey(q.a, q.b);
@@ -3589,7 +3745,7 @@ function banner(text, waking) {
 
 function buildFloaters() {
   const bg = $('floatingBg');
-  const symbols = ['×', '★', '¢', '🐾', '=', '✦'];
+  const symbols = ['×', '★', '🪙', '🐾', '=', '✦'];
   for (let i = 0; i < 16; i++) {
     const f = document.createElement('div');
     f.className = 'floater';
@@ -3604,7 +3760,7 @@ function buildFloaters() {
 }
 
 // ===== BANK =====
-// How full the piggy bank looks: empty, then fuller at 1¢, $1, $3 and stuffed at $6.
+// How full the piggy bank looks: empty, then fuller at 1, 100 and 300 coins, and stuffed at 600.
 function pigLevel(cents) {
   if (cents <= 0) return 0;
   if (cents < 100) return 1;
@@ -3614,14 +3770,14 @@ function pigLevel(cents) {
 }
 
 function renderBank() {
-  $('startBankAmount').textContent = formatMoney(state.totalCents);
-  $('gameBankAmount').textContent = formatMoney(state.totalCents);
-  $('cashBankAmount').textContent = formatMoney(state.totalCents);
+  $('startBankAmount').textContent = formatCoins(state.totalCents);
+  $('gameBankAmount').textContent = formatCoins(state.totalCents);
+  $('cashBankAmount').textContent = formatCoins(state.totalCents);
   const level = pigLevel(state.totalCents);
   document.querySelectorAll('.bank').forEach(el => { el.dataset.level = level; });
 }
 
-// Returns the amount actually changed, since the bank never goes below $0.00.
+// Returns the amount actually changed, since the bank never goes below 0 coins.
 function changeBank(delta) {
   syncNewer();
   const before = state.totalCents;
@@ -3629,13 +3785,13 @@ function changeBank(delta) {
   const changed = state.totalCents - before;
   saveState();
   renderBank();
-  const dollars = Math.floor((before + changed) / 100);
-  if (dollars > Math.floor(before / 100)) {
+  const hundreds = Math.floor((before + changed) / 100);
+  if (hundreds > Math.floor(before / 100)) {
     // Cleared with the round's other timers, so it never shows up after Quit.
     (game ? later : setTimeout)(() => {
       sfx.milestone();
       confetti(70);
-      banner(`🐷 ${formatMoney(dollars * 100)}! 🎉`);
+      banner(`🐷 ${formatCoins(hundreds * 100)}! 🎉`);
     }, 350);
   }
   return changed;
@@ -4051,13 +4207,13 @@ function nextQuestion() {
   if (redo) state.missedKeys = [...missedToday().filter(k => k !== redo), redo];
   game.peekNow = !!peek;
   game.redoNow = !!redo;
-  Object.assign(game, { a: q.a, b: q.b, div: !!q.div, attempts: 0, hinted: false, solved: false, input: '', locked: false });
+  Object.assign(game, { a: q.a, b: q.b, div: !!q.div, attempts: 0, hinted: false, solved: false, input: '', locked: false, shownAt: Date.now() });
   game.prevKey = keyOf(q);
   game.asked.add(game.prevKey);
   game.track = game.path === 'main' && !retry && !extra && !game.againNow && !q.div && !hasSticker(game.prevKey) && !game.missed.some(m => keyOf(m) === game.prevKey);
 
   const cents = centsFor(q.a, q.b);
-  $('worth').textContent = `This one pays ${cents}¢!`;
+  $('worth').textContent = `This one pays ${formatCoins(cents)}!`;
   $('worth').className = 'worth tier-' + cents;
   // Division shows the product first: 56 ÷ 7.
   $('factorA').textContent = q.div ? q.a * q.b : q.a;
@@ -4144,6 +4300,8 @@ function onCorrect(answer) {
   let woke = false;
   let fixed = false; // she missed it earlier this round and got it this time
   let tomorrow = false; // it had its dot today, or a miss, so the next dot waits for another day
+  const ms = Math.min(Date.now() - game.shownAt, ANSWER_MS_MAX);
+  logStat('t', ms);
   if (game.attempts === 0) {
     recordTry(true);
     game.firstTry++;
@@ -4151,6 +4309,14 @@ function onCorrect(answer) {
     state.weights[key] = 1 + (weightOf(key) - 1) * 0.6;
     const i = FACT_INDEX[key];
     const day = today();
+    const fs = factStats(key);
+    fs[0]++;
+    fs[1]++;
+    fs[2] = ms;
+    ['q', 'c', 'n'].forEach(f => logStat(f));
+    logStat('m', ms);
+    if (ms < QUICK_MS) logStat('k');
+    if (isSleepy(i)) { logStat('v'); logStat('vc'); }
     // A fact missed earlier this round was just shown, so getting it now earns no dot and wakes nothing.
     if (game.missed.some(m => keyOf(m) === key)) {
       fixed = true;
@@ -4161,11 +4327,14 @@ function onCorrect(answer) {
         state.mastery[i]++;
         if (state.mastery[i] >= dotsFor(key)) state.mastery[i] = STICKER_AT;
         state.days[i] = day;
+        logStat('d');
         newSticker = state.mastery[i] === STICKER_AT;
         if (newSticker) {
           state.levels[i] = 0;
           game.newStickers.push(fact);
           state.since.s++;
+          logStat('s');
+          fs[4] = day;
         }
       }
     } else if (isSleepy(i)) {
@@ -4174,13 +4343,14 @@ function onCorrect(answer) {
       state.days[i] = day;
       game.woken.push(fact);
       state.since.w++;
+      logStat('w');
     }
   }
   const cents = game.hinted ? HINT_CENTS : centsFor(game.a, game.b);
   renderAnswer('correct');
   sfx.coin();
   const display = $('answerDisplay');
-  flyText('+' + cents + '¢', display, 'plus', -120);
+  flyText(formatDelta(cents), display, 'plus', -120);
   flyCoins(display, $('gameBank'), cents);
   const gems = (game.attempts === 0 ? GEMS_PER_ANSWER : 0) + (newSticker ? GEMS_PER_STICKER : 0) + (woke ? GEMS_PER_WAKE : 0);
   if (gems) {
@@ -4281,6 +4451,12 @@ function onWrong(answer) {
     game.missed.push({ a: game.a, b: game.b, div: game.div });
     recordTry(false);
     noteMiss(key);
+    factStats(key)[0]++;
+    logStat('q');
+    if (hasSticker(key)) {
+      logStat('l');
+      if (isSleepy(FACT_INDEX[key])) logStat('v');
+    }
     if (game.redoNow || game.peekNow || game.againNow) game.freeMisses++;
     // A missed sneak peek just waits for its table, and the next one tries the table after it.
     if (game.peekNow) {
@@ -4367,7 +4543,7 @@ function hintPlan({ a, b, div }) {
 const SPLIT_COLORS = ['#FFB870', '#6FC3F2'];
 
 // ===== VISUAL GRID: rows × dots, split in two colors when the fact has a strategy =====
-// A picture Ms. Menna shows on her own (free) keeps the full pay; one she asks for, or after two misses, pays 1¢.
+// A picture Ms. Menna shows on her own (free) keeps the full pay; one she asks for, or after two misses, pays 1 coin.
 function showGrid(countOut, free = false) {
   const plan = hintPlan(game);
   const { rows: a, cols: b, p, q } = plan;
@@ -4377,9 +4553,11 @@ function showGrid(countOut, free = false) {
   area.classList.add('show');
   $('hintBtn').classList.remove('show');
   clearCountOut();
+  if (free) logStat('a');
   if (!game.hinted && !free) {
+    logStat('h');
     game.hinted = true;
-    $('worth').textContent = `With the picture, this one pays ${HINT_CENTS}¢`;
+    $('worth').textContent = `With the picture, this one pays ${formatCoins(HINT_CENTS)}`;
     $('worth').className = 'worth tier-1';
   }
   const rowsOf = n => `${n} ${n === 1 ? 'row' : 'rows'}`;
@@ -4560,7 +4738,7 @@ function showSummary() {
     `You got ${firstTry} out of ${QUESTIONS_PER_ROUND}!`, true);
   $('statFirstTry').textContent = `${firstTry} / ${QUESTIONS_PER_ROUND}`;
   $('statEarned').textContent = formatDelta(roundCents);
-  $('statBank').textContent = formatMoney(state.totalCents);
+  $('statBank').textContent = formatCoins(state.totalCents);
   const bonus = GEMS_FOR_STARS[stars];
   if (bonus) {
     game.roundGems += bonus;
@@ -4609,6 +4787,7 @@ function showSummary() {
     : '';
   // A new division table starts with a few pictures.
   if ((times || divide) && guidedDivide()) state.divPics = Math.max(state.divPics, AUTO_PICTURES.table);
+  logStat(game.path === 'main' ? 'r' : 'p');
   if (state.playDay !== today()) {
     state.playDays++;
     state.playDay = today();
@@ -4654,7 +4833,7 @@ function giveGifts() {
   return given;
 }
 
-// Misses since the last cash-out, for the parent summary. Only the most-missed facts are kept, and a new miss wins a tie.
+// Misses since the last trade-in, for the parent summary. Only the most-missed facts are kept, and a new miss wins a tie.
 function noteMiss(key) {
   const m = state.since.m;
   m[key] = (m[key] || 0) + 1;
@@ -5438,40 +5617,148 @@ function buyFurniture() {
   visitPiece(houseWalker, piece);
 }
 
-// ===== CASH OUT =====
+// ===== TRADE IN =====
 let payConfirmTimer = null;
-let payAsked = 0; // the amount the grown-up was asked to confirm
+let payAsked = 0; // the coins the grown-up was asked to confirm
+let payBalance = 0; // the balance when they were asked
 
+// The coins typed in to trade, or 0 if that is not a whole number from 1 to the balance.
+function payAmount() {
+  const n = Number($('payAmount').value);
+  return Number.isInteger(n) && n >= 1 && n <= state.totalCents ? n : 0;
+}
+
+function renderPayButton() {
+  const btn = $('payBtn');
+  const n = payAmount();
+  btn.disabled = !n;
+  btn.textContent = state.totalCents <= 0 ? 'No coins to trade in yet'
+    : n ? `Trade in ${formatCoins(n)}` : `Pick 1 to ${formatCoins(state.totalCents)}`;
+}
+
+// Back to asking how many coins, with the whole balance filled in.
 function resetPayButton() {
   clearTimeout(payConfirmTimer);
   payAsked = 0;
   $('payConfirm').hidden = true;
-  const btn = $('payBtn');
-  btn.hidden = false;
-  btn.disabled = state.totalCents <= 0;
-  btn.textContent = state.totalCents > 0 ? `Pay out ${formatMoney(state.totalCents)}` : 'Nothing to pay out yet';
+  $('payBtn').hidden = false;
+  $('payPick').hidden = state.totalCents <= 0;
+  $('payAmount').max = state.totalCents;
+  $('payAmount').value = state.totalCents > 0 ? state.totalCents : '';
+  renderPayButton();
 }
 
 function renderCashout() {
   renderBank();
-  $('statPaid').textContent = formatMoney(state.paidCents);
-  $('statAllTime').textContent = formatMoney(state.paidCents + state.totalCents);
-  const dateFmt = { month: 'short', day: 'numeric', year: 'numeric' };
-  $('payoutList').innerHTML = '<h2>Payouts</h2>' + (state.payouts.length
-    ? state.payouts.map(po =>
-      `<div class="payout-row"><span>${new Date(po.t).toLocaleDateString(undefined, dateFmt)}</span><span>${formatMoney(po.c)}</span></div>`).join('')
-    : '<div class="payout-empty">No payouts yet</div>');
+  $('statPaid').textContent = formatCoins(state.paidCents);
+  $('statAllTime').textContent = formatCoins(state.paidCents + state.totalCents);
   renderParentNote();
+  renderStats();
   resetPayButton();
 }
 
-// For the grown-up: what she learned since the last cash-out. Shown, not read out.
+// For the grown-up, folded away under Trade In: how learning is going. Nothing here changes the game.
+const STATS_RECENT = 30; // days in the charts and recent numbers
+const STATS_ROWS = 14; // play days in the day-by-day table
+const MIN_TRIES = 3; // first answers a fact needs before its accuracy is listed
+function renderStats() {
+  syncStats();
+  const now = today();
+  const dayText = d => new Date((d + DAY0) * 864e5).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const pct = (n, of) => (of ? Math.round(n / of * 100) + '%' : '–');
+  const mins = ms => (ms < 60000 ? '<1 min' : Math.round(ms / 60000) + ' min');
+  const sum = (days, f) => days.reduce((t, d) => t + ((stats.days[d] || {})[f] || 0), 0);
+  const recent = Array.from({ length: STATS_RECENT }, (_, i) => now - STATS_RECENT + 1 + i);
+  const played = recent.filter(d => sum([d], 'r') + sum([d], 'p'));
+  const allDays = Object.keys(stats.days).map(Number);
+  const shown = shownKeys();
+  const got = shown.filter(hasSticker).length;
+  const sleepy = sleepyCount(shown);
+  const list = keys => (keys.length ? keys.map(keyText).join(', ') : 'None right now');
+
+  // 1. Progress map of the facts up to 10
+  const map = divide => {
+    const nums = divide ? range(1, 10) : range(0, 10);
+    const cells = [`<div class="head">${divide ? '÷' : '×'}</div>`, ...nums.map(n => `<div class="head">${n}</div>`)];
+    for (const a of nums) {
+      cells.push(`<div class="head">${a}</div>`);
+      for (const b of divide ? range(1, 10) : nums) {
+        const key = keyOf({ a, b, div: divide });
+        const i = FACT_INDEX[key];
+        const [tries, right] = stats.facts[key] || [0, 0];
+        const cls = isSleepy(i) ? 'sleepy' : hasSticker(key) ? 'got' : state.mastery[i] ? 'dot' + Math.min(2, state.mastery[i]) : '';
+        cells.push(`<div class="${cls}" title="${keyText(key)}${tries ? `: ${right} of ${tries} right first time` : ''}"></div>`);
+      }
+    }
+    return `<div class="stats-map" style="grid-template-columns:repeat(${nums.length + 1},1fr)">${cells.join('')}</div>`;
+  };
+  // 2–4. Facts close to a sticker, the ones that need practice, and stickers that are slow to recall
+  const near = shown.filter(k => !hasSticker(k) && state.mastery[FACT_INDEX[k]] === dotsFor(k) - 1);
+  const accuracy = k => stats.facts[k][1] / stats.facts[k][0];
+  const weak = Object.keys(stats.facts).filter(k => stats.facts[k][0] >= MIN_TRIES && accuracy(k) < 0.7)
+    .sort((x, y) => accuracy(x) - accuracy(y)).slice(0, 8);
+  const slow = Object.keys(stats.facts).filter(k => hasSticker(k) && stats.facts[k][2] >= SLOW_MS)
+    .sort((x, y) => stats.facts[y][2] - stats.facts[x][2]).slice(0, 8);
+  // 6–7. Pace over the last 30 days, and a rough count of play days to every sticker on the path
+  const recentStickers = sum(recent, 's');
+  const perDay = played.length ? recentStickers / played.length : state.playDays ? got / state.playDays : 0;
+  const left = shown.length - got;
+  const finish = !left ? 'Every sticker is collected! 🏆'
+    : perDay > 0 && played.length >= 3 ? `About ${Math.ceil(left / perDay)} more play days for the last ${left} stickers, at this pace.`
+    : 'Not enough play yet to estimate.';
+  // How many days a fact took from its first try to its sticker, for facts first tried since the stats began
+  const learned = Object.values(stats.facts).filter(f => f[3] && f[4] >= f[3]);
+  const learnDays = learned.length ? (learned.reduce((t, f) => t + f[4] - f[3], 0) / learned.length).toFixed(1) : null;
+
+  // A–I. Rounds per day, with first-try accuracy, review, speed, time and pictures
+  const most = Math.max(1, ...recent.map(d => sum([d], 'r') + sum([d], 'p')));
+  const bars = recent.map(d => {
+    const rounds = sum([d], 'r') + sum([d], 'p');
+    return `<div class="${rounds ? '' : 'none'}" style="height:${rounds / most * 100}%" title="${dayText(d)}: ${rounds} rounds, ${pct(sum([d], 'c'), sum([d], 'q'))} right first time"></div>`;
+  }).join('');
+  const rows = allDays.filter(d => sum([d], 'r') + sum([d], 'p') || sum([d], 'q')).sort((x, y) => y - x).slice(0, STATS_ROWS).map(d => {
+    const e = stats.days[d];
+    return `<tr><td>${dayText(d)}</td><td>${(e.r || 0) + (e.p || 0)}</td><td>${pct(e.c || 0, e.q || 0)}</td><td>${e.d || 0}</td>` +
+      `<td>${e.s || 0}</td><td>${e.w || 0}</td><td>${mins(e.t || 0)}</td><td>${(e.h || 0) + (e.a || 0)}</td></tr>`;
+  }).join('');
+  const timed = sum(recent, 'n');
+
+  $('statsBody').innerHTML =
+    `<p class="note">Kept on this device since ${dayText(stats.start)}. Days before that show only in the totals and the map.</p>` +
+    '<div class="stats-tiles">' +
+    `<div><b>${state.playDays}</b>days played</div>` +
+    `<div><b>${state.playDay ? dayText(state.playDay) : '–'}</b>last played</div>` +
+    `<div><b>${got} / ${shown.length}</b>stickers</div>` +
+    `<div><b>${sleepy}</b>sleepy stickers</div>` +
+    `<div><b>${pct(sum(recent, 'c'), sum(recent, 'q'))}</b>right first time (30 days)</div>` +
+    `<div><b>${pct(sum(recent, 'vc'), sum(recent, 'v'))}</b>reviews right (30 days)</div>` +
+    `<div><b>${timed ? (sum(recent, 'm') / timed / 1000).toFixed(1) + 's' : '–'}</b>average right answer</div>` +
+    `<div><b>${pct(sum(recent, 'k'), timed)}</b>answered in under ${QUICK_MS / 1000}s</div>` +
+    `<div><b>${mins(sum(recent, 't'))}</b>answering (30 days)</div>` +
+    `<div><b>${sum(recent, 'h')}</b>pictures needed (30 days)</div>` +
+    '</div>' +
+    `<h3>Path</h3><p>${$('pathNow').textContent}</p>` +
+    `<p>${played.length ? `${recentStickers} new stickers on ${played.length} play days in the last 30 days.` : 'No play in the last 30 days.'}` +
+    `${learnDays ? ` A fact takes ${learnDays} days on average from its first try to its sticker.` : ''}</p>` +
+    `<p>${finish}</p>` +
+    `<h3>Sticker map</h3>${map(false)}${state.divOn ? map(true) : ''}` +
+    '<p class="stats-key note"><span style="background:#8FD694"></span>sticker<span style="background:#B8C4F5"></span>sleepy, due for review' +
+    '<span style="background:#FFD98A"></span>has dots<span style="background:#fff"></span>not yet</p>' +
+    `<h3>One dot from a sticker</h3><p>${list(near)}</p>` +
+    `<h3>Often missed on the first try</h3><p>${list(weak)}</p>` +
+    `<h3>Stickers that still take a while (${SLOW_MS / 1000}s or more)</h3><p>${list(slow)}</p>` +
+    `<h3>Rounds, last 30 days</h3><div class="stats-bars">${bars}</div>` +
+    (rows ? '<h3>Day by day</h3><table class="stats-table"><tr><th>Day</th><th>Rounds</th><th>Right 1st</th><th>Dots</th><th>New ⭐</th><th>Woken</th><th>Time</th><th>Pictures</th></tr>' +
+      rows + '</table>' : '');
+}
+
+// For the grown-up: what she learned since the last trade-in. Shown, not read out.
 function renderParentNote() {
   const { s, w, m } = state.since;
   const tricky = Object.keys(m).sort((x, y) => m[y] - m[x]).slice(0, 3);
   const plural = (n, one) => `${n} ${one}${n === 1 ? '' : 's'}`;
   $('parentNote').hidden = !s && !w && !tricky.length;
-  $('parentNote').innerHTML = '<h2>Since the last cash out</h2>' +
+  $('parentNote').innerHTML = '<h2>Since the last trade-in</h2>' +
     `<p>⭐ ${plural(s, 'new sticker')} · 💤 ${plural(w, 'sleepy sticker')} woken</p>` +
     (tricky.length ? `<p>Tricky facts: ${tricky.map(k => `${keyText(k)} (missed ${plural(m[k], 'time')})`).join(', ')}</p>` : '');
 }
@@ -5481,12 +5768,16 @@ function showCashout() {
   showScreen('cashoutScreen');
 }
 
-// Pay out asks "Did you pay?". Yes stays off for a moment, so a fast double tap cannot pay by accident.
+// Trade in asks "Did you trade in?". Yes stays off for a moment, so a fast double tap cannot trade by accident.
 function onPayTap() {
-  if (state.totalCents <= 0) return;
-  payAsked = state.totalCents;
+  const amount = payAmount();
+  if (!amount) return;
+  payAsked = amount;
+  payBalance = state.totalCents;
   $('payBtn').hidden = true;
-  $('payAsk').textContent = `Did you pay ${formatMoney(payAsked)}?`;
+  $('payPick').hidden = true;
+  $('payAmount').blur();
+  $('payAsk').textContent = `Did you trade in ${formatCoins(payAsked)}?`;
   $('payConfirm').hidden = false;
   const yes = $('payYesBtn');
   yes.disabled = true;
@@ -5496,14 +5787,12 @@ function onPayTap() {
 }
 
 function onPayYes() {
-  // The bank changed in another tab while asking, so ask again with the new amount.
+  // The bank changed in another tab while asking, so ask again with the new balance.
   syncNewer();
-  if (!payAsked || payAsked !== state.totalCents) { resetPayButton(); return; }
-  const amount = state.totalCents;
-  state.payouts.unshift({ t: Date.now(), c: amount });
-  state.payouts.length = Math.min(state.payouts.length, MAX_PAYOUTS_KEPT);
+  if (!payAsked || payBalance !== state.totalCents) { resetPayButton(); return; }
+  const amount = payAsked;
   state.paidCents += amount;
-  state.totalCents = 0;
+  state.totalCents -= amount;
   state.since = { s: 0, w: 0, m: {} };
   saveState();
   renderBank();
@@ -5511,7 +5800,7 @@ function onPayYes() {
   pigReact($('cashBank'), 'pulse');
   sfx.milestone();
   confetti(90);
-  banner(`💵 ${formatMoney(amount)} paid! 🎉`);
+  banner(`🐷 ${formatCoins(amount)} traded in! 🎉`);
 }
 
 // ===== WIRING =====
@@ -5597,12 +5886,22 @@ function init() {
       else if (state.savedAt) saveState(); // older saves get their IndexedDB copy and the newest format now
     });
   } else if (state.savedAt) saveState(); // older saves are written again in the newest format
+  // The stats come back from IndexedDB if localStorage lost them.
+  if (window.indexedDB) SaveDB.read('stats').then(loadStatsCopy);
   // Ask the browser never to clear Pom's save on its own.
   document.addEventListener('pointerdown', () => {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   }, { once: true });
-  sleepyHello();
-  showHomeScreenTip();
+  // The other hellos wait for another visit to home, so they don't talk over the notice.
+  if (!showKeepNotice()) {
+    sleepyHello();
+    showHomeScreenTip();
+  }
+  $('keepOkBtn').addEventListener('click', () => {
+    sfx.tap(1);
+    Speech.stop();
+    $('keepNotice').hidden = true;
+  });
 
   function reloadState(extra) {
     state = loadState(extra);
@@ -5720,6 +6019,7 @@ function init() {
   $('payBtn').addEventListener('click', onPayTap);
   $('payYesBtn').addEventListener('click', onPayYes);
   $('payNoBtn').addEventListener('click', () => { sfx.tap(0); resetPayButton(); });
+  $('payAmount').addEventListener('input', renderPayButton);
   $('hintBtn').addEventListener('click', () => {
     if (!game || game.solved) return;
     sfx.hint();

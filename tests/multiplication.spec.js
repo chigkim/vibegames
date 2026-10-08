@@ -1,11 +1,15 @@
 // @ts-check
-// Pay table and cash-out for Multiplication with Ms. Menna. The coins are
-// exchanged for real money, so earnings and payouts must be exact.
+// Pay table and trade-in for Multiplication with Ms. Menna. A grown-up may trade the
+// coins for something real, so earnings and trade-ins must be exact.
 const { test, expect } = require('@playwright/test');
+
+const coins = n => n.toLocaleString('en-US') + (n === 1 ? ' coin' : ' coins');
 
 test.beforeEach(async ({ page, context }) => {
   // Speech off in every tab: with no speechSynthesis, Speech.supported is false and Ms. Menna stays silent.
   await context.addInitScript(() => Object.defineProperty(window, 'speechSynthesis', { value: undefined }));
+  // The keep-your-things notice waits for a far-off day, so it doesn't cover the screen when a test loads a save.
+  await context.addInitScript(() => localStorage.setItem('mennaMultiplication_keepNotice', '99999'));
   await page.goto('/multiplication-ms-menna.html');
   await page.evaluate(() => {
     localStorage.clear();
@@ -39,10 +43,10 @@ test('easy facts pay less than hard ones', async ({ page }) => {
     [16, 18], [19, 19], [0, 0], [0, 19], [13, 0], [3, 6], [4, 9], [9, 9], [5, 9], [5, 12], [3, 16],
   ].map(([a, b]) => centsFor(a, b)));
   expect(pay).toEqual([1, 1, 2, 2, 2, 2, 3, 6, 2, 4, 5, 7, 8, 8, 1, 2, 2, 7, 8, 9, 10, 10, 1, 1, 1, 3, 4, 5, 2, 6, 7]);
-  // Facts up to 10, like on the path, pay 1¢ to 5¢
+  // Facts up to 10, like on the path, pay 1 to 5 coins
   const path = await page.evaluate(() => [...new Set(FACT_KEYS.filter(k => Math.max(...factsOf(k)) <= 10).map(k => centsFor(...factsOf(k))))]);
   expect(path.sort((x, y) => x - y)).toEqual([1, 2, 3, 4, 5]);
-  // Every pay from 1¢ to 10¢ is used
+  // Every pay from 1 to 10 coins is used
   const all = await page.evaluate(() => [...new Set(FACT_KEYS.map(k => centsFor(...factsOf(k))))]);
   expect(all.sort((x, y) => x - y)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 });
@@ -51,66 +55,89 @@ test('right answer adds the shown pay, wrong answer costs nothing', async ({ pag
   await page.locator('#pathBtn').click();
 
   const cents = await page.evaluate(() => centsFor(game.a, game.b));
-  await expect(page.locator('#worth')).toHaveText(`This one pays ${cents}¢!`);
+  await expect(page.locator('#worth')).toHaveText(`This one pays ${coins(cents)}!`);
   await answer(page, true);
-  await expect(page.locator('#gameBankAmount')).toHaveText('$' + (cents / 100).toFixed(2));
+  await expect(page.locator('#gameBankAmount')).toHaveText(coins(cents));
 
   await page.waitForTimeout(2000); // next question
   await answer(page, false);
-  await expect(page.locator('#gameBankAmount')).toHaveText('$' + (cents / 100).toFixed(2));
+  await expect(page.locator('#gameBankAmount')).toHaveText(coins(cents));
 });
 
-test('cash out pays the full balance, keeps history, and survives reload', async ({ page }) => {
-  await page.evaluate(() => { state.totalCents = 340; saveState(); });
+test('trade in takes part or all of the balance, keeps the totals, and survives reload', async ({ page }) => {
+  await page.evaluate(() => { state.totalCents = 1340; saveState(); });
   await page.reload();
+  await expect(page.locator('#cashoutBtn')).toHaveText('🐷 Trade In');
 
   await page.locator('#cashoutBtn').click();
   await expect(page.locator('#cashoutScreen')).toHaveClass(/active/);
-  await expect(page.locator('#cashBankAmount')).toHaveText('$3.40');
-  await expect(page.locator('#payoutList')).toContainText('No payouts yet');
+  await expect(page.locator('#cashoutScreen h1')).toHaveText('Trade In 🐷');
+  await expect(page.locator('#cashBankAmount')).toHaveText('1,340 coins');
+  await expect(page.locator('#payAmount')).toHaveValue('1340');
+  await expect(page.locator('.payout-row, #payoutList')).toHaveCount(0);
 
+  // Part of the balance
   const payBtn = page.locator('#payBtn');
-  await expect(payBtn).toHaveText('Pay out $3.40');
+  await expect(payBtn).toHaveText('Trade in 1,340 coins');
+  await page.locator('#payAmount').fill('1000');
+  await expect(payBtn).toHaveText('Trade in 1,000 coins');
   await payBtn.click(); // only asks to confirm
-  await expect(page.locator('#payAsk')).toHaveText('Did you pay $3.40?');
-  await expect(page.locator('#cashBankAmount')).toHaveText('$3.40');
+  await expect(page.locator('#payAsk')).toHaveText('Did you trade in 1,000 coins?');
+  await expect(page.locator('#cashBankAmount')).toHaveText('1,340 coins');
   await page.locator('#payYesBtn').click();
+  await expect(page.locator('#cashBankAmount')).toHaveText('340 coins');
+  await expect(page.locator('#statPaid')).toHaveText('1,000 coins');
+  await expect(page.locator('#statAllTime')).toHaveText('1,340 coins');
+  await expect(page.locator('#payAmount')).toHaveValue('340');
 
-  await expect(page.locator('#cashBankAmount')).toHaveText('$0.00');
-  await expect(page.locator('#statPaid')).toHaveText('$3.40');
-  await expect(page.locator('#statAllTime')).toHaveText('$3.40');
-  await expect(page.locator('.payout-row')).toHaveCount(1);
-  await expect(page.locator('.payout-row')).toContainText('$3.40');
+  // More than the balance, none, or part of a coin cannot be traded
+  for (const bad of ['341', '0', '', '2.5']) {
+    await page.locator('#payAmount').fill(bad);
+    await expect(payBtn).toBeDisabled();
+    await expect(payBtn).toHaveText('Pick 1 to 340 coins');
+  }
+
+  // The rest
+  await page.locator('#payAmount').fill('340');
+  await payBtn.click();
+  await expect(page.locator('#payYesBtn')).toBeEnabled({ timeout: 2000 });
+  await page.locator('#payYesBtn').click();
+  await expect(page.locator('#cashBankAmount')).toHaveText('0 coins');
+  await expect(page.locator('#statPaid')).toHaveText('1,340 coins');
+  await expect(page.locator('#statAllTime')).toHaveText('1,340 coins');
+  await expect(page.locator('#payPick')).toBeHidden();
   await expect(payBtn).toBeVisible();
   await expect(payBtn).toBeDisabled();
+  await expect(payBtn).toHaveText('No coins to trade in yet');
+  // No new payout rows: only the totals are kept
+  expect(await page.evaluate(() => state.payouts.length)).toBe(0);
 
   await page.reload();
   await page.locator('#cashoutBtn').click();
-  await expect(page.locator('#statPaid')).toHaveText('$3.40');
-  await expect(page.locator('.payout-row')).toHaveCount(1);
+  await expect(page.locator('#statPaid')).toHaveText('1,340 coins');
   await page.locator('#cashBackBtn').click();
   await expect(page.locator('#startScreen')).toHaveClass(/active/);
-  await expect(page.locator('#startBankAmount')).toHaveText('$0.00');
+  await expect(page.locator('#startBankAmount')).toHaveText('0 coins');
 });
 
-test('a quick double tap on Pay out does not pay; Not yet cancels', async ({ page }) => {
+test('a quick double tap on Trade in does not trade; Not yet cancels', async ({ page }) => {
   await page.evaluate(() => { state.totalCents = 250; saveState(); });
   await page.reload();
   await page.locator('#cashoutBtn').click();
   await page.locator('#payBtn').click();
-  // "Yes, paid" sits under where Pay out was, and stays off for a second.
+  // "Yes, traded" sits under where Trade in was, and stays off for a second.
   await expect(page.locator('#payYesBtn')).toBeDisabled();
   await page.locator('#payYesBtn').click({ force: true });
-  await expect(page.locator('#cashBankAmount')).toHaveText('$2.50');
+  await expect(page.locator('#cashBankAmount')).toHaveText('250 coins');
   await page.locator('#payNoBtn').click();
   await expect(page.locator('#payConfirm')).toBeHidden();
-  await expect(page.locator('#payBtn')).toHaveText('Pay out $2.50');
+  await expect(page.locator('#payBtn')).toHaveText('Trade in 250 coins');
   expect(await page.evaluate(() => state.paidCents)).toBe(0);
 
   await page.locator('#payBtn').click();
   await expect(page.locator('#payYesBtn')).toBeEnabled({ timeout: 2000 });
   await page.locator('#payYesBtn').click();
-  await expect(page.locator('#cashBankAmount')).toHaveText('$0.00');
+  await expect(page.locator('#cashBankAmount')).toHaveText('0 coins');
 });
 
 test('piggy bank shows everywhere and fills up as the balance grows', async ({ page }) => {
@@ -138,7 +165,7 @@ test('a first wrong answer offers the picture hint', async ({ page }) => {
   await expect(page.locator('#hintBtn')).toBeHidden();
 });
 
-test('a right answer after the picture pays 1¢ whatever the factors', async ({ page }) => {
+test('a right answer after the picture pays 1 coin whatever the factors', async ({ page }) => {
   await page.evaluate(() => { state.totalCents = 50; saveState(); });
   await page.reload();
   await page.locator('#pathBtn').click();
@@ -147,9 +174,9 @@ test('a right answer after the picture pays 1¢ whatever the factors', async ({ 
   await askFact(page, 7, 8);
   await answer(page, false);
   await page.locator('#hintBtn').click({ force: true });
-  await expect(page.locator('#worth')).toHaveText('With the picture, this one pays 1¢');
+  await expect(page.locator('#worth')).toHaveText('With the picture, this one pays 1 coin');
   await answer(page, true);
-  await expect(page.locator('#gameBankAmount')).toHaveText('$0.51'); // 50 + 1
+  await expect(page.locator('#gameBankAmount')).toHaveText('51 coins'); // 50 + 1
 
   // Count-together picture after two misses
   await page.waitForTimeout(2200);
@@ -158,10 +185,10 @@ test('a right answer after the picture pays 1¢ whatever the factors', async ({ 
   await answer(page, false);
   await expect(page.locator('#gridArea')).toBeVisible();
   await answer(page, true);
-  await expect(page.locator('#gameBankAmount')).toHaveText('$0.52'); // 51 + 1
+  await expect(page.locator('#gameBankAmount')).toHaveText('52 coins'); // 51 + 1
 });
 
-test('0 facts come up as often as other facts, pay 1¢, and the picture shows no dots', async ({ page }) => {
+test('0 facts come up as often as other facts, pay 1 coin, and the picture shows no dots', async ({ page }) => {
   const n = await page.evaluate(() => {
     startRound('main');
     Object.assign(game, { index: game.slots.indexOf('N'), asked: new Set(), prevKey: null });
@@ -180,7 +207,7 @@ test('0 facts come up as often as other facts, pay 1¢, and the picture shows no
   await expect(page.locator('#arrayGrid .zero-note')).toContainText('0');
   await answer(page, true);
   await expect(page.locator('#feedback')).toHaveText('0 × 7 = 0 ✓');
-  await expect(page.locator('#gameBankAmount')).toHaveText('$0.01');
+  await expect(page.locator('#gameBankAmount')).toHaveText('1 coin');
 });
 
 test('a save in another tab is not undone by this tab', async ({ page, context }) => {
@@ -188,11 +215,11 @@ test('a save in another tab is not undone by this tab', async ({ page, context }
   await other.goto('/multiplication-ms-menna.html');
   await other.evaluate(() => { state.totalCents = 500; state.gems = 3; saveState(); });
 
-  await expect(page.locator('#startBankAmount')).toHaveText('$5.00');
+  await expect(page.locator('#startBankAmount')).toHaveText('500 coins');
   await expect(page.locator('#pomStart .gem-badge')).toHaveText('💎 3');
   await page.evaluate(() => changeBank(7));
   await other.reload();
-  await expect(other.locator('#startBankAmount')).toHaveText('$5.07');
+  await expect(other.locator('#startBankAmount')).toHaveText('507 coins');
   expect(await other.evaluate(() => state.gems)).toBe(3);
 });
 
@@ -208,9 +235,9 @@ async function saveFromOtherTab(page, change) {
 
 const snapshot = page => page.evaluate(() => ({ cents: state.totalCents, paid: state.paidCents, gems: state.gems, payouts: state.payouts.length }));
 
-test('a tab that missed another tab\'s payout cannot pay it again, and adds to it instead of undoing it', async ({ page }) => {
+test('a tab that missed another tab\'s trade-in cannot trade it again, and adds to it instead of undoing it', async ({ page }) => {
   await page.evaluate(() => { state.totalCents = 500; state.gems = 4; saveState(); });
-  await page.evaluate(() => { onPayTap(); }); // the stale tab is asking "Did you pay $5.00?"
+  await page.evaluate(() => { showCashout(); onPayTap(); }); // the stale tab is asking "Did you trade in 500 coins?"
   await saveFromOtherTab(page, () => ({ totalCents: 0, paidCents: 500, gems: 2, payouts: [{ t: Date.now(), c: 500 }] }));
   expect(await snapshot(page)).toEqual({ cents: 500, paid: 0, gems: 4, payouts: 0 }); // still stale
 
@@ -457,7 +484,7 @@ test('first-try answers earn Ms. Menna gems without changing the money', async (
   const { a, b } = await answer(page, true);
   const cents = await page.evaluate(([x, y]) => centsFor(x, y), [a, b]);
   await expect(page.locator('#pomGame .gem-badge')).toHaveText('💎 1');
-  await expect(page.locator('#gameBankAmount')).toHaveText('$' + (cents / 100).toFixed(2));
+  await expect(page.locator('#gameBankAmount')).toHaveText(coins(cents));
 
   await page.waitForTimeout(2000);
   await answer(page, false); // wrong answers cost cents, never gems
@@ -542,15 +569,15 @@ async function checkCookieMirror(page, seed) {
     state.worn = { hat: 'crown.s', face: 'hearts', neck: 'medal', back: 'cape', fur: 'pink' };
     state.gems = 99999;
     state.furniture = FURNITURE.flatMap(f => Object.values(FURN).filter(p => p.base === f.id && p.price > 0).map(p => p.id));
-    // Every Learning Path fact played: the whole save fits, payouts and all
+    // Every Learning Path fact played: the whole save fits, but for the old payout list
     playAll(MAIN_KEYS);
     saveState();
     const path = cookieNow();
     const local = JSON.parse(localStorage.getItem(STORE_KEY));
-    // The cookie may keep the payout list in its short form, but it gets back every payout exactly
+    // The cookie leaves out the old payout list, and keeps the rest
     const pathSame = !!path.saved && path.saved.review === local.review && path.saved.weights === local.weights
-      && path.saved.mastery === local.mastery && path.saved.gems === local.gems
-      && JSON.stringify(parseSave(path.saved).payouts) === JSON.stringify(local.payouts);
+      && path.saved.mastery === local.mastery && path.saved.gems === local.gems && path.saved.paidCents === local.paidCents
+      && path.saved.partial === true && path.saved.payouts.length === 0 && !('pays' in path.saved) && local.payouts.length > 0;
     // Every fact up to 20 played: the cookie leaves out review dates and weights above 10, and keeps the rest
     playAll(FACT_KEYS);
     state.gems = 4321;
@@ -650,7 +677,7 @@ test('the IndexedDB copy brings back progress if localStorage and the cookie are
     document.cookie = 'mennaMult=; max-age=0; path=/';
   });
   await page.reload();
-  await expect(page.locator('#startBankAmount')).toHaveText('$7.77');
+  await expect(page.locator('#startBankAmount')).toHaveText('777 coins');
   expect(await page.evaluate(() => state.gems)).toBe(42);
 });
 
@@ -671,7 +698,7 @@ test('a trimmed cookie alone brings back every sticker, dot and gem', async ({ p
   });
   expect(before.partial).toBe(true);
   await page.reload();
-  await expect(page.locator('#startBankAmount')).toHaveText('$4.56');
+  await expect(page.locator('#startBankAmount')).toHaveText('456 coins');
   const after = await page.evaluate(() => ({
     gems: state.gems, mastery: state.mastery.join(''), keep: MAIN_KEYS.map(k => state.days[FACT_INDEX[k]]),
   }));
@@ -700,14 +727,15 @@ test('a cookie copy without payouts does not erase the payout list in IndexedDB'
   expect(await page.evaluate(() => state.totalCents)).toBe(321);
 });
 
-// The released v46 game, served from git next to this version so both share the same cookie and storage.
-const V46 = 'd74599d';
-async function openV46(page) {
-  const body = require('child_process').execSync(`git show ${V46}:multiplication-ms-menna.html`, { cwd: require('path').resolve(__dirname, '..') });
-  await page.route('**/menna-v46.html', route => route.fulfill({ contentType: 'text/html', body }));
-  await page.goto('/menna-v46.html');
+// A released game, served from git next to this version so both share the same cookie and storage.
+async function openRelease(page, commit, name) {
+  const body = require('child_process').execSync(`git show ${commit}:multiplication-ms-menna.html`, { cwd: require('path').resolve(__dirname, '..') });
+  await page.route(`**/menna-${name}.html`, route => route.fulfill({ contentType: 'text/html', body }));
+  await page.goto(`/menna-${name}.html`);
   expect(await page.evaluate(() => SAVE_VERSION)).toBe(26);
 }
+const openV46 = page => openRelease(page, 'd74599d', 'v46');
+const openV48 = page => openRelease(page, '52d3f91', 'v48');
 
 // A big save a real child could have: every sticker, everything bought, 30 payouts, rooms, tricks and treats.
 function fillSave(seed) {
@@ -753,16 +781,43 @@ test('a v46 cookie alone loads in this version with everything kept', async ({ p
   await clearAllButCookie(page);
   await page.goto('/multiplication-ms-menna.html');
   expect(await page.evaluate(saveSnapshot)).toEqual(before);
-  // Saved again in this version and loaded from the cookie alone, nothing changes
+  // Saved again in this version and loaded from the cookie alone, only the old payout list is gone
   await page.evaluate(() => saveState());
   await clearAllButCookie(page);
   await page.reload();
-  expect(await page.evaluate(saveSnapshot)).toEqual(before);
+  expect(await page.evaluate(saveSnapshot)).toEqual({ ...before, payouts: [] });
 });
 
-test('a cookie with the short payout list keeps every payout here, and v46 still loads it', async ({ page }) => {
+test('a v48 cookie with the short payout list keeps every payout here', async ({ page }) => {
   // The worst case on random values: every Learning Path fact played with a picker weight. Some seeds make the plain
-  // cookie too big, so it keeps the payout list short.
+  // v48 cookie too big, so it keeps the payout list short in `pays`.
+  let tried = 0;
+  for (let seed = 1, found = 0; found < 2; seed++) {
+    expect(++tried, 'seeds tried').toBeLessThan(100);
+    await openV48(page);
+    await page.evaluate(() => Object.assign(state, defaultState()));
+    await page.evaluate(fillSave, seed);
+    await page.evaluate(seed => {
+      const rnd = n => { seed = (seed * 16807) % 2147483647; return seed % n; };
+      MAIN_KEYS.forEach(k => {
+        const i = FACT_INDEX[k];
+        state.mastery[i] = rnd(STICKER_AT + 1); state.days[i] = today() - rnd(today() - 1); state.levels[i] = rnd(SLEEPY_NOW + 1);
+        state.weights[k] = 1.25 + rnd(44) / 4;
+      });
+      state.gems = 99999;
+      saveState();
+    }, seed);
+    if (typeof (await page.evaluate(() => readCookie())).pays !== 'string') continue;
+    found++;
+    const before = await page.evaluate(saveSnapshot);
+    await clearAllButCookie(page);
+    await page.goto('/multiplication-ms-menna.html');
+    expect(await page.evaluate(saveSnapshot)).toEqual(before);
+  }
+});
+
+test('the cookie leaves out the old payout list, and v46 still loads it with the list from IndexedDB', async ({ page }) => {
+  // The worst case on random values: every Learning Path fact played with a picker weight.
   const bigSave = async seed => {
     await page.goto('/multiplication-ms-menna.html');
     await page.evaluate(() => Object.assign(state, defaultState()));
@@ -781,20 +836,18 @@ test('a cookie with the short payout list keeps every payout here, and v46 still
   };
   const keep = ({ gems, totalCents, paidCents, mastery, days, levels, owned, furniture, treats, worn, tricks }) =>
     ({ gems, totalCents, paidCents, mastery, days, levels, owned, furniture, treats, worn, tricks });
-  let tried = 0;
-  for (let seed = 1, found = 0; found < 3; seed++) {
-    expect(++tried, 'seeds tried').toBeLessThan(100);
+  for (const seed of [1, 2, 3]) {
     const cookie = await bigSave(seed);
-    if (!cookie.partial) continue;
-    found++;
+    expect(cookie.partial).toBe(true);
     expect(cookie.payouts).toEqual([]);
-    expect(typeof cookie.pays).toBe('string');
+    expect(cookie.pays).toBeUndefined();
     const before = await page.evaluate(saveSnapshot);
+    expect(before.payouts.length).toBe(30);
 
-    // This version from the cookie alone: every payout comes back
+    // This version from the cookie alone: everything but the old payout list
     await clearAllButCookie(page);
     await page.reload();
-    expect(await page.evaluate(saveSnapshot)).toEqual(before);
+    expect(await page.evaluate(saveSnapshot)).toEqual({ ...before, payouts: [] });
 
     // v46 from the cookie alone: every sticker, dot, coin, gem and item, as with its own trimmed cookies
     await bigSave(seed);
@@ -1345,12 +1398,12 @@ test('division pays like its times fact, hints with the missing number, and show
   await askDivide(8, 7);
   await expect(page.locator('#equation')).toHaveText(/56\s*÷\s*8/);
   await answer(page, true);
-  await expect(page.locator('#gameBankAmount')).toHaveText('$0.05');
+  await expect(page.locator('#gameBankAmount')).toHaveText('5 coins');
   await expect(page.locator('#feedback')).toContainText('56 ÷ 8 = 7 ✓');
   await expect(page.locator('#feedback .family')).toHaveText('8 × 7 = 56 · 7 × 8 = 56 · 56 ÷ 7 = 8');
   expect(await page.evaluate(() => [state.mastery[FACT_INDEX['d8x7']], state.mastery[FACT_INDEX['d7x8']]])).toEqual([1, 0]);
 
-  // The picture turns 56 ÷ 7 into 7 × ? = 56, and pays 1¢ after it
+  // The picture turns 56 ÷ 7 into 7 × ? = 56, and pays 1 coin after it
   await page.waitForTimeout(2200);
   await askDivide(7, 8);
   await answer(page, false);
@@ -1360,7 +1413,7 @@ test('division pays like its times fact, hints with the missing number, and show
   await expect(page.locator('#gridCaption')).toHaveText('56 dots in 7 rows. How many in each row?');
   await expect(page.locator('#arrayGrid .cell')).toHaveCount(56);
   await answer(page, true);
-  await expect(page.locator('#gameBankAmount')).toHaveText('$0.06');
+  await expect(page.locator('#gameBankAmount')).toHaveText('6 coins');
   await expect(page.locator('#feedback .family')).toHaveText('7 × 8 = 56 · 8 × 7 = 56 · 56 ÷ 8 = 7');
 
   // Division is never by 0, and a square has a one-line family
@@ -2100,7 +2153,7 @@ test('the first division questions show their picture right away', async ({ page
   await expect(page.locator('#gameBubble')).toContainText('× ? =');
   expect(await page.evaluate(() => state.divPics)).toBe(2);
   // A picture she didn't ask for keeps the full pay
-  await expect(page.locator('#worth')).toHaveText(/^This one pays \d+¢!$/);
+  await expect(page.locator('#worth')).toHaveText(/^This one pays \d+ coins?!$/);
   const want = await page.evaluate(() => centsFor(game.a, game.b));
   const before = await page.evaluate(() => state.totalCents);
   await answer(page, true);
@@ -2134,7 +2187,7 @@ test('an older plain cookie still loads, and is saved again compressed', async (
     document.cookie = `${COOKIE_NAME}=${encodeURIComponent(JSON.stringify(old))}; path=/`;
   });
   await page.reload();
-  await expect(page.locator('#startBankAmount')).toHaveText('$6.15');
+  await expect(page.locator('#startBankAmount')).toHaveText('615 coins');
   const saved = await page.evaluate(() => ({
     gems: state.gems,
     lz: document.cookie.includes(COOKIE_NAME + '=' + COOKIE_LZ),
@@ -2168,7 +2221,7 @@ async function finishRound(page) {
   await expect(page.locator('#summaryScreen')).toHaveClass(/active/);
 }
 
-test('Cash Out shows the grown-up what she learned since the last payout, and paying starts it again', async ({ page }) => {
+test('Trade In shows the grown-up what she learned since the last trade-in, and trading starts it again', async ({ page }) => {
   await page.locator('#cashoutBtn').click();
   await expect(page.locator('#parentNote')).toBeHidden();
   await page.locator('#cashBackBtn').click();
@@ -2310,7 +2363,7 @@ test('home counts the days with a finished round, and an older save starts at 1'
   await expect(page.locator('#daysTotal')).toHaveText('📅 Days with Ms. Menna: 1'); // today was already counted
 });
 
-test('a stale tab keeps the other tab\'s gifts, days and since-cash-out record', async ({ page }) => {
+test('a stale tab keeps the other tab\'s gifts, days and since-trade-in record', async ({ page }) => {
   await page.evaluate(() => {
     Object.assign(state, { gifts: 1, playDays: 3, playDay: today() - 1, since: { s: 2, w: 1, m: { '3x4': 2 } } });
     saveState();
@@ -2369,4 +2422,73 @@ test('easy facts saved with 2 dots before v46 have their sticker, and other fact
   await page.evaluate(() => { state.mastery[FACT_INDEX['1x7']] = 2; saveState(); });
   await page.reload();
   expect(await page.evaluate(() => state.mastery[FACT_INDEX['1x7']])).toBe(2);
+});
+
+test('grown-up stats in Trade In count rounds, first tries, dots and time, and stay out of the save and cookie', async ({ page }) => {
+  await page.locator('#pathBtn').click();
+  await answer(page, true);
+  await page.waitForTimeout(1500);
+  await answer(page, false);
+  await finishRound(page);
+  await page.locator('#homeBtn').click();
+  await page.reload(); // the stats are saved
+  const day = await page.evaluate(() => stats.days[today()]);
+  expect(day).toMatchObject({ r: 1, q: 2, c: 1, n: 1 });
+  expect(day.t).toBeGreaterThan(0);
+  const saved = await page.evaluate(() => [localStorage.getItem(STORE_KEY), decodeURIComponent(document.cookie)]);
+  for (const s of saved) expect(s).not.toContain('"facts"');
+  await page.locator('#cashoutBtn').click();
+  const box = page.locator('#grownStats');
+  await expect(page.locator('#statsBody')).toBeHidden();
+  await box.locator('summary').click();
+  await expect(page.locator('#statsBody')).toContainText('50%right first time (30 days)');
+  await expect(page.locator('#statsBody')).toContainText('Day by day');
+  // Under the coins and the trade-in totals
+  const [statsTop, bankTop] = await Promise.all(['#grownStats', '#cashBank'].map(s => page.locator(s).boundingBox().then(b => b.y)));
+  expect(statsTop).toBeGreaterThan(bankTop);
+});
+
+test('stats come back from IndexedDB, add up with another tab, and keep two years', async ({ page }) => {
+  await page.evaluate(() => { logStat('r', 3); stats.days[today() - STATS_DAYS_KEPT - 1] = { r: 1 }; saveState(); });
+  expect(await page.evaluate(() => stats.days[today() - STATS_DAYS_KEPT - 1])).toBeUndefined();
+  await page.waitForTimeout(300);
+  await page.evaluate(() => localStorage.removeItem(STATS_KEY));
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => stats.days[today()]?.r)).toBe(3);
+  // Another tab adds 2 rounds while this tab adds 1
+  await page.evaluate(() => {
+    const other = JSON.parse(localStorage.getItem(STATS_KEY) || JSON.stringify(statsBase));
+    other.days[today()].r += 2;
+    other.savedAt = Date.now() + 1000;
+    localStorage.setItem(STATS_KEY, JSON.stringify(other));
+    logStat('r');
+    saveState();
+  });
+  expect(await page.evaluate(() => stats.days[today()].r)).toBe(6);
+});
+
+test('Ms. Menna says when the browser could erase her things: once in v49, then only after skipping 2 days', async ({ page }) => {
+  const notice = page.locator('#keepNotice');
+  // A new save has nothing to lose
+  await page.evaluate(() => localStorage.removeItem(STORE_KEY + '_keepNotice'));
+  expect(await page.evaluate(() => showKeepNotice())).toBe(false);
+  // The first time with a save, it names the last safe day, 6 days from now
+  await page.evaluate(() => { state.playDay = today(); saveState(); });
+  expect(await page.evaluate(() => showKeepNotice())).toBe(true);
+  const day = await page.evaluate(() => new Date(Date.now() + 6 * 864e5).toLocaleDateString('en-US', { weekday: 'long' }));
+  await expect(notice).toBeVisible();
+  await expect(page.locator('#keepText')).toContainText(`through next ${day}`);
+  await page.locator('#keepOkBtn').click();
+  await expect(notice).toBeHidden();
+  // Playing yesterday, or skipping one day, is fine, and it shows once a day at most
+  await page.evaluate(() => { state.playDay = today() - 1; localStorage.setItem(STORE_KEY + '_keepNotice', String(today() - 1)); });
+  expect(await page.evaluate(() => showKeepNotice())).toBe(false);
+  await page.evaluate(() => { state.playDay = today() - 2; localStorage.setItem(STORE_KEY + '_keepNotice', String(today() - 3)); });
+  expect(await page.evaluate(() => showKeepNotice())).toBe(false);
+  await page.evaluate(() => { state.playDay = today() - 3; localStorage.setItem(STORE_KEY + '_keepNotice', String(today())); });
+  expect(await page.evaluate(() => showKeepNotice())).toBe(false);
+  // Back after skipping 2 days
+  await page.evaluate(() => localStorage.setItem(STORE_KEY + '_keepNotice', String(today() - 3)));
+  expect(await page.evaluate(() => showKeepNotice())).toBe(true);
+  await expect(notice).toBeVisible();
 });

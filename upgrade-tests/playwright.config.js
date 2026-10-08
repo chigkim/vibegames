@@ -1,10 +1,10 @@
-// Runs the save-upgrade test, which plays every released version of Ms. Menna in order. It takes about 15 minutes.
-// Usage: node upgrade-tests/build-versions.js, then npx playwright test --config upgrade-tests/playwright.config.js
+// Runs the save-upgrade tests for Ms. Menna. cookie-chain plays every released version in order (about 15 minutes);
+// cookie-fixtures uses the cookies it kept (about 5 minutes). Usage: npx playwright test --config upgrade-tests/playwright.config.js cookie-fixtures
 const { defineConfig, devices } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: '.',
-  testMatch: 'cookie-chain.spec.js',
+  testMatch: '*.spec.js',
   timeout: 60 * 60 * 1000,
   reporter: 'line',
   use: { baseURL: 'http://localhost:8788', headless: true },

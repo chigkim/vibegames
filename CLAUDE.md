@@ -23,6 +23,15 @@ You may use the vendored libraries inside the libs/ folder:
 * Every game must display its title, version number, and updated date.
 * The home page must list games from newest to oldest based on the updated date.
 
+## Saved progress must survive every version
+
+Children must never lose progress when a game updates. A save from any earlier version of a game, whether a cookie, localStorage, or IndexedDB, must load in every later version with everything the child earned or bought intact: progress, scores, coins, items, and anything unlocked.
+
+* Never rename, remove, or reuse a save field or the id of anything saved. Add new fields with safe defaults instead.
+* Any change to a save or cookie format must keep reading every older format, and should stay readable by the previous version where possible. Ask the user before changing the format.
+* A cookie must stay under the browser size limit (about 4 KB, and iPad Safari may allow only 4 KB for all of a site's cookies). Don't split a save across several cookies.
+* Before shipping a version that touches saving, loading, items, or unlocks, test that older saves load. The game's doc in `docs/` names its upgrade test, if it has one.
+
 ## Version control
 
 * Commit and push every change after completing the work.
@@ -32,6 +41,8 @@ You may use the vendored libraries inside the libs/ folder:
 `README.md` covers the list of games and the libraries each uses, how to run the games locally, and how to set up and run the Playwright tests (including the fix for a browser install that freezes). Read it before running or testing anything.
 
 When you add or rename a game or library, update the tables in `README.md`.
+
+Before changing a game, read `docs/<game>.md` if it exists (for example `docs/multiplication-ms-menna.md`). It holds that game's save format, tests, and rules that are easy to break. Keep it up to date when you change them.
 
 ## Architecture
 

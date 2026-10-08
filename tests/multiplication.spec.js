@@ -519,9 +519,15 @@ test("Ms. Menna's Closet buys, wears, and saves outfits with gems only", async (
 });
 
 test('saved progress still fits in the cookie mirror', async ({ page }) => {
-  const cookie = await page.evaluate(() => {
+  // Many seeds of the worst case, the same every run, so a cookie that grows too big fails every time
+  for (let seed = 1; seed <= 40; seed++) await checkCookieMirror(page, seed);
+});
+
+async function checkCookieMirror(page, seed) {
+  const cookie = await page.evaluate(seed => {
+    Object.assign(state, defaultState());
     // Random values, because the cookie is compressed and repeated ones would fit too easily
-    const rnd = n => Math.floor(Math.random() * n);
+    const rnd = n => { seed = (seed * 16807) % 2147483647; return seed % n; };
     const playAll = keys => keys.forEach(k => {
       const i = FACT_INDEX[k];
       state.mastery[i] = rnd(STICKER_AT + 1); state.days[i] = today() - rnd(today() - 1); state.levels[i] = rnd(SLEEPY_NOW + 1);
@@ -541,8 +547,10 @@ test('saved progress still fits in the cookie mirror', async ({ page }) => {
     saveState();
     const path = cookieNow();
     const local = JSON.parse(localStorage.getItem(STORE_KEY));
-    const pathSame = !!path.saved && !path.saved.partial && path.saved.review === local.review
-      && path.saved.weights === local.weights && path.saved.mastery === local.mastery && path.saved.gems === local.gems;
+    // The cookie may keep the payout list in its short form, but it gets back every payout exactly
+    const pathSame = !!path.saved && path.saved.review === local.review && path.saved.weights === local.weights
+      && path.saved.mastery === local.mastery && path.saved.gems === local.gems
+      && JSON.stringify(parseSave(path.saved).payouts) === JSON.stringify(local.payouts);
     // Every fact up to 20 played: the cookie leaves out review dates and weights above 10, and keeps the rest
     playAll(FACT_KEYS);
     state.gems = 4321;
@@ -560,12 +568,12 @@ test('saved progress still fits in the cookie mirror', async ({ page }) => {
       highDropped: high.every(i => !fromCookie.weights[FACT_KEYS[i]]
         && fromCookie.levels[i] === (state.mastery[i] >= STICKER_AT ? 2 : 0)),
     };
-  });
-  expect(cookie.path).toBeLessThan(4096);
-  expect(cookie.pathSame).toBe(true);
-  expect(cookie.all).toBeLessThan(4096);
-  expect(cookie).toMatchObject({ partial: true, gems: 4321, mastery: true, lowKept: true, highDropped: true });
-});
+  }, seed);
+  expect(cookie.path, `seed ${seed}`).toBeLessThan(4096);
+  expect(cookie.pathSame, `seed ${seed}`).toBe(true);
+  expect(cookie.all, `seed ${seed}`).toBeLessThan(4096);
+  expect(cookie, `seed ${seed}`).toMatchObject({ partial: true, gems: 4321, mastery: true, lowKept: true, highDropped: true });
+}
 
 test('a much bigger house still fits in the cookie, with every sticker, coin, gem, item and piece of furniture', async ({ page }) => {
   const out = await page.evaluate(() => {
@@ -692,10 +700,129 @@ test('a cookie copy without payouts does not erase the payout list in IndexedDB'
   expect(await page.evaluate(() => state.totalCents)).toBe(321);
 });
 
-test('the house Ms. Menna stays inside the house before it is opened', async ({ page }) => {
+// The released v46 game, served from git next to this version so both share the same cookie and storage.
+const V46 = 'd74599d';
+async function openV46(page) {
+  const body = require('child_process').execSync(`git show ${V46}:multiplication-ms-menna.html`, { cwd: require('path').resolve(__dirname, '..') });
+  await page.route('**/menna-v46.html', route => route.fulfill({ contentType: 'text/html', body }));
+  await page.goto('/menna-v46.html');
+  expect(await page.evaluate(() => SAVE_VERSION)).toBe(26);
+}
+
+// A big save a real child could have: every sticker, everything bought, 30 payouts, rooms, tricks and treats.
+function fillSave(seed) {
+  const rnd = n => { seed = (seed * 16807) % 2147483647; return seed % n; };
+  MAIN_KEYS.forEach(k => {
+    const i = FACT_INDEX[k];
+    state.mastery[i] = STICKER_AT; state.days[i] = today() - rnd(Math.min(365, today() - 1)); state.levels[i] = 1 + rnd(SLEEPY_NOW);
+    if (rnd(3)) state.weights[k] = 1.25 + rnd(44) / 4;
+  });
+  state.payouts = Array.from({ length: MAX_PAYOUTS_KEPT }, (_, i) => ({ t: Date.UTC(2026, 9, 1) - i * 86400000 - rnd(99999), c: 100 + rnd(2000) }));
+  state.owned = Object.values(ITEMS).filter(i => i.price > 0).map(i => i.id);
+  state.worn = { hat: 'crown.s', face: 'hearts', neck: 'medal', back: 'cape', fur: 'pink' };
+  state.furniture = FURNITURE.flatMap(f => Object.values(FURN).filter(p => p.base === f.id && p.price > 0).map(p => p.id));
+  state.treats = Object.fromEntries(TREATS.map(t => [t.id, 1 + rnd(5)]));
+  Object.assign(state, { gems: 1234, totalCents: 98765, paidCents: 54321, tricks: 'abc' });
+  saveState();
+}
+
+// Everything a child would miss if it were lost
+const saveSnapshot = () => {
+  const sorted = list => [...list].sort();
+  return {
+    gems: state.gems, totalCents: state.totalCents, paidCents: state.paidCents, mastery: state.mastery.join(''),
+    days: state.days.join(), levels: state.levels.join(), payouts: state.payouts, owned: sorted(state.owned),
+    furniture: sorted(state.furniture), treats: state.treats, worn: state.worn, rooms: sorted(state.rooms), tricks: state.tricks,
+  };
+};
+
+async function clearAllButCookie(page) {
+  await page.waitForTimeout(300);
+  await page.evaluate(async () => {
+    localStorage.clear();
+    (await SaveDB.open()).close();
+    await new Promise(resolve => { const req = indexedDB.deleteDatabase(STORE_KEY); req.onsuccess = req.onerror = resolve; });
+  });
+}
+
+test('a v46 cookie alone loads in this version with everything kept', async ({ page }) => {
+  await openV46(page);
+  await page.evaluate(fillSave, 7);
+  const before = await page.evaluate(saveSnapshot);
+  expect(await page.evaluate(() => readCookie().partial)).toBeFalsy();
+  await clearAllButCookie(page);
+  await page.goto('/multiplication-ms-menna.html');
+  expect(await page.evaluate(saveSnapshot)).toEqual(before);
+  // Saved again in this version and loaded from the cookie alone, nothing changes
+  await page.evaluate(() => saveState());
+  await clearAllButCookie(page);
+  await page.reload();
+  expect(await page.evaluate(saveSnapshot)).toEqual(before);
+});
+
+test('a cookie with the short payout list keeps every payout here, and v46 still loads it', async ({ page }) => {
+  // The worst case on random values: every Learning Path fact played with a picker weight. Some seeds make the plain
+  // cookie too big, so it keeps the payout list short.
+  const bigSave = async seed => {
+    await page.goto('/multiplication-ms-menna.html');
+    await page.evaluate(() => Object.assign(state, defaultState()));
+    await page.evaluate(fillSave, seed);
+    await page.evaluate(seed => {
+      const rnd = n => { seed = (seed * 16807) % 2147483647; return seed % n; };
+      MAIN_KEYS.forEach(k => {
+        const i = FACT_INDEX[k];
+        state.mastery[i] = rnd(STICKER_AT + 1); state.days[i] = today() - rnd(today() - 1); state.levels[i] = rnd(SLEEPY_NOW + 1);
+        state.weights[k] = 1.25 + rnd(44) / 4;
+      });
+      state.gems = 99999;
+      saveState();
+    }, seed);
+    return page.evaluate(() => readCookie());
+  };
+  const keep = ({ gems, totalCents, paidCents, mastery, days, levels, owned, furniture, treats, worn, tricks }) =>
+    ({ gems, totalCents, paidCents, mastery, days, levels, owned, furniture, treats, worn, tricks });
+  let tried = 0;
+  for (let seed = 1, found = 0; found < 3; seed++) {
+    expect(++tried, 'seeds tried').toBeLessThan(100);
+    const cookie = await bigSave(seed);
+    if (!cookie.partial) continue;
+    found++;
+    expect(cookie.payouts).toEqual([]);
+    expect(typeof cookie.pays).toBe('string');
+    const before = await page.evaluate(saveSnapshot);
+
+    // This version from the cookie alone: every payout comes back
+    await clearAllButCookie(page);
+    await page.reload();
+    expect(await page.evaluate(saveSnapshot)).toEqual(before);
+
+    // v46 from the cookie alone: every sticker, dot, coin, gem and item, as with its own trimmed cookies
+    await bigSave(seed);
+    await clearAllButCookie(page);
+    await openV46(page);
+    const old = await page.evaluate(saveSnapshot);
+    expect(old.payouts).toEqual([]);
+    expect(keep(old)).toEqual(keep(before));
+
+    // v46 with the IndexedDB copy still there: everything, payouts included
+    await bigSave(seed);
+    await page.waitForTimeout(300);
+    await page.evaluate(() => localStorage.clear());
+    await openV46(page);
+    await expect.poll(() => page.evaluate(() => state.payouts.length)).toBe(30);
+    expect(await page.evaluate(saveSnapshot)).toEqual(before);
+  }
+});
+
+test('the house Ms. Menna stays inside the house, and waits in the locked Bedroom without walking', async ({ page }) => {
   // Even with the Bedroom locked on a new save, she must never land on the body.
   expect(await page.evaluate(() => houseWalker.el.parentElement.id)).toBe('houseRoom');
   await expect(page.locator('#pomHouse')).toBeHidden();
+  await page.locator('#houseBtn').click();
+  await expect(page.locator('#houseRoom')).toHaveClass(/locked/);
+  await expect(page.locator('#pomHouse')).toBeVisible();
+  await page.locator('#houseRoom').click({ position: { x: 20, y: 150 } });
+  expect(await page.evaluate(() => [houseWalker.x, houseWalker.el.classList.contains('walking')])).toEqual([50, false]);
   await page.evaluate(() => { for (let i = 0; i < 20; i++) state.mastery[i] = STICKER_AT; saveState(); });
   await page.reload();
   expect(await page.evaluate(() => houseWalker.el.parentElement.id)).toBe('houseRoom');
@@ -723,18 +850,21 @@ test('treats are bought with gems, kept in the jar, and used up when Ms. Menna e
   await expect(page.locator('#buyBtn')).toHaveText('Need 1 more 💎');
   expect(await page.evaluate(() => { buyTreat(); return state.gems; })).toBe(4);
 
+  // The jar is in the House under the room, and works while the Bedroom is still locked
   await page.locator('#closetBackBtn').click();
-  await page.locator('#houseBackBtn').click();
+  await expect(page.locator('#houseRoom')).toHaveClass(/locked/);
   await expect(page.locator('#treatJar .toy-btn')).toHaveCount(1);
   await expect(page.locator('#treatJar .count')).toHaveText('2');
 
   // Feeding uses one up, and the jar survives a reload
   await page.locator('#treatJar .toy-btn[data-id="cookie"]').click();
-  await expect(page.locator('#pomStart')).toHaveClass(/eating/);
-  await expect(page.locator('#startBubble')).toContainText('Cookie');
+  await expect(page.locator('#pomHouse')).toHaveClass(/eating/);
+  await expect(page.locator('#houseBubble')).toContainText('Cookie');
   await expect(page.locator('#treatJar .count')).toHaveText('1');
   await page.reload();
   expect(await page.evaluate(() => ({ treats: state.treats, gems: state.gems }))).toEqual({ treats: { cookie: 1 }, gems: 4 });
+  await expect(page.locator('#startScreen #treatJar')).toHaveCount(0);
+  await page.locator('#houseBtn').click();
   await page.locator('#treatJar .toy-btn').click();
   await expect(page.locator('#treatJar')).toBeHidden();
   expect(await page.evaluate(() => state.treats)).toEqual({});
@@ -757,14 +887,13 @@ test('Ms. Menna buys toys, plays with them, and uses them in streak tricks', asy
   await expect(page.locator('.item[data-id="ball"] .price')).toHaveText('🎨 1 of 11');
   await expect(page.locator('.color-btn[data-id="ball"] .price')).toHaveText('Playing ✓');
   await page.locator('#closetBackBtn').click();
-  await page.locator('#houseBackBtn').click();
 
-  // Toys sit on the shelf and are never worn
+  // Toys sit on the House shelf and are never worn
   await expect(page.locator('#toyShelf .toy-btn')).toHaveCount(1);
   await page.locator('#toyShelf .toy-btn').click();
-  await expect(page.locator('#pomStart')).toHaveClass(/play-ball/);
-  await expect(page.locator('#pomStart .toy-fx')).toHaveCount(1);
-  await expect(page.locator('#startBubble')).toContainText('Fetch');
+  await expect(page.locator('#pomHouse')).toHaveClass(/play-ball/);
+  await expect(page.locator('#pomHouse .toy-fx')).toHaveCount(1);
+  await expect(page.locator('#houseBubble')).toContainText('Fetch');
   await page.reload();
   const saved = await page.evaluate(() => ({ gems: state.gems, owned: state.owned, worn: state.worn, cents: state.totalCents }));
   expect(saved).toEqual({ gems: 10, owned: ['ball'], worn: { hat: 'cap', fur: 'classic' }, cents: 90 });
@@ -1076,7 +1205,8 @@ test('finishing a table lets the child pick a trick to teach Ms. Menna, used in 
   await page.evaluate(() => { game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
   await expect(page.locator('#newTrickText')).toBeHidden();
   await expect(page.locator('#pomSummary')).toBeVisible();
-  await expect(page.locator('#pomSummary')).toHaveClass(/bounce/);
+  // The bounce starts 0.9 s in and lasts 0.65 s, so check often enough not to miss it
+  await expect.poll(() => page.evaluate(() => $('pomSummary').classList.contains('bounce')), { intervals: [50] }).toBe(true);
   // Tapping her then gets a bounce, not a trick
   await page.waitForTimeout(700);
   await page.locator('#pomSummary').click();

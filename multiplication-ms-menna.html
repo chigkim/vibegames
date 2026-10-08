@@ -1400,7 +1400,9 @@
   @keyframes seaLap { to { transform: translateX(3%); } }
   .room .deco-leaf { position: absolute; top: 2%; font-size: 7cqw; line-height: 1; }
   .room { container-type: inline-size; }
-  .room.locked > :not(.lock-note) { filter: grayscale(1) opacity(0.45); }
+  .room.locked > :not(.lock-note):not(.walker) { filter: grayscale(1) opacity(0.45); }
+  /* She waits in front of a locked House room, so its note stays up on the wall */
+  #houseRoom.locked .lock-note { bottom: 42%; }
   .lock-note { position: absolute; inset: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-family: 'Baloo 2', cursive; font-weight: 800; font-size: clamp(1rem, 4.5cqw, 1.6rem); color: var(--dark-brown); }
   .lock-note .big { font-size: 2.4em; line-height: 1; }
   .spot { position: absolute; transform: translateX(-50%); padding: 0; border: none; background: none; cursor: pointer; line-height: 0; }
@@ -1623,12 +1625,8 @@
   <div class="card">
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
-    <div class="shelves">
-      <div class="toy-shelf" id="toyShelf" hidden></div>
-      <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
-    </div>
     <h1>Multiplication with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v46 - Updated 2026-10-07 15:55 EDT</p>
+    <p class="version">v47 - Updated 2026-10-07 21:53 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">$0.00</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1820,13 +1818,17 @@
     <div class="room-tabs" id="roomTabs"></div>
     <div class="speech-bubble below" id="houseBubble" aria-live="polite"></div>
     <div class="room" id="houseRoom"></div>
+    <div class="shelves">
+      <div class="toy-shelf" id="toyShelf" hidden></div>
+      <div class="toy-shelf treat-jar" id="treatJar" hidden></div>
+    </div>
     <div class="house-tools">
       <button class="btn btn-closet" id="closetBtn">🎀 Closet</button>
     </div>
     <div class="closet-items furn-items" id="furnItems"></div>
     <div class="color-row" id="furnColors" hidden></div>
     <button class="btn btn-buy" id="furnBuyBtn" hidden></button>
-    <p class="closet-help">Tap the room to walk Ms. Menna around. Tap furniture to play!<br>New stickers open new rooms, and 💎 buy furniture.</p>
+    <p class="closet-help">Tap the room to walk Ms. Menna around. Tap furniture, toys and treats to play!<br>New stickers open new rooms, and 💎 buy furniture.</p>
     <button class="btn btn-secondary" id="houseBackBtn">← Back</button>
   </div>
 </div>
@@ -2648,8 +2650,11 @@ function parseSave(saved) {
   if (Number.isInteger(saved.divAsked) && saved.divAsked > 0) state.divAsked = saved.divAsked;
   if (Number.isInteger(saved.divPics) && saved.divPics > 0) state.divPics = Math.min(saved.divPics, 5);
   if (Number.isFinite(saved.paidCents)) state.paidCents = Math.max(0, Math.round(saved.paidCents));
-  if (Array.isArray(saved.payouts)) {
-    state.payouts = saved.payouts
+  // A cookie copy too big for the plain list keeps it short in `pays`, and leaves `payouts` empty for v46 and older.
+  const payouts = Array.isArray(saved.payouts) && !saved.payouts.length && typeof saved.pays === 'string'
+    ? decodePays(saved.pays) : saved.payouts;
+  if (Array.isArray(payouts)) {
+    state.payouts = payouts
       .filter(po => po && Number.isFinite(po.t) && Number.isFinite(po.c) && po.c > 0)
       .slice(0, MAX_PAYOUTS_KEPT);
   }
@@ -2737,6 +2742,23 @@ function encodeReview(keep = () => true) {
   }).join('').replace(/0+$/, '');
 }
 
+// The short payout list for a cookie that is too big with the plain one: "time:cents" in base 36, newest first,
+// each time after the first one counted back from the payout before it. Loading gets back the exact same list.
+function encodePays(payouts) {
+  return payouts.map((po, i) => (i ? payouts[i - 1].t - po.t : po.t).toString(36) + ':' + po.c.toString(36)).join(',');
+}
+
+function decodePays(text) {
+  const payouts = [];
+  for (const part of text ? text.split(',') : []) {
+    const [gap, cents] = part.split(':').map(n => parseInt(n, 36));
+    const t = payouts.length ? payouts[payouts.length - 1].t - gap : gap;
+    if (!Number.isFinite(t) || !Number.isFinite(cents)) return [];
+    payouts.push({ t, c: cents });
+  }
+  return payouts;
+}
+
 // Another tab saved since this tab last loaded or saved: an iPad tab that was frozen, or both saving at once.
 // Keep that tab's changes and add this tab's on top, so a payout or purchase made there is never undone here.
 function mergeNewer(stored) {
@@ -2816,13 +2838,16 @@ function saveState() {
   try { localStorage.setItem(STORE_KEY, json); } catch { /* storage may be unavailable in private mode */ }
   if (window.indexedDB) SaveDB.write(json);
   const secure = location.protocol === 'https:' ? '; Secure' : '';
-  // A browser drops a cookie over 4 KB. If it is too big, the cookie copy leaves out the payout list, and then the
-  // review dates and picker weights of facts above 10, then all picker weights, then all review dates.
-  // Every sticker, dot, coin, gem, item and piece of furniture always stays in it.
+  // A browser drops a cookie over 4 KB. If it is too big, the cookie copy keeps the payout list short in `pays`, then
+  // leaves out the payout list, then the review dates and picker weights of facts above 10, then all picker weights,
+  // then all review dates. Every sticker, dot, coin, gem, item and piece of furniture always stays in it.
+  // A trimmed copy has an empty `payouts` and `partial: true`, the same as the trimmed cookies of v46 and older, so an
+  // older version still reads it and takes the payout list from IndexedDB.
   const partial = { ...save, payouts: [], partial: true };
   const upTo10 = i => Math.max(...factsOf(FACT_KEYS[i])) <= 10;
   const trims = [
     save,
+    { ...partial, pays: encodePays(state.payouts) },
     partial,
     { ...partial, weights: encodeWeights(upTo10), review: encodeReview(upTo10) },
     { ...partial, weights: '', review: encodeReview(upTo10) },
@@ -4789,8 +4814,9 @@ function giveTreat(id) {
   saveState();
   renderTreatJar();
   const name = TREAT[id].name;
-  say('startBubble', pick([`Yum! Thank you for the ${name}! 💖`, `Yummy, ${name}! You're the best! 🐾`, `Nom nom nom! I love ${name}! 💕`]));
-  feedPom($('pomStart'), id);
+  say('houseBubble', pick([`Yum! Thank you for the ${name}! 💖`, `Yummy, ${name}! You're the best! 🐾`, `Nom nom nom! I love ${name}! 💕`]));
+  stopWalker(houseWalker);
+  feedPom(houseWalker.pom, id);
 }
 
 function renderToyShelf() {
@@ -5083,7 +5109,8 @@ function drawRoom(el, room, walker) {
   const lock = roomOpen(room) ? '' : `<div class="lock-note"><span class="big">🔒</span>` +
     `<span>${room.need - stickerCount()} more ⭐ stickers</span><span>to open the ${room.name}!</span></div>`;
   el.innerHTML = sky + spots + lock;
-  if (walker && roomOpen(room)) el.appendChild(walker.el);
+  // She is home even before the Bedroom opens, to play with her toys and eat her treats. She walks only in open rooms.
+  if (walker && (roomOpen(room) || el.id === 'houseRoom')) el.appendChild(walker.el);
 }
 
 // Pom walks around a room. Each room view has its own walker with its own Pom picture.
@@ -5271,7 +5298,7 @@ function showHouse(text) {
   dressAllPoms();
   showScreen('houseScreen');
   const room = ROOM[state.room];
-  // Even the Bedroom needs a few stickers. Until then the Closet button below the room still works.
+  // Even the Bedroom needs a few stickers. Until then her toys, treats and the Closet below the room still work.
   if (!roomOpen(room)) text = text || `${room.need - stickerCount()} more ⭐ to open my ${room.name}!`;
   say('houseBubble', text || pick([
     'Welcome home! 🏠',
@@ -5658,8 +5685,9 @@ function init() {
   $('toyShelf').addEventListener('click', e => {
     const btn = e.target.closest('.toy-btn');
     if (!btn) return;
-    playToy($('pomStart'), btn.dataset.id);
-    say('startBubble', ITEMS[btn.dataset.id].say);
+    stopWalker(houseWalker);
+    playToy(houseWalker.pom, btn.dataset.id);
+    say('houseBubble', ITEMS[btn.dataset.id].say);
   });
   $('treatJar').addEventListener('click', e => {
     const btn = e.target.closest('.toy-btn');

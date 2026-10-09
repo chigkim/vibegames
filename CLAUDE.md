@@ -14,7 +14,7 @@ You may use the vendored libraries inside the libs/ folder:
 2. Tone.js for procedural music, melodic cues, layered audio, and richer sound effects.
 3. ZzFX for tiny arcade-style sound effects such as jumps, hits, pickups, pops, and game-over sounds.
 4. NippleJS for mobile virtual joystick controls when directional movement is needed.
-5. GSAP for smooth, timed animation of SVG and HTML elements, such as character motion, tweens, timelines, and UI transitions.
+5. GSAP for smooth, timed animation of SVG and HTML elements, such as character motion, tweens, timelines, and UI transitions. Its free plugins are vendored too: MorphSVG (reshape one path into another), MotionPath (move along a curve), Physics2D (thrown and falling pieces), and CustomEase with CustomBounce and CustomWiggle (squash, bounce and wobble). Load each after `gsap-3.15.0.min.js` and call `gsap.registerPlugin()`.
 6. lz-string for compressing saved data, such as fitting a save into a size-limited cookie.
 7. EasySpeech for reliable text-to-speech that works around browser bugs in the built-in voices.
 8. `speech.js` for a shared narrator voice built on EasySpeech, with mute, stop, and a voice picker. Load `easy-speech-2.4.0.js` before it.

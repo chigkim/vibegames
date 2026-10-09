@@ -22,6 +22,12 @@ Each game is one self-contained HTML file with its CSS and JavaScript inline. Th
 | `nipplejs-1.0.4.min.js` | On-screen joystick for touch controls |
 | `lz-string-1.5.0.min.js` | Compresses saved progress so the cookie copy fits in 4 KB |
 | `gsap-3.15.0.min.js` | Moves Ms. Menna's tail, head, ears, eyes and legs (GreenSock's free Standard license, see `gsap-3.15.0-LICENSE.md`) |
+| `gsap-3.15.0-MorphSVGPlugin.min.js` | GSAP plugin that smoothly reshapes one SVG path into another, such as a sprout growing into a plant. Load after `gsap-3.15.0.min.js`. Not used by any game yet |
+| `gsap-3.15.0-MotionPathPlugin.min.js` | GSAP plugin that moves things along a curved SVG path. Not used by any game yet |
+| `gsap-3.15.0-Physics2DPlugin.min.js` | GSAP plugin for thrown, falling and bouncing pieces such as confetti. Not used by any game yet |
+| `gsap-3.15.0-CustomEase.min.js` | GSAP plugin for hand-made easing curves. Load it before `CustomBounce` and `CustomWiggle`. Not used by any game yet |
+| `gsap-3.15.0-CustomBounce.min.js` | GSAP plugin for bounces with matching squash and stretch. Needs `CustomEase`. Not used by any game yet |
+| `gsap-3.15.0-CustomWiggle.min.js` | GSAP plugin for wobbles and shakes. Needs `CustomEase`. Not used by any game yet |
 | `easy-speech-2.4.0.js` | Fixes browser bugs in the built-in text-to-speech voices |
 | `speech.js` | Ms. Menna's shared voice, built on EasySpeech. Load `easy-speech-2.4.0.js` first, then call `Speech.speak(text)`, `Speech.speak(text, { after: true })` (waits for the line being said to finish), `Speech.stop()` and `Speech.setMuted(on)`. It reads math symbols as words and skips emoji. `Speech.openPicker()` opens a voice and speed picker; the choice is saved in localStorage with a cookie copy (`mennaVoice`) and shared by every game. |
 

@@ -1714,7 +1714,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v53 - Updated 2026-10-09 09:24 EDT</p>
+    <p class="version">v54 - Updated 2026-10-09 09:35 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -5798,14 +5798,14 @@ const GARDEN = (() => {
     canopy([[20, 10, 8], [12.5, 14, 6], [27.5, 14, 6], [20, 16, 6.5]], '#5CBA5E', '#2E7A3E') +
     [11, 29].map(x => line(`M${x} 19Q${x - 1} 23 ${x - 2.6} 25.5M${x} 19Q${x + 1} 23 ${x + 2.6} 26`, BARK_D, 1.1) + leaf(x, 19.2, 4.5, -40) +
       fruit(x - 2.6, 27, 3.4, ...(RIPE ? ['#D0243C', '#8A1024'] : ['#D4EC9A', '#6E9A3A'])) + fruit(x + 2.6, 27.5, 3.4, ...(RIPE ? ['#D0243C', '#8A1024'] : ['#D4EC9A', '#6E9A3A']))).join('');
-  // Oak: a wide, bumpy dark canopy on a thick trunk, with big capped acorns. Almost has the same acorns in pale green.
+  // Oak: a wide, bumpy dark canopy on a thick trunk, with three big capped acorns. Almost has the same acorns in pale green.
   // Ready acorns are light tan under dark caps, so they read on the green; almost acorns are yellow-green with a clear cap.
-  const acorn = (x, y) => e(x, y + 2.3, 3.2, 3.9, ...(RIPE ? ['#E8B064', '#7A4A1A'] : ['#E8F27A', '#5E7A2A'])) +
-    p(`M${x - 3.9} ${y + 0.8}Q${x} ${y - 4.2} ${x + 3.9} ${y + 0.8}Q${x} ${y + 2} ${x - 3.9} ${y + 0.8}z`, ...(RIPE ? ['#7A4A20', '#4A2A10'] : ['#7AA840', '#3E6A22'])) +
-    line(`M${x} ${y - 1.6}l0.5 -1.6`, RIPE ? '#4A2A10' : '#3E6A22', 1.1) + shine(x - 1.2, y + 1.8, 0.8, 1.2);
+  const acorn = (x, y) => `<g transform="translate(${x} ${y}) scale(1.15) translate(${-x} ${-y})">` + e(x, y + 2.3, 3.2, 3.9, ...(RIPE ? ['#E8B064', '#7A4A1A'] : ['#E2F2A0', '#6E9A3A'])) +
+    p(`M${x - 3.9} ${y + 0.8}Q${x} ${y - 4.2} ${x + 3.9} ${y + 0.8}Q${x} ${y + 2} ${x - 3.9} ${y + 0.8}z`, ...(RIPE ? ['#7A4A20', '#4A2A10'] : ['#A8D060', '#5E8A34'])) +
+    line(`M${x} ${y - 1.6}l0.5 -1.6`, RIPE ? '#4A2A10' : '#3E6A22', 1.1) + shine(x - 1.2, y + 1.8, 0.8, 1.2) + '</g>';
   const oakTree = () => p('M16 36L17.4 23Q20 21.5 22.6 23L24 36z', BARK, BARK_D) +
     canopy([[20, 10.5, 7.5], [10, 15.5, 7], [30, 15.5, 7], [13, 21.5, 6], [27, 21.5, 6], [20, 18, 8]]) +
-    line('M11 26.5V28', BARK_D, 1) + [[12, 14], [28, 13.5], [21.5, 19.5], [11, 28]].map(([x, y]) => acorn(x, y)).join('');
+    [[11.5, 14.5], [28.5, 14.5], [20, 20.5]].map(([x, y]) => acorn(x, y)).join('');
   const paddle = (x, y, len, ang) => `<g transform="translate(${x} ${y}) rotate(${ang})">` +
     p(`M0 0Q${len * 0.3} ${-len * 0.42} ${len * 0.75} ${-len * 0.3}Q${len} ${-len * 0.18} ${len} 0Q${len * 0.8} ${len * 0.3} ${len * 0.35} ${len * 0.26}Q${len * 0.1} ${len * 0.2} 0 0z`, '#6CCB5A', '#3A8A3A') +
     line(`M0.5 0L${len * 0.95} -0.3`, '#3A8A3A', 0.8) + '</g>';
@@ -5847,7 +5847,7 @@ const GARDEN = (() => {
   const vineLeaf = (x, y, ang) => leaf(x, y, 9, ang) + line(`M${x} ${y}q-3 2 -4 -1`, LEAF_D, 0.9);
   const pumpkin = () => {
     const [f, d] = G('#FF9A2E', '#B8580C', 0.25), mid = RIPE ? '#FFA63D' : mix('#D2EC98', '#FFA63D', 0.25);
-    return line('M21.5 16Q24 12 28 14', LEAF_D, 1.2) + leaf(28, 14, 9, -30) + e(11.5, 27, 5, 7, f, d) + e(28.5, 27, 5, 7, f, d) +
+    return line('M20.5 16Q17.5 12.5 14 14.5', LEAF_D, 1.2) + leaf(14, 14.5, 7.5, -150) + e(11.5, 27, 5, 7, f, d) + e(28.5, 27, 5, 7, f, d) +
       e(15.5, 27, 5.5, 8.2, mid, d) + e(24.5, 27, 5.5, 8.2, mid, d) + e(20, 27, 5, 8.6, f, d) +
       p('M19 19Q19 15.5 21.5 15L22.3 16.3Q20.6 17 21 19z', '#7A9A3A', '#4E6E22', 0.8) + shine(15, 23, 1.1, 3);
   };
@@ -5924,7 +5924,7 @@ const GARDEN = (() => {
   const pineapple = () => crown(18, 1.15) + e(20, 26.5, 7.5, 8.5, ...G('#FFC23D', '#8A5200', 0.35)) + pineappleScales(20, 26.5, 7.5, 8.5, RIPE ? '#A0600C' : '#6E9A3A') + shine(16.5, 22.5, 1, 2.5);
   const GRAPE_AT = [[14, 14.5], [19, 14.5], [24, 14.5], [16.5, 19], [21.5, 19], [19, 23.5]];
   const grapes = () => line('M20 35Q18 26 19 17', '#8B6A3E', 2) + line('M19 12Q20 8 23 7', '#8B6A3E', 1.4) + leaf(23, 7, 11, -20) + leaf(19, 26, 8, -160) +
-    line('M19 11V13', '#8B6A3E', 1.2) + GRAPE_AT.map(([x, y]) => c(x, y, 2.9, ...(RIPE ? ['#8A5BD0', '#4E2A8E'] : ['#E2E27A', '#7A8A2A'])) + shine(x - 0.9, y - 0.9, 0.7)).join('');
+    line('M19 11V13', '#8B6A3E', 1.2) + GRAPE_AT.map(([x, y]) => c(x, y, 3.2, ...(RIPE ? ['#8A5BD0', '#4E2A8E'] : ['#CDEB6E', '#4E7A1A'])) + shine(x - 0.9, y - 0.9, 0.7)).join('');
   // Pepper: one big bell pepper hanging from a leafy plant. Peppers really start out green: almost is green, ready is orange.
   const pepper = () => {
     const [f, d] = RIPE ? ['#FF8A1E', '#B8520C'] : ['#D2F08E', '#3E7A22'];

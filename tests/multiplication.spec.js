@@ -376,6 +376,40 @@ test('the sticker chart has times and divide pages, each with a 0–10 and an 11
   await expect(page.locator('#startScreen')).toHaveClass(/active/);
 });
 
+test('the Garden style shows each fact as a plant, and the choice is remembered on this device', async ({ page }) => {
+  await page.evaluate(() => {
+    state.mastery[FACT_INDEX['3x7']] = 3;
+    state.mastery[FACT_INDEX['2x5']] = 1;
+    state.mastery[FACT_INDEX['4x6']] = 2;
+    saveState();
+  });
+  const save = await page.evaluate(() => localStorage.getItem(STORE_KEY));
+  await page.locator('#stickersBtn').click();
+  await expect(page.locator('#tabStickers')).toHaveClass(/active/);
+  await expect(page.locator('#stickerGrid svg')).toHaveCount(0);
+  await page.locator('#tabGarden').click();
+  await expect(page.locator('#stickerGrid')).toHaveClass(/garden/);
+  await expect(page.locator('#stickerGrid > div:not(.head):not(.corner) svg')).toHaveCount(121);
+  await expect(page.locator('#stickerGrid > .got')).toHaveCount(1);
+  await expect(page.locator('#stickerGrid > .got[title="3 × 7 = 21"]')).toHaveCount(1);
+  await expect(page.locator('#stickerGrid > .almost')).toHaveCount(1);
+  await expect(page.locator('#stickerGrid > .almost[title="4 × 6"]')).toHaveCount(1);
+  await expect(page.locator('#stickerCount')).toHaveText('1 of 121 stickers');
+  await expect(page.locator('#gardenHelp')).toBeVisible();
+  // The 11–20 page and the divide page grow plants too
+  await page.locator('#tabHigh').click();
+  await expect(page.locator('#stickerGridMore > div:not(.head):not(.corner) svg')).toHaveCount(110);
+  // The choice is a device setting, so the save itself doesn't change
+  expect(await page.evaluate(() => localStorage.getItem(STORE_KEY + '_chartStyle'))).toBe('garden');
+  expect(await page.evaluate(() => localStorage.getItem(STORE_KEY))).toBe(save);
+  await page.reload();
+  await page.locator('#stickersBtn').click();
+  await expect(page.locator('#tabGarden')).toHaveClass(/active/);
+  await page.locator('#tabStickers').click();
+  await expect(page.locator('#stickerGrid svg')).toHaveCount(0);
+  await expect(page.locator('#gardenHelp')).toBeHidden();
+});
+
 test('a right answer earns the third dot and a sticker; a wrong one keeps the dots', async ({ page }) => {
   await page.evaluate(() => { state.mastery[FACT_INDEX['1x1']] = 2; });
   await page.locator('#pathBtn').click();

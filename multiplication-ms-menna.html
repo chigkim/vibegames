@@ -1503,6 +1503,10 @@
     25% { transform: translateX(calc(-6px * var(--s))) rotate(-7deg); }
     75% { transform: translateX(calc(6px * var(--s))) rotate(7deg); }
   }
+  /* Playing an instrument sways gently from her feet, in time with the music. */
+  .pom-container.act-strum > svg, .pom-container.act-viola > svg { animation: pomPlay 0.9s ease-in-out 2; transform-origin: 50% 100%; }
+  @keyframes pomPlay { 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+  .spot.playing .lift { opacity: 0; }
   .pom-container.act-swing > svg { animation: pomSwing 0.9s ease-in-out 3; transform-origin: 50% -60%; }
   @keyframes pomSwing { 25% { transform: rotate(18deg); } 75% { transform: rotate(-18deg); } }
   /* Dig crouches low while her front paws scratch and dirt flies up. */
@@ -1714,7 +1718,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v55 - Updated 2026-10-09 10:25 EDT</p>
+    <p class="version">v57 - Updated 2026-10-09 16:52 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -2769,6 +2773,33 @@ const ROOMS = [
 ];
 const ROOM = Object.fromEntries(ROOMS.map(r => [r.id, r]));
 
+// The guitar and viola, drawn upright around (0, 0), so the same picture stands in its spot and goes in her paws.
+// The guitar's headstock is at the top (y -40) and its body at the bottom (y 44), with the sound hole at y 14.
+const guitarArt = (m, d, a) => `<rect x="-5" y="-40" width="10" height="10" rx="2.5" fill="${d}"/>` +
+  `<g fill="${a}" stroke="#3D2B1F" stroke-width="0.6"><circle cx="-6.5" cy="-37.5" r="1.6"/><circle cx="-6.5" cy="-33" r="1.6"/><circle cx="6.5" cy="-37.5" r="1.6"/><circle cx="6.5" cy="-33" r="1.6"/></g>` +
+  `<rect x="-3" y="-31" width="6" height="34" fill="#3D2B1F"/><path d="M-3 -24 H3 M-3 -17 H3 M-3 -10 H3 M-3 -4 H3" stroke="#A68A6D" stroke-width="0.7"/>` +
+  `<path d="M0 -4 C-9 -4 -11 1 -10 6 C-9 10 -7 11 -8 14 C-14 17 -15 26 -14 32 C-12 42 -6 44 0 44 C6 44 12 42 14 32 C15 26 14 17 8 14 C7 11 9 10 10 6 C11 1 9 -4 0 -4 Z" fill="${m}" stroke="${d}" stroke-width="2.2" stroke-linejoin="round"/>` +
+  `<path d="M-7 1 Q-9 6 -7 9" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.5"/>` +
+  `<path d="M4 17 Q10 19 9 25 Q6 22 3 21 Z" fill="${d}" opacity="0.6"/>` +
+  `<circle cy="14" r="6.4" fill="none" stroke="${a}" stroke-width="1.3"/><circle cy="14" r="4.6" fill="#3D2B1F"/>` +
+  `<rect x="-6" y="31" width="12" height="3" rx="1.5" fill="#3D2B1F"/>` +
+  `<path d="M-1.6 -36 V32.5 M0 -36 V32.5 M1.6 -36 V32.5" stroke="${a}" stroke-width="0.6"/>`;
+// The viola's scroll is at the top (y -40) and its end pin at the bottom (y 40), with the bridge at y 11.
+const violaArt = (m, d, a) => `<path d="M-2.5 -26 V-36 Q-2.5 -40 1 -40 Q4 -40 4 -37 Q4 -34.5 1.5 -34.5 Q0 -34.5 0 -36" fill="${d}" stroke="#3D2B1F" stroke-width="1.4" stroke-linecap="round"/>` +
+  `<g fill="#3D2B1F"><rect x="-5" y="-33" width="2.6" height="2" rx="1"/><rect x="2.4" y="-30" width="2.6" height="2" rx="1"/></g>` +
+  `<path d="M0 -10 C-8 -10 -10 -7 -10 -2 C-10 3 -7 4 -6.5 7 C-6 10 -7 11 -9 13 C-12 16 -12 22 -11 27 C-10 33 -6 36 0 36 C6 36 10 33 11 27 C12 22 12 16 9 13 C7 11 6 10 6.5 7 C7 4 10 3 10 -2 C10 -7 8 -10 0 -10 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/>` +
+  `<path d="M-6 -5 Q-7.5 -1 -6 2" stroke="#fff" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0.5"/>` +
+  `<rect x="-2" y="-27" width="4" height="31" rx="1" fill="#3D2B1F"/>` +
+  `<path d="M-5 4 Q-3 10 -5 16 M5 4 Q3 10 5 16" stroke="#3D2B1F" stroke-width="1.1" stroke-linecap="round" fill="none"/>` +
+  `<path d="M-4.5 12 H4.5 L3.5 9.5 H-3.5 Z" fill="${a}" stroke="#3D2B1F" stroke-width="0.6"/>` +
+  `<path d="M-2.2 19 L2.2 19 L3 30 Q0 32 -3 30 Z" fill="#3D2B1F"/>` +
+  `<path d="M-1.2 -32 V20 M-0.4 -32 V20 M0.4 -32 V20 M1.2 -32 V20" stroke="${a}" stroke-width="0.45"/>` +
+  '<rect x="-0.8" y="36" width="1.6" height="4" fill="#3D2B1F"/>';
+// The bow runs from its frog at (0, -31) to its tip at (0, 40).
+const bowArt = a => '<path d="M-1 -29 V39" stroke="#8B5E3C" stroke-width="1.8" stroke-linecap="round"/>' +
+  `<path d="M1.5 -28 V38" stroke="${a}" stroke-width="1" opacity="0.9"/><path d="M-1 39 Q1 41 1.5 38" stroke="#5C3D1E" stroke-width="1.2" fill="none"/>` +
+  '<rect x="-2.2" y="-33" width="4.4" height="6" rx="1.2" fill="#3D2B1F"/><circle cy="-30" r="0.9" fill="#FFF8EE"/>';
+
 // x is the middle of the spot and y its bottom, in % of the room. w is the width in % and view the picture's size.
 // Pom walks to (x + px, py) and does her act there. paint(main, dark, accent) draws the piece like the closet items.
 const FURNITURE = [
@@ -2947,7 +2978,7 @@ const FURNITURE = [
       [0, 1, 3, 4, 5, 7, 8, 10].map(i => `<rect x="${10 + i * 7.6}" y="44" width="4" height="7" fill="#3D2B1F"/>`).join('') +
       `<rect x="4" y="56" width="92" height="8" fill="${m}" stroke="${d}" stroke-width="2"/><path d="M10 64 V78 M90 64 V78" stroke="${d}" stroke-width="5"/>` +
       `<text x="80" y="20" font-size="10" fill="${a}">♪</text>` },
-  { id: 'xylophone', room: 'music', name: 'Xylophone', short: 'Xylo', ico: '🎶', price: 25, x: 60, y: 14, w: 22, view: '80 40',
+  { id: 'xylophone', room: 'music', name: 'Xylophone', short: 'Xylo', ico: '🎶', price: 25, x: 50, y: 30, w: 22, view: '80 40',
     act: 'hop', fx: '🎶', say: 'Ding ding ding! 🎶', sound: 'xylo', classic: ['#C68B59', '#8B5E3C', '#E94B4B'],
     paint: (m, d, a) => `<path d="M4 12 L76 18 M4 32 L76 26" stroke="${d}" stroke-width="4" stroke-linecap="round"/>` +
       ['#E94B4B', '#FF9F43', '#FFD93D', '#5CC46A', '#4FA3E8', '#9B7BF0', '#FF7EB6'].map((c, i) =>
@@ -2957,18 +2988,17 @@ const FURNITURE = [
     act: 'spin', fx: '🎵', say: 'Dance party! 🎶', classic: ['#FFD93D', '#D4A90C', '#9B7BF0'],
     paint: (m, d, a) => `<rect x="2" y="2" width="96" height="26" rx="8" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<g fill="${a}" font-size="16" font-weight="800"><text x="14" y="22">♪</text><text x="38" y="21">♫</text><text x="62" y="22">♪</text><text x="82" y="21">♫</text></g>` },
-  { id: 'drum', room: 'music', name: 'Drum', ico: '🥁', price: 30, x: 86, y: 6, w: 14, view: '50 50',
+  { id: 'drum', room: 'music', name: 'Drum', ico: '🥁', price: 30, x: 72, y: 29, w: 14, view: '50 50',
     act: 'hop', fx: '🥁', say: 'Boom boom bap! 🥁', sound: 'drum', classic: ['#E94B4B', '#B83232', '#FFD166'],
     paint: (m, d, a) => `<path d="M4 16 V40 Q25 50 46 40 V16" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<path d="M4 18 L14 40 L25 18 L36 40 L46 18" stroke="${a}" stroke-width="2.5" fill="none"/>` +
       `<ellipse cx="25" cy="16" rx="21" ry="7" fill="#FFF8EE" stroke="${d}" stroke-width="3"/>` +
       `<path d="M12 2 L22 13 M40 2 L30 13" stroke="#C68B59" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="2" r="3" fill="${a}"/><circle cx="40" cy="2" r="3" fill="${a}"/>` },
   { id: 'guitar', room: 'music', name: 'Guitar Stand', short: 'Guitar', ico: '🎸', price: 40, x: 90, y: 30, w: 10, view: '36 90', px: -7,
-    act: 'wiggle', fx: '🎸', say: 'Strum strum! 🎸', sound: 'guitar', classic: ['#FF9F43', '#C4651C', '#FFF3B0'],
-    paint: (m, d, a) => '<path d="M6 88 L18 64 L30 88" stroke="#5C3D1E" stroke-width="3" fill="none"/>' +
-      `<rect x="15" y="4" width="6" height="40" fill="${d}"/><rect x="13" y="0" width="10" height="7" rx="2" fill="${d}"/>` +
-      `<path d="M18 40 Q4 40 6 54 Q8 60 5 66 Q2 82 18 82 Q34 82 31 66 Q28 60 30 54 Q32 40 18 40 Z" fill="${m}" stroke="${d}" stroke-width="2.5"/>` +
-      `<circle cx="18" cy="60" r="5" fill="#3D2B1F"/><path d="M16.5 6 V74 M19.5 6 V74" stroke="${a}" stroke-width="0.8"/><rect x="12" y="72" width="12" height="3" fill="#3D2B1F"/>` },
+    act: 'strum', fx: '🎵', say: 'Strum strum! 🎸', sound: 'guitar', classic: ['#D9954A', '#8A4E1E', '#FFF3B0'],
+    paint: (m, d, a) => '<path d="M6 88 L18 66 L30 88" stroke="#5C3D1E" stroke-width="3" stroke-linecap="round" fill="none"/>' +
+      `<g class="lift"><g transform="translate(18 40)">${guitarArt(m, d, a)}</g></g>`,
+    hold: (m, d, a) => [`<g transform="translate(55 95) rotate(60) scale(0.8) translate(0 -14)">${guitarArt(m, d, a)}</g>`, ''] },
 
   { id: 'lounger', room: 'swimpool', name: 'Lounge Chair', short: 'Chair', ico: '😎', price: 35, x: 14, y: 30, w: 22, view: '80 40', py: 34,
     act: 'nap', fx: '😎', say: 'Sunbathing… ☀️', classic: ['#4FA3E8', '#8C8C99', '#FFFFFF'],
@@ -3070,6 +3100,13 @@ const FURNITURE = [
       `<g transform="rotate(-30 25 30)"><rect x="4" y="24" width="40" height="12" rx="3" fill="${m}" stroke="${d}" stroke-width="2"/>` +
       `<rect x="40" y="21" width="8" height="18" rx="2" fill="${d}"/><rect x="0" y="27" width="6" height="6" rx="1" fill="${d}"/><path d="M16 24 V36" stroke="${a}" stroke-width="3"/></g>` +
       `<text x="38" y="8" font-size="9" fill="${a}">✦</text>` },
+  // v56. New pieces go at the end, so no other piece moves in the list.
+  { id: 'viola', room: 'music', name: 'Viola', ico: '🎻', price: 40, x: 56, y: 6, w: 9, view: '40 90',
+    act: 'viola', fx: '🎶', say: 'La la laaa! 🎻', sound: 'viola', classic: ['#C8702E', '#7A3B16', '#FFE6A8'],
+    paint: (m, d, a) => '<path d="M8 88 L16 76 L24 88 M16 76 V70" stroke="#5C3D1E" stroke-width="3" stroke-linecap="round" fill="none"/>' +
+      `<g class="lift"><g transform="translate(34 46) rotate(6)">${bowArt(a)}</g><g transform="translate(16 44)">${violaArt(m, d, a)}</g></g>`,
+    hold: (m, d, a) => [`<g transform="translate(89 93) rotate(49) scale(0.7) translate(0 -11)">${violaArt(m, d, a)}</g>`,
+      `<g transform="translate(66 63) rotate(-35) translate(0 31)">${bowArt(a)}</g>`] },
 ];
 
 // Furniture comes in the same colors as the closet. A color is its own thing to buy, like 'bed.r'.
@@ -3111,6 +3148,7 @@ function defaultState() {
     since: { s: 0, w: 0, m: {} }, // since the last trade-in: new stickers, stickers woken, and misses by fact
     gifts: 0, // free treats given, one for every GIFT_EVERY stickers
     playDays: 0, playDay: 0, // days with a finished round, and the last of them
+    did: '', // a random device id for play reports, set on loading (see PLAY REPORTS)
   };
 }
 
@@ -3324,6 +3362,7 @@ function loadState(extra) {
   loadedPartial = !!saved.partial;
   const state = parseSave(saved);
   addKept(state);
+  state.did = state.did || deviceId();
   savedBase = JSON.parse(JSON.stringify(state));
   return state;
 }
@@ -3444,6 +3483,7 @@ function parseSave(saved) {
     state.playDays = saved.playDays;
     if (Number.isInteger(saved.playDay)) state.playDay = saved.playDay;
   } else if (old) [state.playDays, state.playDay] = [1, today()];
+  if (typeof saved.did === 'string' && DEVICE_ID.test(saved.did)) state.did = saved.did;
   state.savedAt = saved.savedAt || 0;
   return state;
 }
@@ -3503,6 +3543,7 @@ function mergeNewer(stored) {
   state.totalCents = add(stored.totalCents, state.totalCents, base.totalCents);
   state.paidCents = add(stored.paidCents, state.paidCents, base.paidCents);
   state.gems = add(stored.gems, state.gems, base.gems);
+  state.did = stored.did || state.did; // two tabs opened at once on a new device keep the first id saved
   const seen = new Set();
   state.payouts = [...stored.payouts, ...state.payouts]
     .filter(po => !seen.has(po.t + ':' + po.c) && seen.add(po.t + ':' + po.c))
@@ -3598,6 +3639,43 @@ function saveState() {
   savedBase = JSON.parse(JSON.stringify(state));
   saveKept();
   saveStats();
+  keepDeviceId(state.did);
+}
+
+// ===== PLAY REPORTS =====
+// To see how many devices play and how, each device sends its cookie, unchanged and on its own, to REPORT_URL,
+// once each time the page opens, when Ms. Menna asks her first question. The cookie carries a random device id in
+// `did`, which says nothing about the child. The id is also kept under REPORT_ID_KEY in localStorage, so it comes
+// back after an older version (which drops `did`) saves over the save. If sending fails, nothing tries again.
+// Only the published game reports, not a copy played or tested on this computer over plain http.
+const REPORT_URL = location.protocol === 'https:' ? 'https://mathgame.chikim.com/' : '';
+const REPORT_ID_KEY = STORE_KEY + '_deviceId';
+const DEVICE_ID = /^[0-9a-f]{32}$/;
+let reportSent = false;
+
+// The kept id, or a new one for a new device
+function deviceId() {
+  let id = null;
+  try { id = localStorage.getItem(REPORT_ID_KEY); } catch { /* storage may be unavailable in private mode */ }
+  if (id && DEVICE_ID.test(id)) return id;
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function keepDeviceId(id) {
+  try { localStorage.setItem(REPORT_ID_KEY, id); } catch { /* the save still has it */ }
+}
+
+function sendReport() {
+  if (!REPORT_URL || reportSent) return;
+  reportSent = true;
+  // A new player, or a save from before the id, has no id in its cookie until it saves.
+  if (readCookie()?.did !== state.did) saveState();
+  const match = document.cookie.match(new RegExp('(?:^|; )' + COOKIE_NAME + '=([^;]*)'));
+  if (!match) return;
+  // Plain text with no-cors needs no preflight. The game never waits on it.
+  fetch(REPORT_URL, { method: 'POST', mode: 'no-cors', keepalive: true, headers: { 'Content-Type': 'text/plain' }, body: match[1] })
+    .catch(() => { /* offline: no report this time */ });
 }
 
 // ===== LEARNING STATS FOR GROWN-UPS =====
@@ -3775,6 +3853,35 @@ function tone(freq, { at = 0, dur = 0.6, vol = 0.3, voice = 'bell', glide = 0 } 
   } catch { /* never block gameplay on audio */ }
 }
 
+// A soft bowed string: it swells in, sings with a little vibrato, and fades out, where tone() rings and dies away.
+function bowed(freq, at, dur, vol = 0.16) {
+  if (state.muted) return;
+  resumeAudio();
+  try {
+    const { ctx, master } = audioBus();
+    const t = ctx.currentTime + 0.01 + at, end = t + dur;
+    const osc = ctx.createOscillator(), soft = ctx.createBiquadFilter(), g = ctx.createGain();
+    const wobble = ctx.createOscillator(), depth = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, t);
+    soft.type = 'lowpass';
+    soft.frequency.value = freq * 3;
+    wobble.frequency.value = 5.5;
+    depth.gain.setValueAtTime(0, t);
+    depth.gain.linearRampToValueAtTime(freq * 0.012, t + Math.min(0.3, dur));
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.07);
+    g.gain.setValueAtTime(vol, end - 0.1);
+    g.gain.exponentialRampToValueAtTime(0.0001, end + 0.12);
+    wobble.connect(depth);
+    depth.connect(osc.frequency);
+    osc.connect(soft);
+    soft.connect(g);
+    g.connect(master);
+    [osc, wobble].forEach(o => { o.start(t); o.stop(end + 0.2); });
+  } catch { /* never block gameplay on audio */ }
+}
+
 // C major pentatonic, so any run of notes sounds friendly
 const PENTA = [262, 294, 330, 392, 440, 523, 587, 659, 784, 880, 1047, 1175, 1319, 1568];
 
@@ -3859,7 +3966,14 @@ const sfx = {
     piano() { [523, 659, 784, 659, 1047].forEach((f, i) => tone(f, { at: i * 0.22, dur: 0.6, vol: 0.22 })); },
     xylo() { for (let i = 0; i < 7; i++) tone(PENTA[5 + i], { at: i * 0.1, voice: 'marimba', dur: 0.3, vol: 0.22 }); },
     drum() { [0, 0.3, 0.6, 0.75, 1.05].forEach((at, i) => tone(i === 3 ? 196 : 110, { at, voice: 'soft', dur: 0.2, vol: 0.32, glide: 0.6 })); },
-    guitar() { [196, 247, 294, 392, 294, 392].forEach((f, i) => tone(f, { at: i * 0.12, voice: 'marimba', dur: 0.9, vol: 0.2 })); },
+    // A G chord, then C, G and a last G, strummed low to high in time with her paw
+    guitar() {
+      const g = [196, 247, 294, 392], c = [196, 262, 330, 392];
+      [[g, 0.3], [c, 0.75], [g, 1.2], [g, 1.5]].forEach(([chord, at]) =>
+        chord.forEach((f, i) => tone(f, { at: at + i * 0.025, voice: 'marimba', dur: 1, vol: 0.13 })));
+    },
+    // Three warm bowed notes, with the last one held: "La la laaa!"
+    viola() { [[294, 0.25, 0.32], [330, 0.6, 0.32], [392, 0.95, 0.85]].forEach(([f, at, dur]) => bowed(f, at, dur)); },
     splash() { [0, 0.12, 0.22, 0.4].forEach((at, i) => tone(1400 - i * 180, { at, voice: 'soft', dur: 0.18, vol: 0.16, glide: 0.5 })); },
     surf() {
       [0, 1.2].forEach(at => tone(196, { at, voice: 'soft', dur: 1.1, vol: 0.14, glide: 2 }));
@@ -4403,6 +4517,21 @@ const POM_MOVES = {
     paw(tl, b, 'l', 95, 0.05, 2.2); paw(tl, b, 'r', -95, 0.05, 2.2);
     tl.to([b.legL, b.legR], { scaleY: 0.85, duration: 0.2 }, 0.05).to([b.legL, b.legR], { scaleY: 1, duration: 0.2 }, 2.2);
     ears(tl, b, -18, -3, 0.2, 0.1); ears(tl, b, 0, 0, 0.2, 2.2); swing(tl, b.head, 5, 1.2, 2); swing(tl, b.tail, 20, 0.3, 8);
+  },
+  // Strum holds the guitar's neck out with her right paw and strums with her left, in time with the chords.
+  'act-strum': (tl, b) => {
+    paw(tl, b, 'r', -100, 0.05, 2.05, -3); paw(tl, b, 'l', -12, 0.05, 2.05, -2);
+    [0.3, 0.75, 1.2, 1.5].forEach(at => tl.to(b.armL, { rotation: -26, duration: 0.07, ease: 'power2.in' }, at - 0.07)
+      .to(b.armL, { rotation: -10, duration: 0.2, ease: 'back.out(2)' }, at));
+    swing(tl, b.head, 5, 0.45, 4, 0.1); ears(tl, b, 10, 1, 0.2, 0.1); ears(tl, b, 0, 0, 0.2, 1.9); swing(tl, b.tail, 20, 0.225, 8);
+  },
+  // Viola holds the neck with her right paw and draws the bow in her mouth to and fro, eyes shut on the long last note.
+  'act-viola': (tl, b) => {
+    paw(tl, b, 'r', -96, 0.05, 2.05, 2);
+    [[0.25, 1], [0.6, -1], [0.95, 1]].forEach(([at, way], i) =>
+      tl.to(b.head, { x: 3.5 * way, y: 4.5 * way, rotation: 3 * way, duration: i === 2 ? 0.85 : 0.33, ease: 'sine.inOut' }, at));
+    tl.to(b.head, { x: 0, y: 0, rotation: 0, duration: 0.3, ease: 'sine.inOut' }, 1.85);
+    shutEyes(tl, b, 0.95, 1.85, 0.15); ears(tl, b, 12, 2, 0.3, 0.2); ears(tl, b, 0, 0, 0.3, 1.85); swing(tl, b.tail, 15, 0.55, 4);
   },
   'act-swing': (tl, b) => { swing(tl, [b.legL, b.legR], 15, 0.9, 3); swing(tl, b.earL, 10, 0.9, 3); swing(tl, b.earR, 10, 0.9, 3); },
   // Dig reaches both front paws down to the ground and scratches with each in turn, every 0.125s.
@@ -5041,6 +5170,7 @@ function nextQuestion() {
   game.prevKey = keyOf(q);
   game.asked.add(game.prevKey);
   game.track = game.path === 'main' && !retry && !extra && !game.againNow && !q.div && !hasSticker(game.prevKey) && !game.missed.some(m => keyOf(m) === game.prevKey);
+  sendReport(); // once per page open
 
   const cents = centsFor(q.a, q.b);
   $('worth').textContent = `This one pays ${formatCoins(cents)}!`;
@@ -6521,7 +6651,8 @@ function stopWalker(w) {
   w.el.classList.remove('walking');
   w.pom.className = 'pom-container';
   restPom(w.pom);
-  w.pom.querySelectorAll('.act-fx, .dirt-fx, .wave-fx').forEach(fx => fx.remove());
+  w.pom.querySelectorAll('.act-fx, .dirt-fx, .wave-fx, .held').forEach(fx => fx.remove());
+  if (w.el.parentElement) w.el.parentElement.querySelectorAll('.spot.playing').forEach(s => s.classList.remove('playing'));
 }
 
 // Walks Pom to (x, y) and calls done when she gets there. z keeps her in front of a piece she climbs on.
@@ -6546,7 +6677,17 @@ function walkTo(w, x, y, done, z) {
   }, ms));
 }
 
-const ACT_TIME = { nap: 2300, hop: 1500, spin: 1050, wiggle: 2200, swing: 2700, dig: 2000, munch: 1600, surf: 2400 };
+const ACT_TIME = { nap: 2300, hop: 1500, spin: 1050, wiggle: 2200, swing: 2700, dig: 2000, munch: 1600, surf: 2400, strum: 2200, viola: 2200 };
+
+// An instrument she plays leaves its spot and goes in her paws, and her mouth for the viola's bow, until she stops.
+function holdPiece(w, f) {
+  const piece = FURN[placed(f.id) || f.id];
+  const [body, head] = f.hold(...(piece.color ? [piece.color.m, piece.color.d, piece.color.a] : f.classic)).map(svg => ownPaint(svg, w.pom.id));
+  w.pom.querySelector('.pom-arm-l').insertAdjacentHTML('beforebegin', `<g class="held">${body}</g>`);
+  if (head) w.pom.querySelector('.pom-head').insertAdjacentHTML('beforeend', `<g class="held">${head}</g>`);
+  const spot = w.el.parentElement && w.el.parentElement.querySelector(`.spot[data-id="${f.id}"]`);
+  if (spot) spot.classList.add('playing');
+}
 
 // Pom does the piece's act (nap, hop, swing…) with its emoji floating up. loud plays the piece's own sound, for a tap.
 function doAct(w, f, done, loud) {
@@ -6564,6 +6705,7 @@ function doAct(w, f, done, loud) {
     w.pom.appendChild(fx);
   }
   if (f.act === 'surf') w.pom.insertAdjacentHTML('beforeend', '<span class="wave-fx">🌊</span>');
+  if (f.hold && !calmMotion.matches) holdPiece(w, f); // without her paws moving, it stays in its spot
   if (loud && sfx.furn[f.sound]) sfx.furn[f.sound]();
   if (f.act === 'dig') for (let i = 0; i < 10; i++) {
     const dirt = document.createElement('span');

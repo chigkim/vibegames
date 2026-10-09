@@ -1254,6 +1254,80 @@ test('the Bedroom needs 20 stickers, but the Closet works before that', async ({
   expect(await page.evaluate(() => ROOMS.map(r => r.need))).toEqual([20, 40, 60, 95, 121, 145, 171, 190, 205, 221]);
 });
 
+test('a play report sends only the cookie, with a random device id, once when the first question is asked', async ({ page }) => {
+  const reports = [];
+  await page.route('https://report.test/**', route => { reports.push(route.request().postData()); route.fulfill({ status: 204 }); });
+  await page.route('**/multiplication-ms-menna.html', async route => {
+    const html = await (await route.fetch()).text();
+    route.fulfill({ contentType: 'text/html', body: html.replace(/const REPORT_URL = .*;/, "const REPORT_URL = 'https://report.test/play';") });
+  });
+  await page.goto('/multiplication-ms-menna.html');
+  await page.waitForTimeout(300);
+  expect(reports).toEqual([]); // nothing on opening
+  await page.locator('#picker .pick-btn', { hasText: /^7$/ }).click();
+  await page.locator('#startBtn').click();
+  await expect(page.locator('#gameScreen')).toHaveClass(/active/);
+  await expect.poll(() => reports.length).toBe(1);
+  const cookie = await page.evaluate(() => document.cookie.match(/(?:^|; )mennaMult=([^;]*)/)[1]);
+  expect(reports[0]).toBe(cookie);
+  expect(await page.evaluate(() => readCookie().did)).toMatch(/^[0-9a-f]{32}$/);
+  // Later questions and saves send nothing more
+  await page.evaluate(() => { game.index++; nextQuestion(); saveState(); });
+  await page.waitForTimeout(300);
+  expect(reports.length).toBe(1);
+});
+
+test('the device id comes back after an older version saves without it, and an old save gets one', async ({ page }) => {
+  const id = await page.evaluate(() => { saveState(); return state.did; });
+  expect(id).toMatch(/^[0-9a-f]{32}$/);
+  // An older version drops `did` when it saves
+  const back = await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem(STORE_KEY));
+    delete save.did;
+    save.savedAt = Date.now() + 1000;
+    localStorage.setItem(STORE_KEY, JSON.stringify(save));
+    document.cookie = 'mennaMult=; max-age=0; path=/';
+    return loadState().did;
+  });
+  expect(back).toBe(id);
+  // A save from before play reports, with nothing kept, gets a new id
+  const fresh = await page.evaluate(() => { localStorage.clear(); document.cookie = 'mennaMult=; max-age=0; path=/'; return loadState({ v: 27, savedAt: 1 }).did; });
+  expect(fresh).toMatch(/^[0-9a-f]{32}$/);
+  expect(fresh).not.toBe(id);
+});
+
+test('played over plain http, as on this computer, nothing is sent', async ({ page }) => {
+  const requests = [];
+  page.on('request', r => { if (r.method() === 'POST') requests.push(r.url()); });
+  await page.locator('#picker .pick-btn', { hasText: /^7$/ }).click();
+  await page.locator('#startBtn').click();
+  await expect(page.locator('#gameScreen')).toHaveClass(/active/);
+  await page.waitForTimeout(300);
+  expect(requests).toEqual([]);
+});
+
+test('the viola is new at the end of the furniture, and she plays the guitar and viola in her paws', async ({ page }) => {
+  // Furniture is stored by index, so the viola goes last and the Guitar Stand keeps its id and place.
+  expect(await page.evaluate(() => [FURNITURE.at(-1).id, FURNITURE.findIndex(f => f.id === 'guitar') < FURNITURE.findIndex(f => f.id === 'telescope')])).toEqual(['viola', true]);
+  await page.evaluate(() => {
+    state.mastery.fill(STICKER_AT);
+    state.furniture.push('guitar', 'viola.p');
+    state.home.guitar = 'guitar'; state.home.viola = 'viola.p';
+    state.room = 'music'; showHouse(); stopWalker(houseWalker);
+    doAct(houseWalker, FURN.viola, null, false);
+  });
+  await expect(page.locator('#houseRoom .pom-container')).toHaveClass(/act-viola/);
+  // The viola leaves its stand for her paws, and the bow goes in her mouth
+  await expect(page.locator('#houseRoom .pom-container .held')).toHaveCount(2);
+  await expect(page.locator('#houseRoom .spot[data-id="viola"]')).toHaveClass(/playing/);
+  await page.evaluate(() => { stopWalker(houseWalker); doAct(houseWalker, FURN.guitar, null, false); });
+  await expect(page.locator('#houseRoom .pom-container .held')).toHaveCount(1);
+  await expect(page.locator('#houseRoom .spot.playing')).toHaveAttribute('data-id', 'guitar');
+  await page.evaluate(() => stopWalker(houseWalker));
+  await expect(page.locator('#houseRoom .pom-container .held')).toHaveCount(0);
+  await expect(page.locator('#houseRoom .spot.playing')).toHaveCount(0);
+});
+
 test('the five new rooms each have at least five pieces, and the surfboard rides a wave at the Beach', async ({ page }) => {
   const counts = await page.evaluate(() => ['spa', 'music', 'swimpool', 'beach', 'treehouse'].map(id => FURNITURE.filter(f => f.room === id).length));
   for (const n of counts) expect(n).toBeGreaterThanOrEqual(5);

@@ -33,13 +33,7 @@ Each game is one self-contained HTML file with its CSS and JavaScript inline. Th
 
 ## Running locally
 
-There is no build step. Open any HTML file in a browser, or serve the folder with any static file server:
-
-```sh
-npx serve .
-# or
-python -m http.server 8080
-```
+There is no build step. Open any HTML file in a browser.
 
 ## Testing Environment Setup
 

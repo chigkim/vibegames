@@ -38,6 +38,17 @@ A short list of free, well-known packs that suit games for young children. Licen
 
 These are made for app interfaces, not for game art. Use them for grown-up and settings buttons, not for characters or rewards.
 
+## Fonts
+
+All from [Google Fonts](https://fonts.google.com/), under the SIL Open Font License (free, no credit on screen). The games already load Baloo 2 and Nunito from Google Fonts.
+
+| Font | Best for |
+|---|---|
+| Baloo 2 | Round, bold titles and big numbers (already used) |
+| Nunito | Friendly body text (already used) |
+| Fredoka | Soft, chunky titles and buttons |
+| Andika | Text children read themselves. It was made for beginning readers, with letters like a and g drawn the way children learn to write them |
+
 ## Animation players
 
 | Player | What it plays | License | Notes |

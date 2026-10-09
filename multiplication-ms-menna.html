@@ -1259,6 +1259,7 @@
   .btn-row { display: flex; gap: 10px; }
   .btn-row .btn { flex: 1; padding-left: 10px; padding-right: 10px; }
   .sticker-count { font-weight: 800; color: var(--dark-brown); margin: 2px 0 10px; }
+  .sticker-count span { white-space: nowrap; }
   .chart-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 8px; }
   .chart-tab { font-family: 'Baloo 2', cursive; font-weight: 800; font-size: clamp(1rem, 2.4vmin, 1.3rem); color: var(--dark-brown);
     background: white; border: 3px solid var(--peach); border-radius: 50px; padding: 6px 18px; min-height: 44px; cursor: pointer; touch-action: manipulation; }
@@ -1713,7 +1714,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v52 - Updated 2026-10-09 09:11 EDT</p>
+    <p class="version">v53 - Updated 2026-10-09 09:24 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1874,7 +1875,7 @@
 <!-- ===== STICKER CHART SCREEN ===== -->
 <div class="screen" id="stickerScreen">
   <div class="card">
-    <h1>Sticker Chart ⭐</h1>
+    <h1 id="chartTitle">Sticker Chart ⭐</h1>
     <div class="chart-tabs" role="tablist">
       <button class="chart-tab active" id="tabTimes" role="tab" aria-selected="true">× Times</button>
       <button class="chart-tab" id="tabDivide" role="tab" aria-selected="false">÷ Divide</button>
@@ -1890,7 +1891,8 @@
     <p class="sticker-count" id="stickerCount"></p>
     <div class="sticker-grid" id="stickerGrid"></div>
     <div class="sticker-grid" id="stickerGridMore" hidden></div>
-    <p class="sticker-help">Get a fact right on the first try on 3 different days to earn its sticker. Facts with 0, 1 or 10, and ÷ 1 or ÷ 10, need just 2 days.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 each have a sticker!</span><br>💤 Sleepy stickers are still yours. They just want a visit. Get one right to wake it up!<span id="gardenHelp" hidden><br>🌱 In the Garden, each dot helps a plant grow. 🌙 A moon means it's sleepy.</span></p>
+    <p class="sticker-help" id="stickerHelp">Get a fact right on the first try on 3 different days to earn its sticker. Facts with 0, 1 or 10, and ÷&nbsp;1 or ÷&nbsp;10, need just 2 days.<br>Each dot is one time. <span id="stickerShare">3 × 7 and 7 × 3 each have a sticker!</span><br>💤 Sleepy stickers are still yours. They just want a visit. Get one right to wake it up!</p>
+    <p class="sticker-help" id="gardenHelp" hidden>Get a fact right on the first try on 3 different days to grow its plant. Facts with 0, 1 or 10, and ÷&nbsp;1 or ÷&nbsp;10, need just 2 days.<br>🌱 Each dot helps it grow: a sprout, then a green plant, then all grown! ✨<br>🌙 Sleepy plants are still yours. Get one right to wake it up!</p>
     <button class="btn btn-secondary" id="stickerBackBtn">← Back</button>
   </div>
 </div>
@@ -5701,7 +5703,8 @@ function sleepyHello() {
 }
 
 // ===== GARDEN CHART =====
-// The Garden is another way to show the sticker chart: each table is a plant that grows from a seed with every dot.
+// The Garden is another way to show the sticker chart: each table is a plant that grows with every dot. A fact with no dots is bare soil,
+// so the first right answer makes a sprout appear.
 // It only changes the pictures. The save, dots and stickers are the same in both styles.
 // The plants are drawn on a 40 × 40 cell with the soil at the bottom. Kept in one scope so the short helper names stay local.
 const GARDEN = (() => {
@@ -5731,7 +5734,6 @@ const GARDEN = (() => {
   const G = (f, d, t = 0.3) => RIPE ? [f, d] : [mix('#C8E68A', f, t), mix('#4E7A2A', d, t)];
 
   const soil = `<ellipse cx="20" cy="36" rx="13" ry="4" fill="${SOIL}"/><ellipse cx="18" cy="35" rx="5" ry="1.3" fill="#D2A87E"/>`;
-  const seedArt = e(20, 32.4, 3.2, 2.4, '#EBCB92', SOIL_D, 1) + e(18.9, 31.6, 1.1, 0.7, '#FFF0D0');
   const stem = top => line(`M20 35Q19 ${(35 + top) / 2} 20 ${top}`, LEAF_D, 2.2);
   const leaves = (y, s = 1) => leaf(20, y, 9 * s, -150) + leaf(20, y - 1, 9 * s, -30);
   const sproutArt = stem(25) + leaves(27.5, 1.15);
@@ -5754,9 +5756,13 @@ const GARDEN = (() => {
     let art;
     if (k.bud === 'disc') art = [125, 155, 180, 205, 235].map(a => `<g transform="rotate(${a})">${p(`M0 0Q${r * 0.3} ${-r * 0.5} 0 ${-r * 0.95}Q${-r * 0.3} ${-r * 0.5} 0 0z`, gf, gd, 0.9)}</g>`).join('') +
       c(0, 0, r * 0.62, gf, gd) + line(`M${-r * 0.36} ${-r * 0.5}Q0 ${-r * 0.78} ${r * 0.36} ${-r * 0.5}`, k.c, 1.4);
-    // A daisy bud is a small round green button in three sepals, with a white edge. It stays unlike the pointed rose bud.
-    else if (k.bud === 'round') art = [140, 180, 220].map(a => `<g transform="rotate(${a})">${p(`M0 0Q${r * 0.28} ${-r * 0.45} 0 ${-r * 0.9}Q${-r * 0.28} ${-r * 0.45} 0 0z`, gf, gd, 0.9)}</g>`).join('') +
-      c(0, 0, r * 0.58, gf, gd) + line(`M${-r * 0.32} ${-r * 0.42}Q0 ${-r * 0.66} ${r * 0.32} ${-r * 0.42}`, '#FFFFFF', 1.5);
+    // A daisy bud is a little bunch of three round green buttons with white edges, so its shape is unlike the single rose
+    // and sunflower buds.
+    else if (k.bud === 'round') {
+      const button = (x, y, br) => c(x, y, br, gf, gd) + line(`M${x - br * 0.55} ${y - br * 0.6}Q${x} ${y - br * 1.05} ${x + br * 0.55} ${y - br * 0.6}`, '#FFFFFF', 1.4);
+      art = line(`M0 ${r * 0.9}Q${-r * 0.5} ${r * 0.7} ${-r * 0.85} ${r * 0.25}`, gd, 1.4) + line(`M0 ${r * 0.9}Q${r * 0.5} ${r * 0.7} ${r * 0.85} ${r * 0.25}`, gd, 1.4) +
+        button(-r * 0.85, r * 0.15, r * 0.36) + button(r * 0.85, r * 0.15, r * 0.36) + button(0, -r * 0.15, r * 0.5);
+    }
     else art = p(`M0 ${-r}Q${r * 0.75} ${-r * 0.1} ${r * 0.45} ${r * 0.55}Q0 ${r * 0.85} ${-r * 0.45} ${r * 0.55}Q${-r * 0.75} ${-r * 0.1} 0 ${-r}z`, gf, gd) +
       p(`M0 ${-r}Q${r * 0.34} ${-r * 0.35} 0 ${r * 0.25}Q${-r * 0.34} ${-r * 0.35} 0 ${-r}z`, tip, k.d, 0.8);
     return `<g transform="translate(${cx} ${cy})">${art}</g>`;
@@ -5806,10 +5812,10 @@ const GARDEN = (() => {
   const bananaFinger = (rot, f, d, shade) => `<g transform="translate(20 29) rotate(${rot}) scale(1.4)">` +
     p('M-2.6 0Q-4.6 -6 -1.2 -11.2Q0 -12.2 1.1 -11.2Q-0.8 -6 2.6 0z', f, d, 1.3) + line('M1.1 -1Q-1.6 -5.8 0 -9.8', shade, 1.1) +
     c(-0.05, -11.6, 0.9, '#6E4A1E') + '</g>';
-  // Banana: wide paddle leaves and three fat bananas pointing up, with gaps between them. Almost has them light green.
-  const banana = ripe => p('M18 36L18.6 15H21.4L22 36z', '#8DBE52', '#4E8A2A') +
-    paddle(20, 15, 12, -160) + paddle(20, 15, 12, -20) + paddle(20, 14.5, 9, -92) +
-    [-34, 0, 34].map(a => bananaFinger(a, ...(ripe ? ['#FFD83A', '#8A6200', '#F0A820'] : ['#CDEE6A', '#4E7A1A', '#9CC840']))).join('') +
+  // Banana: a wide crown of paddle leaves, like a little palm, and three fat bananas pointing up. Almost has them pale green.
+  const banana = ripe => p('M18 36L18.6 9H21.4L22 36z', '#8DBE52', '#4E8A2A') +
+    paddle(20, 9, 14, -172) + paddle(20, 9, 14, -8) + paddle(20, 8.5, 11, -135) + paddle(20, 8.5, 11, -45) +
+    [-34, 0, 34].map(a => bananaFinger(a, ...(ripe ? ['#FFD83A', '#8A6200', '#F0A820'] : ['#E8F7A8', '#5E8A2A', '#B8D870']))).join('') +
     c(20, 29.4, 2.2, '#8A6A3A', '#5A3E1A', 0.8);
   // Rose: a ring of scalloped red petals around a lighter cup with a swirl. Almost is a closed, pointed green bud in its sepals.
   const ROSE = { c: '#E8384A', d: '#A01A2E' };
@@ -5921,7 +5927,7 @@ const GARDEN = (() => {
     line('M19 11V13', '#8B6A3E', 1.2) + GRAPE_AT.map(([x, y]) => c(x, y, 2.9, ...(RIPE ? ['#8A5BD0', '#4E2A8E'] : ['#E2E27A', '#7A8A2A'])) + shine(x - 0.9, y - 0.9, 0.7)).join('');
   // Pepper: one big bell pepper hanging from a leafy plant. Peppers really start out green: almost is green, ready is orange.
   const pepper = () => {
-    const [f, d] = RIPE ? ['#FF8A1E', '#B8520C'] : ['#B4E060', '#3E7A22'];
+    const [f, d] = RIPE ? ['#FF8A1E', '#B8520C'] : ['#D2F08E', '#3E7A22'];
     return line('M20 35V13', LEAF_D, 2) + leaf(20, 31, 10, -160) + leaf(20, 27, 10, -20) + leaf(20, 16, 8, -145) + leaf(20, 14, 8, -35) +
       line('M20 17Q24.5 16 24.5 20', '#4E9A34', 2) + '<g transform="translate(24.5 27.5)">' +
       p('M-4.6 -6Q-5.8 0 -4.4 5.4Q-3.4 8.2 -1.4 7.6Q0 8.8 1.4 7.6Q3.4 8.2 4.4 5.4Q5.8 0 4.6 -6Q2.6 -7.6 0 -6.8Q-2.6 -7.6 -4.6 -6z', f, d, 1.2) +
@@ -5966,9 +5972,9 @@ const GARDEN = (() => {
     return ART[key] = `<g transform="translate(${(20 - s * cx).toFixed(2)} ${(36 - s * 36).toFixed(2)}) scale(${s.toFixed(3)})">${draw(1 / s)}</g>`;
   }
 
-  // stage: 0 seed, 1 sprout, 2 almost, 3 ready, 4 sleeping
+  // stage: 0 bare soil, 1 sprout, 2 almost, 3 ready, 4 sleeping
   function plant(name, { st, dots, need }) {
-    const art = st === 0 ? seedArt : st === 1 ? sproutArt : artFor(name, st >= 3);
+    const art = st === 0 ? '' : st === 1 ? sproutArt : artFor(name, st >= 3);
     const extra = st === 4 ? sleepBadge : st === 3 ? sparkle : pips(dots, need);
     return `<svg viewBox="0 0 40 40" aria-hidden="true">${soil}${art}${extra}</svg>`;
   }
@@ -5998,7 +6004,7 @@ function fillGrid(grid, rows, cols, divide) {
       const m = state.mastery[FACT_INDEX[key]];
       const name = questionText(q);
       if (chartGarden) {
-        // The row's plant: seed, sprout, almost (1 dot to go), then grown. Easy facts go from sprout to grown.
+        // The row's plant: bare soil, sprout, almost (1 dot to go), then grown. Easy facts go from sprout to grown.
         const need = dotsFor(key), got = m >= STICKER_AT, sleepy = got && isSleepy(FACT_INDEX[key]);
         const st = sleepy ? 4 : got ? 3 : !m ? 0 : m === 1 ? 1 : 2;
         const cls = ['', '', 'almost', 'got', 'got sleepy'][st] + (got && !sleepy && stickersSeen && !stickersSeen.has(key) ? ' new' : '');
@@ -6036,7 +6042,10 @@ function showStickers() {
   const keys = (divide ? DIVIDE_KEYS : TIMES_KEYS).filter(k => Math.max(...factsOf(k)) > 10 === chartHigh);
   const got = keys.filter(hasSticker).length;
   const sleepy = sleepyCount(keys);
-  $('stickerCount').textContent = `${got} of ${keys.length} stickers${got === keys.length ? ' — all of them! 🏆' : ''}${sleepy ? ` · ${sleepy} sleepy 💤` : ''}`;
+  // The sleepy part stays on one line, so a narrow phone never leaves the moon on its own
+  $('stickerCount').innerHTML = `${got} of ${keys.length} ${chartGarden ? 'plants grown' : 'stickers'}${got === keys.length ? ' — all of them! 🏆' : ''}` +
+    (sleepy ? ` <span>· ${sleepy} sleepy ${chartGarden ? '🌙' : '💤'}</span>` : '');
+  $('chartTitle').textContent = chartGarden ? 'Garden 🌱' : 'Sticker Chart ⭐';
   $('stickerShare').textContent = divide ? '56 ÷ 7 and 56 ÷ 8 each have a sticker!' : '3 × 7 and 7 × 3 each have a sticker!';
   for (const [id, on] of [['tabTimes', !divide], ['tabDivide', divide], ['tabLow', !chartHigh], ['tabHigh', chartHigh],
     ['tabStickers', !chartGarden], ['tabGarden', chartGarden]]) {
@@ -6045,6 +6054,7 @@ function showStickers() {
   }
   $('tabLow').textContent = `${from}–10`;
   $('gardenHelp').hidden = !chartGarden;
+  $('stickerHelp').hidden = chartGarden;
   // Every sticker counts as seen, so stickers in the other view don't pop in later as if new
   stickersSeen = new Set(FACT_KEYS.filter(hasSticker));
   showScreen('stickerScreen');

@@ -394,8 +394,13 @@ test('the Garden style shows each fact as a plant, and the choice is remembered 
   await expect(page.locator('#stickerGrid > .got[title="3 × 7 = 21"]')).toHaveCount(1);
   await expect(page.locator('#stickerGrid > .almost')).toHaveCount(1);
   await expect(page.locator('#stickerGrid > .almost[title="4 × 6"]')).toHaveCount(1);
-  await expect(page.locator('#stickerCount')).toHaveText('1 of 121 stickers');
+  await expect(page.locator('#stickerCount')).toHaveText('1 of 121 plants grown');
+  await expect(page.locator('#chartTitle')).toHaveText('Garden 🌱');
   await expect(page.locator('#gardenHelp')).toBeVisible();
+  await expect(page.locator('#stickerHelp')).toBeHidden();
+  // A fact with no dots is bare soil; the first dot makes a sprout
+  await expect(page.locator('#stickerGrid > div[title="2 × 6"] svg path')).toHaveCount(0);
+  await expect(page.locator('#stickerGrid > div[title="2 × 5"] svg path')).not.toHaveCount(0);
   // The 11–20 page and the divide page grow plants too
   await page.locator('#tabHigh').click();
   await expect(page.locator('#stickerGridMore > div:not(.head):not(.corner) svg')).toHaveCount(110);
@@ -408,6 +413,8 @@ test('the Garden style shows each fact as a plant, and the choice is remembered 
   await page.locator('#tabStickers').click();
   await expect(page.locator('#stickerGrid svg')).toHaveCount(0);
   await expect(page.locator('#gardenHelp')).toBeHidden();
+  await expect(page.locator('#stickerCount')).toHaveText('1 of 121 stickers');
+  await expect(page.locator('#chartTitle')).toHaveText('Sticker Chart ⭐');
 });
 
 test('a right answer earns the third dot and a sticker; a wrong one keeps the dots', async ({ page }) => {
@@ -1663,7 +1670,7 @@ test('Ms. Menna says sleepy stickers are still hers, once a day', async ({ page 
   await page.reload();
   await expect(page.locator('#startBubble')).not.toContainText('sleepy');
   await page.locator('#stickersBtn').click();
-  await expect(page.locator('.sticker-help')).toContainText('Sleepy stickers are still yours.');
+  await expect(page.locator('#stickerHelp')).toContainText('Sleepy stickers are still yours.');
 });
 
 test('division pays like its times fact, hints with the missing number, and shows the fact family', async ({ page }) => {

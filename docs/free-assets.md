@@ -1,6 +1,6 @@
-# Free art, icons and animation for future games
+# Free libraries, art, icons and animation for future games
 
-A short list of free, well-known packs that suit games for young children. Licenses were checked on 2026-10-09; recheck the license page before using a pack, and keep its license note in `libs/` or next to the art.
+The libraries already in `libs/`, plus a short list of free, well-known packs that suit games for young children. Licenses were checked on 2026-10-09; recheck the license page before using a pack, and keep its license note in `libs/` or next to the art.
 
 ## How they fit these games
 
@@ -49,14 +49,32 @@ All from [Google Fonts](https://fonts.google.com/), under the SIL Open Font Lice
 | Fredoka | Soft, chunky titles and buttons |
 | Andika | Text children read themselves. It was made for beginning readers, with letters like a and g drawn the way children learn to write them |
 
-## Animation players
+## Libraries in `libs/`
+
+All are vendored, so games load them with a plain script tag and need no internet for code. `README.md` has the file names.
+
+| Library | Use it for | Use something else when |
+|---|---|---|
+| Phaser | Canvas games with lots of moving things, physics, collisions and fast input, such as Flappy Birdie | The game is screens, buttons and a few characters. Plain HTML and SVG are simpler |
+| GSAP | Moving SVG and HTML: characters, pop-ins, bounces, screen changes, timed sequences | A simple endless loop, where a CSS keyframe is enough |
+| GSAP MorphSVG | Reshaping one drawing into another, such as a bud opening | The two shapes are very different. Swap pictures with a pop instead |
+| GSAP MotionPath | Moving along a curve, such as a bee looping round a flower | Straight moves, which plain GSAP handles |
+| GSAP Physics2D | Thrown, falling and bouncing pieces, such as confetti or coins | Real collisions between objects. Use Phaser |
+| GSAP CustomEase, CustomBounce, CustomWiggle | Squash on landing, wobbles, shakes and hand-made timing | Built-in eases like `back.out` already look right |
+| Tone.js | Music, melodies, chords and layered sound effects | Short blips and pops. ZzFX is smaller and quicker |
+| ZzFX | Tiny sound effects: jumps, pops, coins, taps | Anything musical |
+| NippleJS | An on-screen joystick for moving a character freely | Tapping or dragging works. Children find those easier |
+| lz-string | Making a save small enough for a cookie | Data that only lives in localStorage or IndexedDB |
+| EasySpeech and `speech.js` | A narrator that reads lines aloud, with mute and a voice picker | Never call the browser's speech directly; it has bugs on iOS |
+
+## Animation players (not in `libs/` yet)
 
 | Player | What it plays | License | Notes |
 |---|---|---|---|
 | [lottie-web](https://github.com/airbnb/lottie-web) | Lottie JSON, such as Noto Animated Emoji | MIT | About 240 KB minified. Plays fixed animations; it can't react to the game beyond play, pause and jump to a frame. Not vendored yet |
 | [Rive](https://rive.app/docs/runtimes/getting-started) | Characters rigged in the Rive editor, with states like idle, happy and sleepy | MIT (player) | Uses WebAssembly, so test on the iPad. Best for a character-led game. Not vendored yet |
 
-GSAP and its free plugins are already in `libs/` and cover most motion for SVG art.
+GSAP and its plugins cover most motion for SVG art. Add one of these players only when a game needs what it plays.
 
 ## Where each kind of thing should come from
 

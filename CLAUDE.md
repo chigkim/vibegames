@@ -19,7 +19,7 @@ You may use the vendored libraries inside the libs/ folder:
 7. EasySpeech for reliable text-to-speech that works around browser bugs in the built-in voices.
 8. `speech.js` for a shared narrator voice built on EasySpeech, with mute, stop, and a voice picker. Load `easy-speech-2.4.0.js` before it.
 
-For free ready-made art, icons and animated emoji, and which license each needs, see `docs/free-assets.md`.
+For when to use each library, plus free ready-made art, icons, fonts and animated emoji with their licenses, see `docs/free-assets.md`.
 
 ## Game creation and updates:
 

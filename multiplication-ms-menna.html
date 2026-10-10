@@ -680,6 +680,11 @@
   .pom-mouth-happy, .pom-mouth-o { transition: opacity 0.2s; }
   .pom-container.surprised .pom-mouth-happy { opacity: 0; }
   .pom-container:not(.surprised) .pom-mouth-o { opacity: 0; }
+  /* Talking: her mouth goes between the smile, half open and the round "o", quickly so it keeps up with her words. */
+  .pom-mouth-half { opacity: 0; transition: opacity 0.2s; }
+  .pom-container.talking :is(.pom-mouth-happy, .pom-mouth-o, .pom-mouth-half) { transition-duration: 0.04s; }
+  .pom-container.mouth-half .pom-mouth-happy, .pom-container.mouth-o .pom-mouth-happy { opacity: 0; }
+  .pom-container.mouth-half .pom-mouth-half, .pom-container.mouth-o .pom-mouth-o { opacity: 1; }
 
   /* ===== SPEECH BUBBLE ===== */
   .speech-bubble {
@@ -1701,6 +1706,7 @@
       <ellipse cx="64" cy="57" rx="1.5" ry="1" fill="white" opacity="0.6"/>
       <path class="pom-mouth-happy" d="M 61 62 Q 65 66 69 62" stroke="#3D2B1F" stroke-width="2" fill="none" stroke-linecap="round"/>
       <ellipse class="pom-mouth-o" cx="65" cy="64" rx="2.5" ry="3" fill="#3D2B1F"/>
+      <ellipse class="pom-mouth-half" cx="65" cy="63.4" rx="3.2" ry="1.7" fill="#3D2B1F"/>
       <circle cx="51" cy="57" r="5" fill="#FFB3C6" opacity="0.5"/>
       <circle cx="79" cy="57" r="5" fill="#FFB3C6" opacity="0.5"/>
       <g class="acc acc-face"></g>
@@ -1737,7 +1743,7 @@
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
     <div class="pom-container" id="pomIntro" role="button" aria-label="Ms. Menna. Tap her to start"></div>
     <div class="speech-bubble below" id="introBubble" aria-live="polite">Tap me to start! 🐾</div>
-    <p class="version">v60 - Updated 2026-10-10 10:43 EDT</p>
+    <p class="version">v61 - Updated 2026-10-10 10:58 EDT</p>
   </div>
 </div>
 
@@ -1746,7 +1752,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v60 - Updated 2026-10-10 10:43 EDT</p>
+    <p class="version">v61 - Updated 2026-10-10 10:58 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -4014,7 +4020,48 @@ const sfx = {
 
 // ===== TEXT TO SPEECH =====
 // Ms. Menna reads her speech bubbles out loud with the shared voice in libs/speech.js.
-Speech.setup({ words: [[/💎/g, ' gems'], [/✓/g, ' check']] });
+Speech.setup({ words: [[/💎/g, ' gems'], [/✓/g, ' check']], onTalk: talkMouth });
+
+// Her mouth moves while she talks: open on each word when the voice reports words, or at a steady talking pace
+// when it doesn't. Away from questions her head also tilts a little now and then. With Reduce Motion on, she stays still.
+const talk = { pom: null, timers: [], beat: 0, words: false, wait: 0 };
+function mouthTo(pom, shape) {
+  pom.classList.toggle('mouth-half', shape === 'half');
+  pom.classList.toggle('mouth-o', shape === 'o');
+}
+function talkWord() {
+  const pom = talk.pom;
+  talk.timers.forEach(clearTimeout);
+  mouthTo(pom, Math.random() < 0.6 ? 'o' : 'half');
+  talk.timers = [setTimeout(() => mouthTo(pom, 'half'), 110), setTimeout(() => mouthTo(pom, ''), 200)];
+  const head = pom.body && pom.body.head;
+  if (head && !document.body.classList.contains('in-game') && Math.random() < 0.3 && !gsap.isTweening(head)) {
+    gsap.to(head, { rotation: pick([-2.5, 2.5]), duration: 0.22, ease: 'sine.inOut', yoyo: true, repeat: 1 });
+  }
+}
+function talkMouth(what) {
+  if (what === 'start') {
+    talkMouth('end');
+    if (calmMotion.matches) return;
+    talk.pom = document.querySelector('.screen.active .pom-container');
+    if (!talk.pom) return;
+    talk.pom.classList.add('talking');
+    talk.words = false;
+    // Most voices report their first word at once. If none comes, the mouth keeps a steady pace instead.
+    talk.wait = setTimeout(() => { if (!talk.words) talk.beat = setInterval(talkWord, 260); }, 350);
+  } else if (what === 'word' && talk.pom) {
+    talk.words = true;
+    clearInterval(talk.beat);
+    talkWord();
+  } else if (what === 'end' && talk.pom) {
+    clearTimeout(talk.wait);
+    clearInterval(talk.beat);
+    talk.timers.forEach(clearTimeout);
+    talk.pom.classList.remove('talking');
+    mouthTo(talk.pom, '');
+    talk.pom = null;
+  }
+}
 
 // Children read the gameplay instructions themselves, so sentences like "Tap a color!" are shown but not spoken.
 // Only sentences that start by telling the child what to do, so "Let's pick an outfit!" is still read.

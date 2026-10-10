@@ -13,6 +13,7 @@
 //   Speech.stop();
 //   Speech.setMuted(true);
 //   Speech.openPicker();                         // lets a grown-up pick the voice and speed
+//   Speech.setup({ onTalk: what => {} });        // 'start', 'word' and 'end' of each line, to move a mouth
 //
 // A button with class "speech-voice-btn" gets the picker's look, placed in the top-left
 // corner of its nearest positioned parent.
@@ -28,6 +29,7 @@
     pitch: 1.15,
     sample: "Hi! I'm Ms. Menna. Let's do some math!",
     words: [], // game-specific [pattern, replacement] pairs, applied before the shared ones
+    onTalk: null, // called with 'start' when a line starts, 'word' at each word if the voice reports words, and 'end'
   };
 
   // Math symbols are read as words. Emoji are dropped. "Grrr" has no vowel, so voices spell it out as letters. She says "Ruff ruff" instead.
@@ -59,6 +61,9 @@
   const GAP = 350;
   let current = Promise.resolve(); // settles when the newest line ends or is dropped
   let quietSince = 0;
+  let talking = 0; // the number of the line being said, so a late event from a cut-off line is ignored
+  const tell = what => { try { if (settings.onTalk) settings.onTalk(what); } catch { /* never block speech on a mouth */ } };
+  const hush = line => { if (talking && (!line || talking === line)) { talking = 0; tell('end'); } };
   const pause = ms => new Promise(resolve => setTimeout(resolve, Math.max(0, ms)));
   // iOS Safari sometimes never sends `end`, so a waiting line stops waiting after about as long as the line takes.
   const lineTime = (words, rate) => 1500 + words.length * 80 / rate;
@@ -139,6 +144,7 @@
 
   function cancel() {
     if (!supported) return;
+    hush();
     try { EasySpeech.cancel(); } catch { synth.cancel(); } // EasySpeech throws until its voices load
   }
 
@@ -159,11 +165,15 @@
       };
       const voice = currentVoice();
       if (voice) options.voice = voice;
+      options.start = () => { if (mine >= cut) { talking = mine; tell('start'); } };
+      // Chrome also reports sentences; only words move the mouth.
+      options.boundary = e => { if (talking === mine && e.name !== 'sentence') tell('word'); };
+      options.end = options.error = () => hush(mine);
       let done = Promise.resolve();
       try {
         done = EasySpeech.speak(options).catch(() => {}); // rejects when cut off by the next speak()
       } catch { /* never block gameplay on speech */ }
-      Promise.race([done, pause(lineTime(words, options.rate))]).then(() => { quietSince = Date.now(); finished(); });
+      Promise.race([done, pause(lineTime(words, options.rate))]).then(() => { hush(mine); quietSince = Date.now(); finished(); });
     });
   }
 
@@ -173,6 +183,7 @@
   }
 
   function stop() {
+    hush();
     cut = ++count;
     cancel();
     current = Promise.resolve(); // nothing is being said, so the next `after` line need not wait

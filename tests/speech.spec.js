@@ -297,6 +297,31 @@ test.describe('the intro', () => {
     }
     expect(tricks.join(' ')).not.toMatch(/trick-/);
   });
+
+  test('her mouth opens on each word she says, and closes when she is done', async ({ page }) => {
+    const pom = page.locator('#pomIntro');
+    await expect(pom).toHaveClass(/\btalking\b/);
+    await page.evaluate(() => { const e = new Event('boundary'); e.name = 'word'; window.__speech.current.dispatchEvent(e); });
+    await expect(pom).toHaveClass(/mouth-(o|half)/);
+    await expect(pom).not.toHaveClass(/mouth-/); // shut again before the next word
+    await page.evaluate(() => window.__speech.finish());
+    await expect(pom).not.toHaveClass(/\btalking\b/);
+  });
+
+  test('a voice that reports no words still moves her mouth at a steady pace', async ({ page }) => {
+    const pom = page.locator('#pomIntro');
+    await expect(pom).toHaveClass(/mouth-(o|half)/);
+    await page.locator('#muteBtn').click(); // muting stops her talking
+    await expect(pom).not.toHaveClass(/\btalking\b|mouth-/);
+  });
+
+  test('with Reduce Motion on, her mouth stays still', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.reload();
+    await expect.poll(() => spoken(page)).toEqual(['Tap me to start!']);
+    await page.waitForTimeout(600);
+    await expect(page.locator('#pomIntro')).not.toHaveClass(/\btalking\b|mouth-/);
+  });
 });
 
 test.describe('Add & Subtract with Ms. Menna', () => {

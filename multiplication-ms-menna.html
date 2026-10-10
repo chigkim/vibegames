@@ -954,6 +954,8 @@
   }
 
   .teacher-row { display: flex; align-items: center; gap: 22px; margin-bottom: 14px; }
+  /* While she says today's goal at the start of a Learn round. Hidden, not removed, so nothing jumps when it shows. */
+  #gameScreen.goal-first .question-box, #gameScreen.goal-first .numpad { visibility: hidden; }
 
   /* ===== QUESTION ===== */
   .question-box {
@@ -1743,7 +1745,7 @@
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
     <div class="pom-container" id="pomIntro" role="button" aria-label="Ms. Menna. Tap her to start"></div>
     <div class="speech-bubble below" id="introBubble" aria-live="polite">Tap me to start! 🐾</div>
-    <p class="version">v64 - Updated 2026-10-10 16:00 EDT</p>
+    <p class="version">v65 - Updated 2026-10-10 12:19 EDT</p>
   </div>
 </div>
 
@@ -1752,7 +1754,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v64 - Updated 2026-10-10 16:00 EDT</p>
+    <p class="version">v65 - Updated 2026-10-10 12:19 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -5280,7 +5282,12 @@ function startRound(path, max = 0) {
   }
   showScreen('gameScreen');
   renderBank();
-  nextQuestion();
+  $('gameScreen').classList.toggle('goal-first', path === 'main');
+  if (path !== 'main') return nextQuestion();
+  // Learn with Ms. Menna starts with today's goal. The question and number pad wait, hidden, until she has said it.
+  game.locked = true;
+  say('gameBubble', todayGoal(true));
+  laterQuiet(() => { $('gameScreen').classList.remove('goal-first'); nextQuestion(); }, 1700);
 }
 
 function clearTimers() {
@@ -5852,11 +5859,8 @@ function todayCounts() {
   };
 }
 
-// The sentence Ms. Menna adds to her summary line: the nearest reward still open today, in this order: stickers,
-// second dots, sleepy stickers. With none left, what she did today, and new facts to find, never that the day is done.
-function todayGoal() {
-  const { day, toSticker, toSecond, sleepy } = todayCounts();
-  const of = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+// The nearest reward still open today, in this order: stickers, second dots, sleepy stickers. Empty when none is left.
+function goalNow(toSticker, toSecond, sleepy, of) {
   if (chartGarden) {
     if (toSticker) return `${of(toSticker, 'more plant', 'more plants')} can grow today! 🌻`;
     if (toSecond) return `${of(toSecond, 'plant', 'plants')} can grow again today! 🌿`;
@@ -5866,6 +5870,18 @@ function todayGoal() {
     if (toSecond) return `${of(toSecond, 'fact', 'facts')} can get ${toSecond === 1 ? 'its' : 'their'} second dot today! 🟡`;
     if (sleepy) return `${of(sleepy, 'sleepy sticker wants', 'sleepy stickers want')} to wake up! 💤`;
   }
+  return '';
+}
+
+// The sentence Ms. Menna adds to her summary line: the nearest reward still open today. With none left, what she did
+// today, and new facts to find, never that the day is done. At the start of a Learn round she says it first, beginning
+// "Let's go!", and with none left only points to new facts.
+function todayGoal(start = false) {
+  const { day, toSticker, toSecond, sleepy } = todayCounts();
+  const of = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const goal = goalNow(toSticker, toSecond, sleepy, of);
+  if (start) return goal ? "Let's go! " + goal : "Let's find new facts! 🌱";
+  if (goal) return goal;
   // All of today's dots in one count (`d`, a sticker's last dot too), like her "dots this round" line. The card keeps them apart.
   const got = [day.d && of(day.d, 'dot', 'dots'), day.s && of(day.s, 'sticker', 'stickers')].filter(Boolean);
   const did = (chartGarden

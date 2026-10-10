@@ -45,6 +45,16 @@ test.describe('Math with Ms. Menna (multiplication-ms-menna.html)', () => {
   test.beforeEach(async ({ page }) => {
     // Every open starts on the intro, so tap Ms. Menna to get to the home screen, as a child would.
     await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => document.getElementById('pomIntro')?.click()));
+    // Learn rounds open with her saying today's goal. Most tests skip it and start on the first question;
+    // a test that checks the goal sets window.keepGoal first.
+    await page.addInitScript(() => window.addEventListener('load', () => {
+      const start = window.startRound;
+      window.startRound = (...args) => {
+        start(...args);
+        if (window.keepGoal || !$('gameScreen').classList.contains('goal-first')) return;
+        clearTimers(); $('gameScreen').classList.remove('goal-first'); nextQuestion();
+      };
+    }));
     await page.goto('/multiplication-ms-menna.html');
     await page.evaluate(() => {
       localStorage.clear();
@@ -146,6 +156,21 @@ test.describe('Math with Ms. Menna (multiplication-ms-menna.html)', () => {
   test('a waiting line still comes if the browser never says the last one is done', async ({ page }) => {
     await page.evaluate(() => { Speech.speak('Yay!'); Speech.speak('Next one!', { after: true }); });
     await expect.poll(() => spoken(page), { timeout: 5000 }).toEqual(['Yay!', 'Next one!']);
+  });
+
+  test('a line counts as done soon after its last word, without waiting for a late end, and the next line lets that word finish', async ({ page }) => {
+    const word = at => page.evaluate(at => { const e = new Event('boundary'); e.name = 'word'; e.charIndex = at; window.__speech.current.dispatchEvent(e); }, at);
+    await page.evaluate(() => { window.done = false; Speech.speak('Great job, friend!'); Speech.idle().then(() => { window.done = true; }); });
+    await page.waitForTimeout(100);
+    await word(0);
+    await page.waitForTimeout(800);
+    expect(await page.evaluate(() => window.done)).toBe(false); // an earlier word is not the end
+    await word(11);
+    await expect.poll(() => page.evaluate(() => window.done), { timeout: 1500 }).toBe(true);
+    const cancels = await page.evaluate(() => window.__speech.cancels);
+    await page.evaluate(() => Speech.speak('Next one!'));
+    await expect.poll(() => spoken(page)).toEqual(['Great job, friend!', 'Next one!']);
+    expect(await page.evaluate(() => window.__speech.cancels)).toBe(cancels);
   });
 
   test('the praise is not cut off by the next question', async ({ page }) => {

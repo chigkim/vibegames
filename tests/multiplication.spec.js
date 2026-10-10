@@ -12,6 +12,16 @@ test.beforeEach(async ({ page, context }) => {
   await context.addInitScript(() => localStorage.setItem('mennaMultiplication_keepNotice', '99999'));
   // Every open starts on the intro, so tap Ms. Menna to get to the home screen, as a child would.
   await context.addInitScript(() => document.addEventListener('DOMContentLoaded', () => document.getElementById('pomIntro')?.click()));
+  // Learn rounds open with her saying today's goal. Most tests skip it and start on the first question;
+  // a test that checks the goal sets window.keepGoal first.
+  await context.addInitScript(() => window.addEventListener('load', () => {
+    const start = window.startRound;
+    window.startRound = (...args) => {
+      start(...args);
+      if (window.keepGoal || !$('gameScreen').classList.contains('goal-first')) return;
+      clearTimers(); $('gameScreen').classList.remove('goal-first'); nextQuestion();
+    };
+  }));
   await page.goto('/multiplication-ms-menna.html');
   await page.evaluate(() => {
     localStorage.clear();
@@ -2454,6 +2464,23 @@ test('after a round, her plain line says how many dots the round earned', async 
   await page.evaluate(() => { chartGarden = true; });
   await summary(7, 2);
   await expect(bubble).toContainText('Great job! 2 plants grew this round! 🐾');
+});
+
+test('a Learn round starts with today\'s goal, and the first question waits until she has said it', async ({ page }) => {
+  await page.evaluate(() => { window.keepGoal = true; const i = FACT_INDEX['2x3']; state.mastery[i] = 2; state.days[i] = today() - 1; });
+  await page.locator('#pathBtn').click();
+  await expect(page.locator('#gameBubble')).toHaveText('Let\'s go! 1 more can become a sticker today! ⭐');
+  await expect(page.locator('#gameScreen')).toHaveClass(/goal-first/);
+  await expect(page.locator('#equation')).toBeHidden();
+  expect(await page.evaluate(() => game.locked)).toBe(true);
+  await expect(page.locator('#gameScreen')).not.toHaveClass(/goal-first/, { timeout: 5000 });
+  await expect(page.locator('#equation')).toBeVisible();
+  await expect(page.locator('#gameBubble')).not.toContainText('Let\'s go!');
+  // With nothing left today, she only points to new facts, and practice rounds start straight away
+  expect(await page.evaluate(() => { state.mastery.fill(0); stats.days[today()] = { s: 2, d: 5 }; return todayGoal(true); })).toBe('Let\'s find new facts! 🌱');
+  await page.evaluate(() => startRound('practice', 5));
+  await expect(page.locator('#gameScreen')).not.toHaveClass(/goal-first/);
+  await expect(page.locator('#equation')).toBeVisible();
 });
 
 test('after a round, Ms. Menna names the nearest reward left today: stickers, then second dots, then sleepy stickers, then what she did today', async ({ page }) => {

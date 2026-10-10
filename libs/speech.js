@@ -65,8 +65,18 @@
   const tell = what => { try { if (settings.onTalk) settings.onTalk(what); } catch { /* never block speech on a mouth */ } };
   const hush = line => { if (talking && (!line || talking === line)) { talking = 0; tell('end'); } };
   const pause = ms => new Promise(resolve => setTimeout(resolve, Math.max(0, ms)));
-  // iOS Safari sometimes never sends `end`, so a waiting line stops waiting after about as long as the line takes.
-  const lineTime = (words, rate) => 1500 + words.length * 80 / rate;
+  // iOS Safari sometimes never sends `end`, so a waiting line stops waiting after about as long as the line takes:
+  // a guess at first, then this voice's own pace, learned from lines that did end.
+  let pace = 0; // ms per character, from start to `end`
+  const lineTime = (words, rate) => {
+    const guess = 1500 + words.length * 80 / rate;
+    return pace ? Math.min(guess, 800 + words.length * pace) : guess;
+  };
+  // Many voices send `end` a second or more after the last word. A line counts as done this long after its last
+  // word starts, and the browser still finishes saying it before the next line.
+  // A number takes longer to say than to write ("56" is "fifty-six"), so each digit counts as about four letters.
+  const lastWordTime = (word, rate) => (250 + word.replace(/\d/g, 'dddd').length * 70) / rate;
+  let tailing = 0; // a line counted as done whose last word may still be playing
 
   // ===== SAVED CHOICE =====
   // Saved in localStorage with a cookie copy, like the piggy bank, so it survives if either one is
@@ -150,7 +160,9 @@
 
   function talk(text, evenWhenMuted, after) {
     const mine = ++count;
-    if (!after) { cut = mine; cancel(); }
+    // A new line lets a line that is only finishing its last word end, instead of cutting the word off.
+    const letFinish = !!tailing && !after;
+    if (!after) { cut = mine; if (!letFinish) cancel(); }
     const words = clean(text);
     if (!supported || (muted && !evenWhenMuted) || !words) return;
     const waited = after ? current.then(() => pause(quietSince + GAP - Date.now())) : null;
@@ -161,19 +173,46 @@
       // force: still try the default voice if this browser never listed its voices
       // noStop: if the wait gave up early, the browser still lets the last line finish first
       const options = {
-        text: words, rate: Math.round(settings.rate * SPEEDS[choice.speed] * 100) / 100, pitch: settings.pitch, volume: 1, force: !ok, noStop: !!after,
+        text: words, rate: Math.round(settings.rate * SPEEDS[choice.speed] * 100) / 100, pitch: settings.pitch, volume: 1, force: !ok, noStop: !!after || letFinish,
       };
       const voice = currentVoice();
       if (voice) options.voice = voice;
-      options.start = () => { if (mine >= cut) { talking = mine; tell('start'); } };
+      let startedAt = 0;
+      let settled = false;
+      let tailTimer = 0;
+      const over = ended => {
+        if (ended) { hush(mine); if (tailing === mine) tailing = 0; }
+        if (settled) return;
+        settled = true;
+        quietSince = Date.now();
+        finished();
+      };
+      const lastWord = (words.match(/[\p{L}\p{N}']+(?=[^\p{L}\p{N}']*$)/u) || [''])[0];
+      const lastAt = words.length - (words.match(/[\p{L}\p{N}']+[^\p{L}\p{N}']*$/u) || [''])[0].length;
+      options.start = () => { startedAt = Date.now(); if (mine >= cut) { talking = mine; tell('start'); } };
       // Chrome also reports sentences; only words move the mouth.
-      options.boundary = e => { if (talking === mine && e.name !== 'sentence') tell('word'); };
+      options.boundary = e => {
+        if (e.name === 'sentence') return;
+        if (talking === mine) tell('word');
+        // Some voices report a word more than once, so each report of the last word starts the wait again.
+        if (lastWord && e.charIndex >= lastAt && !settled) {
+          clearTimeout(tailTimer);
+          tailTimer = setTimeout(() => { if (!settled && mine >= cut) { tailing = mine; over(false); } }, lastWordTime(lastWord, options.rate));
+        }
+      };
       options.end = options.error = () => hush(mine);
       let done = Promise.resolve();
       try {
-        done = EasySpeech.speak(options).catch(() => {}); // rejects when cut off by the next speak()
+        done = EasySpeech.speak(options).then(() => {
+          // Learn the voice's pace from lines long enough to measure and not cut off
+          if (startedAt && mine >= cut && words.length >= 20) {
+            const now = (Date.now() - startedAt) / words.length;
+            pace = pace ? (pace + now) / 2 : now;
+          }
+        }, () => {}); // rejects when cut off by the next speak()
       } catch { /* never block gameplay on speech */ }
-      Promise.race([done, pause(lineTime(words, options.rate))]).then(() => { hush(mine); quietSince = Date.now(); finished(); });
+      done.then(() => over(true));
+      pause(lineTime(words, options.rate)).then(() => over(true));
     });
   }
 
@@ -184,6 +223,7 @@
 
   function stop() {
     hush();
+    tailing = 0;
     cut = ++count;
     cancel();
     current = Promise.resolve(); // nothing is being said, so the next `after` line need not wait

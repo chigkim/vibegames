@@ -71,6 +71,37 @@ test.describe('Math with Ms. Menna (multiplication-ms-menna.html)', () => {
     expect(last.text).not.toMatch(/[×🐾]/u);
   });
 
+  test('a line said before the first tap shows at once and is said at that tap, unless a newer line replaced it', async ({ page }) => {
+    // Playwright's evaluate() counts as a tap, so make the page look untapped until the real click.
+    await page.evaluate(() => Object.defineProperty(navigator, 'userActivation', { value: { hasBeenActive: false } }));
+    await page.evaluate(() => { say('startBubble', 'Woof! 🐾'); say('startBubble', 'Hello again! 🐾'); });
+    await expect(page.locator('#startBubble')).toHaveText('Hello again! 🐾');
+    await page.waitForTimeout(300);
+    expect(await spoken(page)).toEqual([]);
+    await page.locator('#startScreen h1').click();
+    await expect.poll(() => spoken(page)).toEqual(['Hello again!']);
+  });
+
+  test('the warning about the browser erasing her things is read at the first tap, and the next tap on OK closes it', async ({ page }) => {
+    // Playwright's evaluate() counts as a tap, so make the page look untapped until the real click.
+    await page.evaluate(() => Object.defineProperty(navigator, 'userActivation', { value: { hasBeenActive: false } }));
+    await page.evaluate(() => { state.playDay = today(); saveState(); localStorage.removeItem(STORE_KEY + '_keepNotice'); showKeepNotice(); });
+    const notice = page.locator('#keepNotice');
+    await expect(notice).toBeVisible();
+    await page.waitForTimeout(300);
+    expect(await spoken(page)).toEqual([]);
+    await page.locator('#keepOkBtn').click();
+    await expect.poll(() => spoken(page)).toEqual([expect.stringContaining('safe with me through next')]);
+    await expect(notice).toBeVisible();
+    await page.locator('#keepOkBtn').click();
+    await expect(notice).toBeHidden();
+    // Once the page can talk, she reads it at once, and one tap closes it
+    await page.evaluate(() => { localStorage.removeItem(STORE_KEY + '_keepNotice'); showKeepNotice(); });
+    await expect.poll(async () => (await spoken(page)).length).toBe(2);
+    await page.locator('#keepOkBtn').click();
+    await expect(notice).toBeHidden();
+  });
+
   test('reads the speech bubble but skips gameplay instructions', async ({ page }) => {
     // Each new line cuts off the last one, so say them one at a time.
     const sayAndHear = async (bubble, text, extra) => {

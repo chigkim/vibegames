@@ -1727,7 +1727,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v58 - Updated 2026-10-10 04:36 EDT</p>
+    <p class="version">v59 - Updated 2026-10-10 04:46 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -3356,9 +3356,11 @@ function showKeepNotice() {
     `If we don't play by then, the web browser might erase them. Come visit me by next ${day}. 🐾`;
   $('keepText').textContent = text;
   $('keepNotice').hidden = false;
-  Speech.speak(text);
+  // Before any tap the page can't talk yet, so the first tap reads it, and only the next tap on OK closes it.
+  keepUnheard = Speech.speak(text);
   return true;
 }
+let keepUnheard = false;
 
 // True when the save came from a cookie copy without the payout list, so init() takes a full IndexedDB copy of the same age.
 let loadedPartial = false;
@@ -7349,8 +7351,10 @@ function init() {
   // One hello per page open, so none cuts off another: the notice first, then the sleepy hello, then the Home Screen tip.
   // The ones not said wait for a later open.
   if (!showKeepNotice() && !sleepyHello()) showHomeScreenTip();
+  $('keepNotice').addEventListener('click', e => { if (e.target !== $('keepOkBtn')) keepUnheard = false; });
   $('keepOkBtn').addEventListener('click', () => {
     sfx.tap(1);
+    if (keepUnheard) { keepUnheard = false; return; } // this tap started her reading it
     Speech.stop();
     $('keepNotice').hidden = true;
   });

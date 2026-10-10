@@ -142,11 +142,24 @@
     try { EasySpeech.cancel(); } catch { synth.cancel(); } // EasySpeech throws until its voices load
   }
 
+  // Browsers drop speech until the first tap (iOS Safari without a word), so lines said before it are held
+  // and said at that tap, unless a newer line took their place.
+  let tapped = false;
+  const canTalkYet = () => tapped || !!(navigator.userActivation && navigator.userActivation.hasBeenActive);
+  let held = [];
+
+  // Returns true when the line is held for the first tap.
   function talk(text, evenWhenMuted, after) {
     const mine = ++count;
     if (!after) { cut = mine; cancel(); }
     const words = clean(text);
-    if (!supported || (muted && !evenWhenMuted) || !words) return;
+    if (!supported || (muted && !evenWhenMuted) || !words) return false;
+    if (!canTalkYet()) { held.push({ mine, words, after }); return true; }
+    play(mine, words, after);
+    return false;
+  }
+
+  function play(mine, words, after) {
     const waited = after ? current.then(() => pause(quietSince + GAP - Date.now())) : null;
     let finished;
     current = new Promise(resolve => { finished = resolve; });
@@ -168,8 +181,9 @@
   }
 
   // Says `text`. Stops anything being said first, or with { after: true } lets it finish. Does nothing when muted.
+  // Returns true when the page can't talk yet, so the line waits for the first tap.
   function speak(text, { after = false } = {}) {
-    talk(text, false, after);
+    return talk(text, false, after);
   }
 
   function stop() {
@@ -201,6 +215,10 @@
     const utt = new SpeechSynthesisUtterance(' ');
     utt.volume = 0;
     synth.speak(utt);
+    tapped = true;
+    const lines = held;
+    held = [];
+    lines.forEach(line => { if (line.mine >= cut) play(line.mine, line.words, line.after); });
   }
   document.addEventListener('touchend', unlock, true);
   document.addEventListener('click', unlock, true);

@@ -1302,6 +1302,15 @@
   .sticker-grid.garden svg { width: 100%; height: 100%; display: block; }
   #gardenMeasure { position: absolute; left: -200px; top: 0; width: 40px; height: 40px; pointer-events: none; }
   .sticker-help { font-weight: 700; color: var(--brown); font-size: 0.85rem; line-height: 1.5; margin-bottom: 4px; }
+  .today-card {
+    margin: -4px auto 14px; border-collapse: separate; border-spacing: 0; background: #FFF6EC;
+    border: 2px solid var(--pink); border-radius: 16px; padding: 4px 6px; font-weight: 800; color: var(--dark-brown);
+    font-size: clamp(0.82rem, 3.6vw, 1rem); line-height: 1.25; text-align: left;
+  }
+  .today-card th, .today-card td { padding: 4px 6px; vertical-align: top; }
+  .today-card thead th { font-family: 'Baloo 2', cursive; font-size: 0.85em; color: var(--brown); padding-bottom: 0; }
+  .today-card tbody th { white-space: nowrap; }
+  .today-card tbody tr + tr > * { border-top: 1px dashed var(--pink); }
   .new-stickers { font-weight: 800; color: var(--dark-brown); margin: -6px 0 14px; white-space: pre-line; }
   .new-trick { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0 0 14px; font-weight: 800; color: var(--dark-brown); }
   .new-trick[hidden] { display: none; }
@@ -1718,7 +1727,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v57 - Updated 2026-10-09 16:52 EDT</p>
+    <p class="version">v58 - Updated 2026-10-10 04:36 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1822,6 +1831,11 @@
     <h1 id="summaryTitle">Great job!</h1>
     <div class="final-stars" id="finalStars"></div>
     <div class="speech-bubble below" id="summaryBubble"></div>
+    <!-- What happened today, and what can still happen today. Ms. Menna doesn't read it aloud. -->
+    <table class="today-card" id="todayCard" hidden>
+      <thead><tr><td></td><th scope="col">Today</th><th scope="col">Still can today</th></tr></thead>
+      <tbody id="todayRows"></tbody>
+    </table>
     <!-- What she learned comes first, then the score and coins. -->
     <div class="new-stickers" id="newStickers"></div>
     <div class="new-stickers" id="pathUp"></div>
@@ -3687,10 +3701,10 @@ const QUICK_MS = 3000; // a first-try right answer this fast is quick recall
 const SLOW_MS = 6000; // and a fact whose last one took this long is still worked out
 const ANSWER_MS_MAX = 60000; // longer than this on one question is time away, not time answering
 // A day, by day number. Rounds: r on the path, p in practice. First answers: q, c of them right.
-// d dots, s new stickers, w stickers woken. v sleepy stickers asked, vc of them right, l stickers missed.
+// d dots, s new stickers, w stickers woken, d1 first dots and d2 second dots that didn't make a sticker. v sleepy stickers asked, vc of them right, l stickers missed.
 // t ms answering questions. n first-try right answers timed, m their ms, k of them quick.
 // h pictures asked for or shown after two misses, a pictures shown on their own.
-const STATS_DAY_FIELDS = ['r', 'p', 'q', 'c', 'd', 's', 'w', 'v', 'vc', 'l', 't', 'n', 'm', 'k', 'h', 'a'];
+const STATS_DAY_FIELDS = ['r', 'p', 'q', 'c', 'd', 's', 'w', 'v', 'vc', 'l', 't', 'n', 'm', 'k', 'h', 'a', 'd1', 'd2'];
 // A fact, by key: [first answers, right first time, ms of its last first-try right answer,
 // day first asked if it had no dots yet (0 if unknown), day of its sticker (0 if before the stats or not yet)].
 const emptyStats = () => ({ v: 1, start: today(), savedAt: 0, days: {}, facts: {} });
@@ -3999,12 +4013,21 @@ Speech.setup({ words: [[/💎/g, ' gems'], [/✓/g, ' check']] });
 // Only sentences that start by telling the child what to do, so "Let's pick an outfit!" is still read.
 const INSTRUCTION = /^\W*(tap|press|type|pick|choose|get answers|get questions|add to home screen)\b/i;
 // No lookbehind in the regex: Safari before 16.4 cannot parse it, and the whole game would fail to start.
-const spokenPart = text => text.replace(/([.!?…])\s+/g, '$1\n').split('\n').filter(s => !INSTRUCTION.test(s)).join(' ');
+// Lines that are shown but never spoken, because they are long and come up often.
+const ONE_DOT_A_DAY = 'One dot a day! Get it right tomorrow for the next one! 🌙';
+const ONE_DOT_LEFT = 'One dot! Get it right tomorrow for the sticker! 🌙';
+const TWO_DOTS_LEFT = 'Two dots! Get it right tomorrow for the sticker! 🌙';
+const SHOWN_ONLY = new Set([ONE_DOT_A_DAY, ONE_DOT_LEFT, TWO_DOTS_LEFT]);
+const spokenPart = text => SHOWN_ONLY.has(text) ? '' : text.replace(/([.!?…])\s+/g, '$1\n').split('\n').filter(s => !INSTRUCTION.test(s)).join(' ');
 
 // Shows text in a speech bubble and reads it, minus instructions. `extra` (like the question) is always spoken, but not shown.
 // With `after`, Ms. Menna first finishes what she is saying, like the praise before the next question.
+// A line said `after` shows in its bubble once she is done with the lines before it, unless a newer line took the bubble.
 function say(bubbleId, text, extra = '', after = false) {
-  $(bubbleId).textContent = text;
+  const bubble = $(bubbleId);
+  const mine = bubble.sayId = (bubble.sayId || 0) + 1;
+  if (after) Speech.idle().then(() => { if (bubble.sayId === mine) bubble.textContent = text; });
+  else bubble.textContent = text;
   const words = [spokenPart(text), extra].filter(Boolean).join(' ');
   if (words.replace(/[^\p{L}\p{N}]/gu, '')) Speech.speak(words, { after });
   else if (!after) Speech.stop(); // a silent bubble still ends the last one's speech
@@ -5070,6 +5093,7 @@ function startRound(path, max = 0) {
     retries: carried && carried.path === path && carried.max === max
       ? carried.retries.filter(r => !r.div || state.divOn).map(r => ({ ...r, at: 0 })) : [],
     newStickers: [],
+    dots: 0, // dots earned this round, stickers' last dots too
     woken: [],
     fixed: [], // facts missed earlier in the round, then right on a later try
     slots: path === 'practice' ? null : state.easyPath ? ROUND_SLOTS_EASY : state.fastPath ? ROUND_SLOTS_FAST : ROUND_SLOTS,
@@ -5115,6 +5139,13 @@ function clearCountOut() {
 
 function later(fn, ms) {
   game.timers.push(setTimeout(fn, ms));
+}
+
+// Like later(), but also waits until she is done talking, so the next bubble never shows while she still says the last one.
+function laterQuiet(fn, ms) {
+  const g = game;
+  const t = setTimeout(() => Speech.idle().then(() => { if (game === g && g.timers.includes(t)) fn(); }), ms);
+  g.timers.push(t);
 }
 
 // Facts missed more often have higher weights, so they come up more often.
@@ -5288,7 +5319,9 @@ function onCorrect(answer) {
         if (state.mastery[i] >= dotsFor(key)) state.mastery[i] = STICKER_AT;
         state.days[i] = day;
         logStat('d');
+        game.dots++;
         newSticker = state.mastery[i] === STICKER_AT;
+        if (!newSticker) logStat(state.mastery[i] === 1 ? 'd1' : 'd2');
         if (newSticker) {
           state.levels[i] = 0;
           game.newStickers.push(fact);
@@ -5362,15 +5395,15 @@ function onCorrect(answer) {
     ? `You fixed ${questionText(fact)}! 🌟`
     : tomorrow
     ? state.mastery[FACT_INDEX[key]] === dotsFor(key) - 1
-      ? state.mastery[FACT_INDEX[key]] === 1 ? 'One dot! Get it right tomorrow for the sticker! 🌙' : 'Two dots! Get it right tomorrow for the sticker! 🌙'
-      : 'One dot a day! Get it right tomorrow for the next one! 🌙'
+      ? state.mastery[FACT_INDEX[key]] === 1 ? ONE_DOT_LEFT : TWO_DOTS_LEFT
+      : ONE_DOT_A_DAY
     : game.attempts === 0
     ? pick(['Pawsome! 🐾', 'Woof woof! Correct!', 'You got it! ⭐', `You remembered ${questionText(fact)}!`, 'You knew that one right away!', 'Wag wag! That\'s right!'])
     : pick(['You figured it out! 🐾', 'Yes! You kept trying!', 'That\'s it! 🐾']));
 
   game.index++;
   $('progressFill').style.width = (game.index / QUESTIONS_PER_ROUND * 100) + '%';
-  later(nextQuestion, trick || react || newSticker || woke || tomorrow ? 1700 : game.attempts === 0 ? 1300 : 1900);
+  laterQuiet(nextQuestion, trick || react || newSticker || woke || tomorrow ? 1700 : game.attempts === 0 ? 1300 : 1900);
 }
 
 // A fact from a table the path hasn't reached, to find tables she already knows. It earns a dot like any fact.
@@ -5637,6 +5670,77 @@ let summaryTricks = []; // tricks she learned in the round just finished
 let teachQueue = []; // the trick list to pick from for each table finished this round and not yet picked for
 let summaryInvite = false; // the summary asks about dividing, after any trick is picked
 
+// The facts another round like this one can ask, so "more can" never counts a fact she can't reach.
+// The path asks the tables up to the one she is learning, and division of the tables she knows; practice asks up to its number.
+function reachKeys() {
+  const on = k => state.divOn || !k.startsWith('d');
+  if (game.path === 'practice') return FACT_KEYS.filter(k => on(k) && factsOf(k).every(n => n <= game.max));
+  const step = pathStep();
+  if (step < PATH.length) return [...PATH_FACTS.slice(0, step + 1).flat(), ...(state.divOn ? learnedDivide().flat() : [])];
+  if (guidedDivide()) return [...MAIN_KEYS.filter(k => !k.startsWith('d')), ...DIVIDE_FACTS.slice(0, divideStep() + 1).flat()];
+  return shownKeys();
+}
+
+// Today's counts, and what can still happen today: facts one dot from a sticker, 1-dot facts that can get a second dot
+// (an easy fact's second dot is its sticker), and sleepy stickers. Path rounds visit every sleepy sticker on the chart.
+function todayCounts() {
+  const keys = [...new Set(reachKeys())];
+  const open = dots => keys.filter(k => canEarn(k) && state.mastery[FACT_INDEX[k]] === dots(k)).length;
+  return {
+    day: stats.days[today()] || {},
+    toSticker: open(k => dotsFor(k) - 1),
+    toSecond: open(k => (dotsFor(k) === STICKER_AT ? 1 : -1)),
+    sleepy: sleepyCount(game.path === 'practice' ? keys : shownKeys()),
+  };
+}
+
+// The sentence Ms. Menna adds to her summary line: the nearest reward still open today, in this order: stickers,
+// second dots, sleepy stickers. With none left, what she did today, and new facts to find, never that the day is done.
+function todayGoal() {
+  const { day, toSticker, toSecond, sleepy } = todayCounts();
+  const of = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  if (chartGarden) {
+    if (toSticker) return `${of(toSticker, 'more plant', 'more plants')} can grow today! 🌻`;
+    if (toSecond) return `${of(toSecond, 'plant', 'plants')} can grow again today! 🌿`;
+    if (sleepy) return `${of(sleepy, 'sleepy plant wants', 'sleepy plants want')} to wake up! 🌙`;
+  } else {
+    if (toSticker) return `${toSticker} more can become ${toSticker === 1 ? 'a sticker' : 'stickers'} today! ⭐`;
+    if (toSecond) return `${of(toSecond, 'fact', 'facts')} can get ${toSecond === 1 ? 'its' : 'their'} second dot today! 🟡`;
+    if (sleepy) return `${of(sleepy, 'sleepy sticker wants', 'sleepy stickers want')} to wake up! 💤`;
+  }
+  // All of today's dots in one count (`d`, a sticker's last dot too), like her "dots this round" line. The card keeps them apart.
+  const got = [day.d && of(day.d, 'dot', 'dots'), day.s && of(day.s, 'sticker', 'stickers')].filter(Boolean);
+  const did = (chartGarden
+    ? [day.d && `helped plants grow ${of(day.d, 'time', 'times')}`, day.s && `grew ${of(day.s, 'plant', 'plants')} all the way`]
+    : [got.length && `got ${andList(got)}`]
+  ).concat([
+    day.w && `woke up ${of(day.w, 'sleepy ' + (chartGarden ? 'plant' : 'sticker'), 'sleepy ' + (chartGarden ? 'plants' : 'stickers'))}`,
+  ]).filter(Boolean);
+  return (did.length ? `Today you ${andList(did)}! ` : '') + "Let's find new facts! 🌱";
+}
+
+// The summary's Today card: what she did today, and what can still happen today.
+// A cell at 0 is blank, a row with nothing is hidden, and so is the card.
+function renderToday() {
+  const { day, toSticker, toSecond, sleepy } = todayCounts();
+  const rows = chartGarden ? [
+    ['🌻 Plants', day.s, 'grown', toSticker, 'more can grow'],
+    ['🌿 Growing', day.d2, 'grew again', toSecond, 'more can'],
+    ['🌙 Sleepy', day.w, 'woke up', sleepy, 'still sleepy'],
+    ['🌱 Sprouts', day.d1, 'sprouted', 0, ''],
+  ] : [
+    ['⭐ Stickers', day.s, 'earned', toSticker, 'more can'],
+    ['🟡 Second dots', day.d2, 'got their 2nd dot', toSecond, 'more can'],
+    ['💤 Sleepy', day.w, 'woke up', sleepy, 'still sleepy'],
+    ['🔵 New facts', day.d1, 'got their first dot', 0, ''],
+  ];
+  const cell = (n, words) => `<td>${n ? `${n} ${words}` : ''}</td>`;
+  const shown = rows.filter(([, done, , can]) => done || can);
+  $('todayRows').innerHTML = shown.map(([name, done, did, can, could]) =>
+    `<tr><th scope="row">${name}</th>${cell(done, did)}${cell(can, could)}</tr>`).join('');
+  $('todayCard').hidden = !shown.length;
+}
+
 // Shows the next trick choice. The last trick of a list has no choice, so she just learns it.
 // Returns true while a choice is showing. The child must pick one, so the way out waits until then.
 function offerTrick() {
@@ -5674,28 +5778,30 @@ function showSummary() {
   $('summaryTitle').textContent = stars === 3 ? 'Amazing!' : stars === 2 ? 'Great job!' : 'Nice work!';
   $('finalStars').innerHTML = [1, 2, 3].map(i =>
     `<span class="${i <= stars ? '' : 'dim'}" style="animation-delay:${0.2 + i * 0.2}s">⭐</span>`).join('');
-  // She woke the last sleepy sticker, so the review for today is done. More play is still fine.
-  const allAwake = game.woken.length > 0 && sleepyCount() === 0;
   const invite = summaryInvite = game.path === 'main' && inviteDue();
   // She learns a trick for each times or division table finished this round, on the path or in practice.
   summaryTricks = [];
   teachQueue = [...Array(Math.max(0, pathStep() - game.step)).fill(LEARNED_TRICKS), ...Array(Math.max(0, divideStep() - game.divStep)).fill(DIVIDE_TRICKS)];
   const choosing = offerTrick();
   const newSticks = game.newStickers.length;
-  say('summaryBubble', choosing
+  // Her plain lines say how many dots the round earned, so the line stays short and the goal still comes last.
+  const dots = game.dots;
+  const gotDots = chartGarden ? `${dots} ${dots === 1 ? 'plant' : 'plants'} grew this round!` : `You got ${dots} ${dots === 1 ? 'dot' : 'dots'} this round!`;
+  const line = choosing
     ? 'You finished a table! Which trick should I learn? 🐾'
     : invite
     ? 'You learned all your times tables! 🎉 Want to learn dividing next?'
     : summaryTricks.length
     ? `I learned to ${andList(summaryTricks.map(t => t.name))}! Watch! 🎉`
-    : allAwake
-    ? 'You woke up every sleepy sticker! Ready for another round? 🐾'
     : stars === 3
-    ? (newSticks ? `${newSticks} new ${newSticks === 1 ? 'sticker' : 'stickers'}! Your practice is working! 🐾` : 'You remembered so many facts! 🐾')
+    ? (newSticks ? `${newSticks} new ${newSticks === 1 ? 'sticker' : 'stickers'}! Your practice is working! 🐾` : dots ? `${gotDots} 🐾` : 'You remembered so many facts! 🐾')
     : stars === 2
-      ? 'Great job! 🐾'
-      : 'Nice try! Keep going! 💪',
-    `You got ${firstTry} out of ${QUESTIONS_PER_ROUND}!`, true);
+      ? (dots ? `Great job! ${gotDots} 🐾` : 'Great job! 🐾')
+      : dots ? `${gotDots} Keep going! 💪` : 'Nice try! Keep going! 💪';
+  // A question to answer comes alone. Otherwise the goal comes last, after the score, so it's what she hears last.
+  const goal = choosing || invite ? '' : todayGoal();
+  $('summaryBubble').textContent = goal ? `${line} ${goal}` : line;
+  Speech.speak([spokenPart(line), `You got ${firstTry} out of ${QUESTIONS_PER_ROUND}!`, goal && spokenPart(goal)].filter(Boolean).join(' '), { after: true });
   $('statFirstTry').textContent = `${firstTry} / ${QUESTIONS_PER_ROUND}`;
   $('statEarned').textContent = formatDelta(roundCents);
   $('statBank').textContent = formatCoins(state.totalCents);
@@ -5722,6 +5828,7 @@ function showSummary() {
     game.woken.length ? 'Woke up: ' + list(game.woken) : '',
     game.fixed.length ? 'You fixed: ' + game.fixed.map(questionText).join(', ') : '',
   ].filter(Boolean).join('\n');
+  renderToday();
   // She celebrates every round: a new trick if she learned one, else a dance for 3 stars, a spin for 2 and a bounce for 1.
   // A picked trick she does as soon as it is picked.
   showLearned();
@@ -7239,11 +7346,9 @@ function init() {
   document.addEventListener('pointerdown', () => {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   }, { once: true });
-  // The other hellos wait for another visit to home, so they don't talk over the notice.
-  if (!showKeepNotice()) {
-    sleepyHello();
-    showHomeScreenTip();
-  }
+  // One hello per page open, so none cuts off another: the notice first, then the sleepy hello, then the Home Screen tip.
+  // The ones not said wait for a later open.
+  if (!showKeepNotice() && !sleepyHello()) showHomeScreenTip();
   $('keepOkBtn').addEventListener('click', () => {
     sfx.tap(1);
     Speech.stop();

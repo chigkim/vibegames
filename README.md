@@ -29,7 +29,7 @@ Each game is one self-contained HTML file with its CSS and JavaScript inline. Th
 | `gsap-3.15.0-CustomBounce.min.js` | GSAP plugin for bounces with matching squash and stretch. Needs `CustomEase`. Not used by any game yet |
 | `gsap-3.15.0-CustomWiggle.min.js` | GSAP plugin for wobbles and shakes. Needs `CustomEase`. Not used by any game yet |
 | `easy-speech-2.4.0.js` | Fixes browser bugs in the built-in text-to-speech voices |
-| `speech.js` | Ms. Menna's shared voice, built on EasySpeech. Load `easy-speech-2.4.0.js` first, then call `Speech.speak(text)`, `Speech.speak(text, { after: true })` (waits for the line being said to finish), `Speech.stop()` and `Speech.setMuted(on)`. It reads math symbols as words and skips emoji. `Speech.openPicker()` opens a voice and speed picker; the choice is saved in localStorage with a cookie copy (`mennaVoice`) and shared by every game. |
+| `speech.js` | Ms. Menna's shared voice, built on EasySpeech. Load `easy-speech-2.4.0.js` first, then call `Speech.speak(text)`, `Speech.speak(text, { after: true })` (waits for the line being said to finish), `Speech.stop()`, `Speech.idle()` (a promise that settles when she is done talking) and `Speech.setMuted(on)`. It reads math symbols as words and skips emoji. `Speech.openPicker()` opens a voice and speed picker; the choice is saved in localStorage with a cookie copy (`mennaVoice`) and shared by every game. |
 
 ## Running locally
 
@@ -42,7 +42,7 @@ The games are tested with [Playwright](https://playwright.dev) in headless Chrom
 - `tests/games.spec.js` runs the same smoke tests on every game: it loads without errors, starts and plays for a moment, draws on its canvas (Phaser games), and shows the same version number as its card on `index.html`. Add an entry to its `GAMES` list when you add a game.
 - `tests/rise.spec.js` has extra checks for Rise (screens, HUD, mute button, saved guide setting).
 - `tests/multiplication.spec.js` covers Math with Ms. Menna (multiplication and division). See [docs/multiplication-ms-menna.md](docs/multiplication-ms-menna.md) for what it checks and for the separate save-upgrade tests. The coins are exchanged for real money, so keep these passing.
-- `tests/speech.spec.js` checks the shared voice: word swaps, the default voice, and that the voice and speed picked in one game are saved, survive a reload or a cleared localStorage, and carry over to the other game. It also checks that a line said `after` waits for the one being said, so praise isn't cut off by the next question, that only the newest waiting line is said, and that typing drops it.
+- `tests/speech.spec.js` checks the shared voice: word swaps, the default voice, and that the voice and speed picked in one game are saved, survive a reload or a cleared localStorage, and carry over to the other game. It also checks that a line said `after` waits for the one being said, so praise isn't cut off by the next question, that waiting lines are said in order, and that typing drops them.
 
 ### Requirements
 

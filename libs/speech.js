@@ -52,11 +52,10 @@
 
   let muted = false;
   // Every line gets a number. speak() and stop() drop all lines before theirs, so a late line never talks
-  // over a newer one. A line said `after` waits for the one before it, then a short breath. Only the newest
-  // waiting line is kept.
+  // over a newer one. A line said `after` waits for the one before it, then a short breath, so waiting lines
+  // are said in order.
   let count = 0;
   let cut = 0; // lines numbered below this are dropped
-  let waiting = 0; // the newest `after` line
   const GAP = 350;
   let current = Promise.resolve(); // settles when the newest line ends or is dropped
   let quietSince = 0;
@@ -145,15 +144,14 @@
 
   function talk(text, evenWhenMuted, after) {
     const mine = ++count;
-    if (after) waiting = mine;
-    else { cut = mine; cancel(); }
+    if (!after) { cut = mine; cancel(); }
     const words = clean(text);
     if (!supported || (muted && !evenWhenMuted) || !words) return;
     const waited = after ? current.then(() => pause(quietSince + GAP - Date.now())) : null;
     let finished;
     current = new Promise(resolve => { finished = resolve; });
     Promise.all([ready, waited]).then(([ok]) => {
-      if (mine < cut || (after && mine !== waiting)) return finished();
+      if (mine < cut) return finished();
       // force: still try the default voice if this browser never listed its voices
       // noStop: if the wait gave up early, the browser still lets the last line finish first
       const options = {
@@ -178,6 +176,12 @@
     cut = ++count;
     cancel();
     current = Promise.resolve(); // nothing is being said, so the next `after` line need not wait
+  }
+
+  // Settles when every line said so far has ended or been dropped, so a game can wait to show its next bubble.
+  // Like a waiting line, it gives up after about as long as the line takes.
+  function idle() {
+    return current;
   }
 
   function setMuted(on) {
@@ -334,5 +338,5 @@
     stop();
   }
 
-  window.Speech = { supported, ready, setup, speak, stop, setMuted, clean, openPicker, closePicker, currentVoice };
+  window.Speech = { supported, ready, setup, speak, stop, idle, setMuted, clean, openPicker, closePicker, currentVoice };
 })();

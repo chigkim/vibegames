@@ -85,6 +85,11 @@ test.describe('Math with Ms. Menna (multiplication-ms-menna.html)', () => {
     expect(await sayAndHear('houseBubble', 'Let\'s pick an outfit! 🎀')).toEqual(['Let\'s pick an outfit!']);
     await expect(page.locator('#startBubble')).toHaveText('Yay! My new Bed! 🐾');
     expect(await sayAndHear('startBubble', 'That costs $0.50. Yay!')).toEqual(['That costs $0.50. Yay!']);
+    // Shown but not spoken
+    expect(await sayAndHear('gameBubble', 'One dot! Get it right tomorrow for the sticker! 🌙')).toEqual([]);
+    expect(await sayAndHear('gameBubble', 'Two dots! Get it right tomorrow for the sticker! 🌙')).toEqual([]);
+    expect(await sayAndHear('gameBubble', 'One dot a day! Get it right tomorrow for the next one! 🌙')).toEqual([]);
+    await expect(page.locator('#gameBubble')).toHaveText('One dot a day! Get it right tomorrow for the next one! 🌙');
   });
 
   test('a bubble with only instructions stops the last line', async ({ page }) => {
@@ -117,15 +122,17 @@ test.describe('Math with Ms. Menna (multiplication-ms-menna.html)', () => {
     expect(await page.evaluate(() => window.__speech.cancels)).toBe(cancels); // the praise was not cut off
   });
 
-  test('only the newest waiting line is said, and typing drops it', async ({ page }) => {
+  test('waiting lines are said in order, and typing drops them', async ({ page }) => {
     await page.evaluate(() => { Speech.speak('One'); Speech.speak('Two', { after: true }); Speech.speak('Three', { after: true }); });
     await page.waitForTimeout(100);
     await page.evaluate(() => window.__speech.finish());
-    await expect.poll(() => spoken(page)).toEqual(['One', 'Three']);
+    await expect.poll(() => spoken(page)).toEqual(['One', 'Two']);
+    await page.evaluate(() => window.__speech.finish());
+    await expect.poll(() => spoken(page)).toEqual(['One', 'Two', 'Three']);
 
     await page.evaluate(() => { window.__speech.spoken.length = 0; Speech.speak('Woof!'); });
     await page.waitForTimeout(100);
-    await page.evaluate(() => { Speech.speak('Four', { after: true }); Speech.stop(); });
+    await page.evaluate(() => { Speech.speak('Four', { after: true }); Speech.speak('Five', { after: true }); Speech.stop(); });
     await page.evaluate(() => window.__speech.finish());
     await page.waitForTimeout(600);
     expect(await spoken(page)).toEqual(['Woof!']);
@@ -153,6 +160,24 @@ test.describe('Math with Ms. Menna (multiplication-ms-menna.html)', () => {
     await expect.poll(async () => (await spoken(page)).length).toBe(praised + 1);
     expect((await spoken(page)).at(-1)).toMatch(/\?$/);
     expect(await page.evaluate(() => window.__speech.cancels)).toBe(cancels);
+  });
+
+  test('the next question and its bubble wait until she finishes the praise', async ({ page }) => {
+    await page.locator('#pathBtn').click();
+    const a = Number(await page.locator('#factorA').innerText());
+    const b = Number(await page.locator('#factorB').innerText());
+    const op = await page.locator('#opSign').innerText();
+    await page.keyboard.type(String(op === '÷' ? a / b : a * b));
+    await page.keyboard.press('Enter');
+    await expect.poll(async () => (await spoken(page)).length).toBeGreaterThan(1);
+    const praise = await page.locator('#gameBubble').innerText();
+    // Past the usual 1.3 s pause, but before speech.js gives up on the line
+    await page.waitForTimeout(1700);
+    await expect(page.locator('#qCounter')).toHaveText(/^1 \//);
+    await expect(page.locator('#gameBubble')).toHaveText(praise);
+    await page.evaluate(() => window.__speech.finish());
+    await expect(page.locator('#qCounter')).toHaveText(/^2 \//);
+    await expect(page.locator('#gameBubble')).not.toHaveText(praise);
   });
 
   test('after a second miss, each step of the picture waits for the last one', async ({ page }) => {

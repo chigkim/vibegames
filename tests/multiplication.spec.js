@@ -1736,6 +1736,15 @@ test('the summary shows learning first, and fixed facts are celebrated', async (
   expect(await page.evaluate(() => !!($('newStickers').compareDocumentPosition(document.querySelector('#summaryScreen .stat-row')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
 });
 
+test('on an iPad, the Home Screen tip waits for an open without the sleepy hello, so it never cuts it off', async ({ page, context }) => {
+  await context.addInitScript(() => Object.defineProperty(Navigator.prototype, 'userAgent', { get: () => 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X)' }));
+  await setFact(page, '3x5', 3, 1);
+  await page.reload();
+  await expect(page.locator('#startBubble')).toContainText('1 sticker is sleepy');
+  await page.reload();
+  await expect(page.locator('#startBubble')).toContainText('Add to Home Screen');
+});
+
 test('Ms. Menna says sleepy stickers are still hers, once a day', async ({ page }) => {
   await setFact(page, '3x5', 3, 1);
   await setFact(page, '3x6', 3, 1);
@@ -2347,7 +2356,7 @@ test('a sneak peek at a later table earns a dot, stays with that table, and a mi
   expect(await page.evaluate(() => [game.peekNow, PATH_NEW[2].includes(keyOf(game))])).toEqual([true, true]);
 });
 
-test('after the last sleepy sticker wakes, Ms. Menna asks for another round', async ({ page }) => {
+test('after the last sleepy sticker wakes, Ms. Menna says her usual line, not one that sounds like the day is done', async ({ page }) => {
   await page.locator('#pathBtn').click();
   await page.evaluate(() => {
     for (let i = 0; i < state.mastery.length; i++) if (state.mastery[i] >= STICKER_AT) state.days[i] = today();
@@ -2355,8 +2364,88 @@ test('after the last sleepy sticker wakes, Ms. Menna asks for another round', as
     game.index = QUESTIONS_PER_ROUND;
     nextQuestion();
   });
-  await expect(page.locator('#summaryBubble')).toContainText('Ready for another round?');
+  await expect(page.locator('#summaryBubble')).toHaveText(/\S/);
+  await expect(page.locator('#summaryBubble')).not.toContainText('every sleepy sticker');
   await expect(page.locator('#summaryBubble')).not.toContainText('tomorrow');
+});
+
+test('the round summary shows what she did today and what can still happen today, with empty rows hidden', async ({ page }) => {
+  await page.locator('#pathBtn').click();
+  await page.evaluate(() => {
+    for (const k of ['3x4', '3x5']) { const i = FACT_INDEX[k]; state.mastery[i] = k === '3x4' ? 1 : 0; state.days[i] = today() - 1; }
+  });
+  await askFact(page, 3, 4);
+  await answer(page, true); // second dot
+  await askFact(page, 3, 5);
+  await answer(page, true); // first dot
+  const day = await page.evaluate(() => stats.days[today()]);
+  expect(day.d2).toBe(1);
+  expect(day.d1).toBe(1);
+  await page.evaluate(() => {
+    const i = FACT_INDEX['2x4']; state.mastery[i] = 2; state.days[i] = today() - 1; // one dot from a sticker
+    const j = FACT_INDEX['7x8']; state.mastery[j] = 2; state.days[j] = today() - 1; // a later table the path can't ask yet
+    game.index = QUESTIONS_PER_ROUND; nextQuestion();
+  });
+  const card = page.locator('#todayCard');
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('1 got their 2nd dot');
+  await expect(card).toContainText('1 got their first dot');
+  await expect(card).toContainText('1 more can');
+  await expect(card).not.toContainText('Sleepy');
+  await expect(card).not.toContainText(/\b0 /);
+});
+
+test('after a round, her plain line says how many dots the round earned', async ({ page }) => {
+  await page.locator('#pathBtn').click();
+  const bubble = page.locator('#summaryBubble');
+  const summary = (firstTry, dots) => page.evaluate(([f, d]) => {
+    Object.assign(game, { firstTry: f, dots: d, newStickers: [], index: QUESTIONS_PER_ROUND }); nextQuestion();
+  }, [firstTry, dots]);
+  await summary(9, 3);
+  await expect(bubble).toContainText('You got 3 dots this round! 🐾');
+  await summary(7, 1);
+  await expect(bubble).toContainText('Great job! You got 1 dot this round! 🐾');
+  await summary(4, 2);
+  await expect(bubble).toContainText('You got 2 dots this round! Keep going! 💪');
+  await summary(7, 0);
+  await expect(bubble).toContainText('Great job! 🐾');
+  await expect(bubble).not.toContainText('this round');
+  await page.evaluate(() => { chartGarden = true; });
+  await summary(7, 2);
+  await expect(bubble).toContainText('Great job! 2 plants grew this round! 🐾');
+});
+
+test('after a round, Ms. Menna names the nearest reward left today: stickers, then second dots, then sleepy stickers, then what she did today', async ({ page }) => {
+  await page.locator('#pathBtn').click();
+  const summary = () => page.evaluate(() => { game.index = QUESTIONS_PER_ROUND; nextQuestion(); });
+  const set = (k, m, ago, lv = 0) => page.evaluate(([k, m, ago, lv]) => {
+    const i = FACT_INDEX[k]; state.mastery[i] = m; state.days[i] = today() - ago; state.levels[i] = lv;
+  }, [k, m, ago, lv]);
+  const bubble = page.locator('#summaryBubble');
+  await set('2x3', 1, 1);
+  await set('2x4', 2, 1);
+  await set('2x5', 3, 5);
+  await set('7x8', 2, 1); // a later table, never counted
+  await summary();
+  await expect(bubble).toContainText('1 more can become a sticker today! ⭐');
+  await set('2x4', 2, 0);
+  await summary();
+  await expect(bubble).toContainText('1 fact can get its second dot today! 🟡');
+  await set('2x3', 1, 0);
+  await summary();
+  await expect(bubble).toContainText('1 sleepy sticker wants to wake up! 💤');
+  await set('2x5', 3, 0);
+  await page.evaluate(() => { stats.days[today()] = { s: 2, d: 5, d1: 3, w: 1 }; });
+  await summary();
+  await expect(bubble).toContainText("Today you got 5 dots and 2 stickers and woke up 1 sleepy sticker! Let's find new facts! 🌱");
+  await expect(bubble).not.toContainText('tomorrow');
+  // Garden mode says it with plants
+  await page.evaluate(() => { chartGarden = true; });
+  await summary();
+  await expect(bubble).toContainText("Today you helped plants grow 5 times, grew 2 plants all the way and woke up 1 sleepy plant! Let's find new facts! 🌱");
+  await set('2x3', 1, 1);
+  await summary();
+  await expect(bubble).toContainText('1 plant can grow again today! 🌿');
 });
 
 // Every times fact up to 10 has a sticker earned today.

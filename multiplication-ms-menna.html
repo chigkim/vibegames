@@ -1743,7 +1743,7 @@
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
     <div class="pom-container" id="pomIntro" role="button" aria-label="Ms. Menna. Tap her to start"></div>
     <div class="speech-bubble below" id="introBubble" aria-live="polite">Tap me to start! 🐾</div>
-    <p class="version">v61 - Updated 2026-10-10 10:58 EDT</p>
+    <p class="version">v62 - Updated 2026-10-10 11:36 EDT</p>
   </div>
 </div>
 
@@ -1752,7 +1752,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v61 - Updated 2026-10-10 10:58 EDT</p>
+    <p class="version">v62 - Updated 2026-10-10 11:36 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -5845,8 +5845,9 @@ function renderToday() {
 }
 
 // Shows the next trick choice. The last trick of a list has no choice, so she just learns it.
-// Returns true while a choice is showing. The child must pick one, so the way out waits until then.
-function offerTrick() {
+// Returns true while a choice is due. The child must pick one, so the way out waits until then.
+// With `wait`, the picker stays closed for now, so the round's other celebrations come first.
+function offerTrick(wait = false) {
   while (teachQueue.length && unlearned(teachQueue[0]).length <= 1) {
     const [last] = unlearned(teachQueue.shift());
     if (last) {
@@ -5855,10 +5856,10 @@ function offerTrick() {
     }
   }
   const choices = teachQueue.length ? unlearned(teachQueue[0]).slice(0, TRICK_CHOICES) : [];
-  $('teachTrick').hidden = !choices.length;
+  $('teachTrick').hidden = wait || !choices.length;
   $('trickChoices').innerHTML = choices.map(t =>
     `<button class="trick-choice" data-trick="${t.cls}"><span>${trickEmoji(t)}</span>${t.name[0].toUpperCase() + t.name.slice(1)}</button>`).join('');
-  if (choices.length) $('trickChoices').firstChild.focus({ preventScroll: true });
+  if (choices.length && !wait) $('trickChoices').firstChild.focus({ preventScroll: true });
   $('againBtn').hidden = $('homeBtn').hidden = choices.length > 0;
   $('divideInvite').hidden = choices.length > 0 || !summaryInvite;
   return choices.length > 0;
@@ -5885,14 +5886,14 @@ function showSummary() {
   // She learns a trick for each times or division table finished this round, on the path or in practice.
   summaryTricks = [];
   teachQueue = [...Array(Math.max(0, pathStep() - game.step)).fill(LEARNED_TRICKS), ...Array(Math.max(0, divideStep() - game.divStep)).fill(DIVIDE_TRICKS)];
-  const choosing = offerTrick();
+  const choosing = offerTrick(true);
   const newSticks = game.newStickers.length;
   // Her plain lines say how many dots the round earned, so the line stays short and the goal still comes last.
   const dots = game.dots;
   const gotDots = chartGarden ? `${dots} ${dots === 1 ? 'plant' : 'plants'} grew this round!` : `You got ${dots} ${dots === 1 ? 'dot' : 'dots'} this round!`;
-  const line = choosing
-    ? 'You finished a table! Which trick should I learn? 🐾'
-    : invite
+  // A trick to pick comes last, after the round's line, stickers and present, so here she says her usual line.
+  // The division invite waits until the trick is picked.
+  const line = invite && !choosing
     ? 'You learned all your times tables! 🎉 Want to learn dividing next?'
     : summaryTricks.length
     ? `I learned to ${andList(summaryTricks.map(t => t.name))}! Watch! 🎉`
@@ -5971,6 +5972,11 @@ function showSummary() {
       banner('🎁 A present for you!');
     }, 1600);
   }
+  // The trick picker opens once she has said her line and the present banner (1.6 s in, 2.5 s long) has gone.
+  if (choosing) laterQuiet(() => {
+    offerTrick();
+    say('summaryBubble', 'You finished a table! Which trick should I learn? 🐾');
+  }, gifts.length ? 4200 : 2600);
   saveState();
 
   const unique = [];
@@ -7556,7 +7562,9 @@ function init() {
     // The picker closes and she does it on the summary, scrolled into view.
     $('pomSummary').scrollIntoView({ block: 'center', behavior: calmMotion.matches ? 'auto' : 'smooth' });
     showTrick($('pomSummary'), trick);
-    say('summaryBubble', `I learned to ${trick.name}! ${more ? 'Pick one more trick to teach me! 🐾' : 'Thank you! 🎉'}`);
+    // The goal waited for the trick, so it is still what she says last. The division invite asks its own question.
+    const goal = more || summaryInvite ? '' : todayGoal();
+    say('summaryBubble', `I learned to ${trick.name}! ${more ? 'Pick one more trick to teach me! 🐾' : 'Thank you! 🎉'}${goal && ' ' + goal}`);
   });
   $('pomSummary').addEventListener('click', () => {
     if (summaryTricks.length) showTrick($('pomSummary'), summaryTricks[summaryTap++ % summaryTricks.length]);

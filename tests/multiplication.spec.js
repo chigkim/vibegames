@@ -1567,6 +1567,7 @@ test('finishing a table on the path says what comes next', async ({ page }) => {
 });
 
 test('finishing a table lets the child pick a trick to teach Ms. Menna, used in streaks, and a tap at home is just a hello', async ({ page }) => {
+  test.setTimeout(30000); // the picker waits for her line and the present banner first
   // A fresh save knows only the first three tricks
   expect(await page.evaluate(() => knownTricks().map(t => t.cls))).toEqual(['trick-spin', 'trick-flip', 'trick-dance']);
   await giveStickers(page, [...tableKeys(2, 2, 9), '2x1']);
@@ -1576,8 +1577,19 @@ test('finishing a table lets the child pick a trick to teach Ms. Menna, used in 
     game.index = QUESTIONS_PER_ROUND;
     nextQuestion();
   });
-  // The next 3 tricks, and no way out until she picks one
+  // The round's own celebration comes first: her usual line and the table learned, with no picker yet and no way out
+  await expect(page.locator('#summaryScreen')).toHaveClass(/active/);
+  await expect(page.locator('#teachTrick')).toBeHidden();
+  await expect(page.locator('#summaryBubble')).not.toHaveText(/Which trick/);
+  await expect(page.locator('#pathUp')).toHaveText(/You learned ×2/);
+  await expect(page.locator('#againBtn')).toBeHidden();
+  await expect(page.locator('#giftNote')).toBeVisible(); // 17 stickers bring a present
+  await expect(page.locator('.banner')).toHaveText('🎁 A present for you!');
+  await expect(page.locator('#teachTrick')).toBeHidden();
+  // Then the next 3 tricks, and still no way out until she picks one
   await expect(page.locator('#summaryBubble')).toHaveText('You finished a table! Which trick should I learn? 🐾');
+  await expect(page.locator('#teachTrick')).toBeVisible();
+  await expect(page.locator('.banner')).toHaveCount(0); // the present banner had its turn first
   await expect(page.locator('.trick-choice')).toHaveText(['🌸Sit pretty', '👋Wave hello', '✋Give a high five']);
   await expect(page.locator('#againBtn')).toBeHidden();
   await expect(page.locator('#homeBtn')).toBeHidden();
@@ -1593,7 +1605,7 @@ test('finishing a table lets the child pick a trick to teach Ms. Menna, used in 
   await expect(page.locator('#againBtn')).toBeVisible();
   await expect(page.locator('#homeBtn')).toBeVisible();
   await expect(page.locator('#newTrickText')).toHaveText('🎉 Ms. Menna learned to wave hello! Tap her to see it again.');
-  await expect(page.locator('#summaryBubble')).toHaveText('I learned to wave hello! Thank you! 🎉');
+  await expect(page.locator('#summaryBubble')).toHaveText(/^I learned to wave hello! Thank you! 🎉 \S/); // then the goal
   expect(await page.evaluate(() => [state.tricks, JSON.parse(localStorage.getItem(STORE_KEY)).tricks])).toEqual(['1', '1']);
   await expect(page.locator('#pomSummary')).not.toHaveClass(/trick-wave/);
   await page.locator('#pomSummary').click();

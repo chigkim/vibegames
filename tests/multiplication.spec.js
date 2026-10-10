@@ -1330,6 +1330,20 @@ test('the viola is new at the end of the furniture, and she plays the guitar and
   await expect(page.locator('#houseRoom .spot.playing')).toHaveCount(0);
 });
 
+test('she plays the piano standing in front of its keys, a paw on each side', async ({ page }) => {
+  await page.evaluate(() => {
+    state.mastery.fill(STICKER_AT);
+    state.furniture.push('piano'); state.home.piano = 'piano';
+    state.room = 'music'; showHouse(); stopWalker(houseWalker); houseWalker.lastTap = Date.now() + 1e6;
+    visitPiece(houseWalker, FURN.piano, null, false);
+  });
+  await expect(page.locator('#houseRoom .pom-container')).toHaveClass(/act-piano/, { timeout: 8000 });
+  // She is drawn in front of the piano, and her notes line up with the tune
+  const z = await page.evaluate(() => [+houseWalker.el.style.zIndex, +document.querySelector('#houseRoom .spot[data-id="piano"]').style.zIndex]);
+  expect(z[0]).toBeGreaterThan(z[1]);
+  expect(await page.evaluate(() => PIANO_HITS.length)).toBe(5);
+});
+
 test('she plays the drum and xylophone from behind them, a stick in each paw', async ({ page }) => {
   await page.evaluate(() => {
     state.mastery.fill(STICKER_AT);

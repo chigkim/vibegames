@@ -1527,7 +1527,7 @@
     75% { transform: translateX(calc(6px * var(--s))) rotate(7deg); }
   }
   /* Playing an instrument sways gently from her feet, in time with the music. */
-  .pom-container.act-strum > svg, .pom-container.act-viola > svg { animation: pomPlay 0.9s ease-in-out 2; transform-origin: 50% 100%; }
+  .pom-container.act-strum > svg, .pom-container.act-viola > svg, .pom-container.act-piano > svg { animation: pomPlay 0.9s ease-in-out 2; transform-origin: 50% 100%; }
   @keyframes pomPlay { 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
   .spot.playing .lift { opacity: 0; }
   .pom-container.act-swing > svg { animation: pomSwing 0.9s ease-in-out 3; transform-origin: 50% -60%; }
@@ -1743,7 +1743,7 @@
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
     <div class="pom-container" id="pomIntro" role="button" aria-label="Ms. Menna. Tap her to start"></div>
     <div class="speech-bubble below" id="introBubble" aria-live="polite">Tap me to start! 🐾</div>
-    <p class="version">v63 - Updated 2026-10-10 12:26 EDT</p>
+    <p class="version">v64 - Updated 2026-10-10 16:00 EDT</p>
   </div>
 </div>
 
@@ -1752,7 +1752,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v63 - Updated 2026-10-10 12:26 EDT</p>
+    <p class="version">v64 - Updated 2026-10-10 16:00 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -3008,8 +3008,8 @@ const FURNITURE = [
     paint: (m, d, a) => `<g stroke="${a}" stroke-width="4" stroke-linecap="round" fill="none"><path d="M15 38 Q4 26 2 12"/><path d="M15 38 Q15 18 15 2"/><path d="M15 38 Q26 26 28 12"/><path d="M15 38 Q8 30 4 28"/><path d="M15 38 Q22 30 26 28"/></g>` +
       `<path d="M4 38 H26 L23 58 H7 Z" fill="${m}" stroke="${d}" stroke-width="2" stroke-linejoin="round"/><rect x="3" y="36" width="24" height="5" rx="2" fill="${d}"/>` },
 
-  { id: 'piano', room: 'music', name: 'Piano', ico: '🎹', price: 45, x: 20, y: 30, w: 30, view: '100 80',
-    act: 'wiggle', fx: '🎵', say: 'Plink plonk! 🎹', sound: 'piano', classic: ['#3D2B1F', '#1E140E', '#FFD166'],
+  { id: 'piano', room: 'music', name: 'Piano', ico: '🎹', price: 45, x: 20, y: 30, w: 30, view: '100 80', py: 31,
+    act: 'piano', fx: '🎵', say: 'Plink plonk! 🎹', sound: 'piano', classic: ['#3D2B1F', '#1E140E', '#FFD166'],
     paint: (m, d, a) => `<rect x="4" y="4" width="92" height="40" rx="4" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<rect x="40" y="10" width="20" height="12" rx="2" fill="#fff" stroke="${a}" stroke-width="2"/><path d="M44 14 H56 M44 18 H52" stroke="#8B5E3C" stroke-width="1.5"/>` +
       '<rect x="4" y="44" width="92" height="12" fill="#fff" stroke="#3D2B1F" stroke-width="2"/>' +
@@ -3916,6 +3916,7 @@ const PENTA = [262, 294, 330, 392, 440, 523, 587, 659, 784, 880, 1047, 1175, 131
 // When her sticks hit the drum and the xylophone's bars, in seconds after she starts playing
 const DRUM_HITS = [0.35, 0.65, 0.95, 1.1, 1.4];
 const XYLO_HITS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+const PIANO_HITS = [0.3, 0.52, 0.74, 0.96, 1.18];
 
 const sfx = {
   tap(digit) { tone(PENTA[3 + (digit % 8)], { voice: 'marimba', dur: 0.25, vol: 0.22 }); },
@@ -3995,7 +3996,7 @@ const sfx = {
   },
   // House pieces with their own sound when tapped
   furn: {
-    piano() { [523, 659, 784, 659, 1047].forEach((f, i) => tone(f, { at: i * 0.22, dur: 0.6, vol: 0.22 })); },
+    piano() { [523, 659, 784, 659, 1047].forEach((f, i) => tone(f, { at: PIANO_HITS[i], dur: 0.6, vol: 0.22 })); },
     // Both play in time with her sticks, after she raises them
     xylo() { XYLO_HITS.forEach((at, i) => tone(PENTA[5 + i], { at, voice: 'marimba', dur: i === 6 ? 0.6 : 0.3, vol: 0.22 })); },
     drum() { DRUM_HITS.forEach((at, i) => tone(i === 3 ? 196 : 110, { at, voice: 'soft', dur: 0.2, vol: 0.32, glide: 0.6 })); },
@@ -4694,6 +4695,24 @@ const POM_MOVES = {
     tl.to(b.armL, { rotation: 70, duration: 0.15, ease: 'back.out(2)' }, end).to(b.armR, { rotation: -70, duration: 0.15, ease: 'back.out(2)' }, end)
       .to(b.head, { x: 0, rotation: 0, y: -2, duration: 0.2 }, end).to(b.head, { y: 0, duration: 0.2 }, end + 0.4).to(b.eyes, { x: 0, duration: 0.2 }, end);
     shutEyes(tl, b, end, end + 0.45, 0.15); ears(tl, b, -12, -3, 0.12, end); ears(tl, b, 0, 0, 0.25, 1.45); swing(tl, b.tail, 22, 0.25, 6);
+  },
+  // Piano: she stands in front of the keys, facing us, and reaches back to them with a paw on each side of her. The paws take
+  // turns pressing a key, each lifting a little first, and her head bobs to each note. On the last high note her right paw
+  // (our left) lifts off with a flourish and her eyes shut happily.
+  'act-piano': (tl, b) => {
+    paw(tl, b, 'l', 98, 0.02, 1.65, 8); paw(tl, b, 'r', -98, 0.02, 1.65, 8);
+    PIANO_HITS.forEach((at, i) => {
+      const [arm, way] = i % 2 ? [b.armR, -1] : [b.armL, 1];
+      tl.to(arm, { rotation: way * 106, duration: 0.08, ease: 'power1.out' }, at - 0.12)
+        .to(arm, { rotation: way * 86, duration: 0.04, ease: 'power3.in' }, at - 0.04)
+        .to(arm, { rotation: way * 98, duration: 0.14, ease: 'back.out(2)' }, at)
+        .to(b.head, { y: 2, rotation: way * -4, duration: 0.06 }, at - 0.04).to(b.head, { y: 0, duration: 0.14 }, at + 0.02);
+    });
+    const end = PIANO_HITS.at(-1) + 0.08;
+    tl.to(b.armL, { rotation: 140, duration: 0.18, ease: 'back.out(2)' }, end).to(b.head, { rotation: 0, y: -2, duration: 0.2 }, end)
+      .to(b.head, { y: 0, duration: 0.2 }, end + 0.35);
+    shutEyes(tl, b, end, end + 0.4, 0.15); ears(tl, b, 10, 1, 0.2, 0.1); ears(tl, b, -10, -3, 0.12, end); ears(tl, b, 0, 0, 0.25, 1.65);
+    swing(tl, b.tail, 20, 0.22, 7);
   },
   'act-swing': (tl, b) => { swing(tl, [b.legL, b.legR], 15, 0.9, 3); swing(tl, b.earL, 10, 0.9, 3); swing(tl, b.earR, 10, 0.9, 3); },
   // Dig reaches both front paws down to the ground and scratches with each in turn, every 0.125s.
@@ -6931,7 +6950,7 @@ function walkTo(w, x, y, done, z) {
 }
 
 const ACT_TIME = { nap: 2300, hop: 1500, spin: 1050, wiggle: 2200, swing: 2700, dig: 2000, munch: 1600, surf: 2400, strum: 2200, viola: 2200,
-  drum: 1900, xylo: 1700 };
+  drum: 1900, xylo: 1700, piano: 1900 };
 
 // An instrument she plays leaves its spot and goes in her paws, and her mouth for the viola's bow, until she stops.
 // The drum's and xylophone's sticks go one in each paw, under the paw so she grips them. Before each hit the stick's tip

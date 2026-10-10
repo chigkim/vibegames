@@ -1743,7 +1743,7 @@
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
     <div class="pom-container" id="pomIntro" role="button" aria-label="Ms. Menna. Tap her to start"></div>
     <div class="speech-bubble below" id="introBubble" aria-live="polite">Tap me to start! 🐾</div>
-    <p class="version">v62 - Updated 2026-10-10 11:36 EDT</p>
+    <p class="version">v63 - Updated 2026-10-10 12:26 EDT</p>
   </div>
 </div>
 
@@ -1752,7 +1752,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v62 - Updated 2026-10-10 11:36 EDT</p>
+    <p class="version">v63 - Updated 2026-10-10 12:26 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -3018,21 +3018,23 @@ const FURNITURE = [
       `<rect x="4" y="56" width="92" height="8" fill="${m}" stroke="${d}" stroke-width="2"/><path d="M10 64 V78 M90 64 V78" stroke="${d}" stroke-width="5"/>` +
       `<text x="80" y="20" font-size="10" fill="${a}">♪</text>` },
   { id: 'xylophone', room: 'music', name: 'Xylophone', short: 'Xylo', ico: '🎶', price: 25, x: 50, y: 30, w: 22, view: '80 40',
-    act: 'hop', fx: '🎶', say: 'Ding ding ding! 🎶', sound: 'xylo', classic: ['#C68B59', '#8B5E3C', '#E94B4B'],
+    act: 'xylo', back: 10, fx: '🎶', say: 'Ding ding ding! 🎶', sound: 'xylo', classic: ['#C68B59', '#8B5E3C', '#E94B4B'],
     paint: (m, d, a) => `<path d="M4 12 L76 18 M4 32 L76 26" stroke="${d}" stroke-width="4" stroke-linecap="round"/>` +
       ['#E94B4B', '#FF9F43', '#FFD93D', '#5CC46A', '#4FA3E8', '#9B7BF0', '#FF7EB6'].map((c, i) =>
         `<rect x="${7 + i * 10}" y="${6 + i * 1.2}" width="8" height="${30 - i * 2.4}" rx="2" fill="${c}" stroke="${d}" stroke-width="1"/>`).join('') +
-      `<path d="M58 4 L70 -6 M64 6 L76 -2" stroke="${m}" stroke-width="2.5" stroke-linecap="round"/><circle cx="70" cy="-6" r="3" fill="${a}"/><circle cx="76" cy="-2" r="3" fill="${a}"/>` },
+      `<g class="lift"><path d="M58 4 L70 -6 M64 6 L76 -2" stroke="${m}" stroke-width="2.5" stroke-linecap="round"/><circle cx="70" cy="-6" r="3" fill="${a}"/><circle cx="76" cy="-2" r="3" fill="${a}"/></g>`,
+    sticks: (m, d, a) => `<path d="M84 97 L69 109" stroke="${m}" stroke-width="3" stroke-linecap="round"/><circle cx="68" cy="110" r="4" fill="${a}" stroke="${d}" stroke-width="1"/>` },
   { id: 'notesrug', room: 'music', name: 'Music Rug', short: 'Rug', ico: '🎵', price: 15, x: 30, y: 2, w: 30, view: '100 30', py: 5,
     act: 'spin', fx: '🎵', say: 'Dance party! 🎶', classic: ['#FFD93D', '#D4A90C', '#9B7BF0'],
     paint: (m, d, a) => `<rect x="2" y="2" width="96" height="26" rx="8" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<g fill="${a}" font-size="16" font-weight="800"><text x="14" y="22">♪</text><text x="38" y="21">♫</text><text x="62" y="22">♪</text><text x="82" y="21">♫</text></g>` },
   { id: 'drum', room: 'music', name: 'Drum', ico: '🥁', price: 30, x: 72, y: 29, w: 14, view: '50 50',
-    act: 'hop', fx: '🥁', say: 'Boom boom bap! 🥁', sound: 'drum', classic: ['#E94B4B', '#B83232', '#FFD166'],
+    act: 'drum', back: 11, fx: '🥁', say: 'Boom boom bap! 🥁', sound: 'drum', classic: ['#E94B4B', '#B83232', '#FFD166'],
     paint: (m, d, a) => `<path d="M4 16 V40 Q25 50 46 40 V16" fill="${m}" stroke="${d}" stroke-width="3"/>` +
       `<path d="M4 18 L14 40 L25 18 L36 40 L46 18" stroke="${a}" stroke-width="2.5" fill="none"/>` +
       `<ellipse cx="25" cy="16" rx="21" ry="7" fill="#FFF8EE" stroke="${d}" stroke-width="3"/>` +
-      `<path d="M12 2 L22 13 M40 2 L30 13" stroke="#C68B59" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="2" r="3" fill="${a}"/><circle cx="40" cy="2" r="3" fill="${a}"/>` },
+      `<g class="lift"><path d="M12 2 L22 13 M40 2 L30 13" stroke="#C68B59" stroke-width="3" stroke-linecap="round"/><circle cx="12" cy="2" r="3" fill="${a}"/><circle cx="40" cy="2" r="3" fill="${a}"/></g>`,
+    sticks: (m, d, a) => `<path d="M85 98 L67 89" stroke="#C68B59" stroke-width="3.5" stroke-linecap="round"/><circle cx="66" cy="88.5" r="3.5" fill="${a}" stroke="${d}" stroke-width="1"/>` },
   { id: 'guitar', room: 'music', name: 'Guitar Stand', short: 'Guitar', ico: '🎸', price: 40, x: 90, y: 30, w: 10, view: '36 90', px: -7,
     act: 'strum', fx: '🎵', say: 'Strum strum! 🎸', sound: 'guitar', classic: ['#D9954A', '#8A4E1E', '#FFF3B0'],
     paint: (m, d, a) => '<path d="M6 88 L18 66 L30 88" stroke="#5C3D1E" stroke-width="3" stroke-linecap="round" fill="none"/>' +
@@ -3144,8 +3146,8 @@ const FURNITURE = [
     act: 'viola', fx: '🎶', say: 'La la laaa! 🎻', sound: 'viola', classic: ['#C8702E', '#7A3B16', '#FFE6A8'],
     paint: (m, d, a) => '<path d="M8 88 L16 76 L24 88 M16 76 V70" stroke="#5C3D1E" stroke-width="3" stroke-linecap="round" fill="none"/>' +
       `<g class="lift"><g transform="translate(34 46) rotate(6)">${bowArt(a)}</g><g transform="translate(16 44)">${violaArt(m, d, a)}</g></g>`,
-    hold: (m, d, a) => [`<g transform="translate(89 93) rotate(49) scale(0.7) translate(0 -11)">${violaArt(m, d, a)}</g>`,
-      `<g transform="translate(66 63) rotate(-35) translate(0 31)">${bowArt(a)}</g>`] },
+    hold: (m, d, a) => [`<g transform="translate(89.2 71.3) rotate(32) scale(0.7)">${violaArt(m, d, a)}</g>`,
+      `<g transform="translate(63 64) rotate(-58) translate(0 31)">${bowArt(a)}</g>`] },
 ];
 
 // Furniture comes in the same colors as the closet. A color is its own thing to buy, like 'bed.r'.
@@ -3911,6 +3913,9 @@ function bowed(freq, at, dur, vol = 0.16) {
 
 // C major pentatonic, so any run of notes sounds friendly
 const PENTA = [262, 294, 330, 392, 440, 523, 587, 659, 784, 880, 1047, 1175, 1319, 1568];
+// When her sticks hit the drum and the xylophone's bars, in seconds after she starts playing
+const DRUM_HITS = [0.35, 0.65, 0.95, 1.1, 1.4];
+const XYLO_HITS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
 
 const sfx = {
   tap(digit) { tone(PENTA[3 + (digit % 8)], { voice: 'marimba', dur: 0.25, vol: 0.22 }); },
@@ -3991,8 +3996,9 @@ const sfx = {
   // House pieces with their own sound when tapped
   furn: {
     piano() { [523, 659, 784, 659, 1047].forEach((f, i) => tone(f, { at: i * 0.22, dur: 0.6, vol: 0.22 })); },
-    xylo() { for (let i = 0; i < 7; i++) tone(PENTA[5 + i], { at: i * 0.1, voice: 'marimba', dur: 0.3, vol: 0.22 }); },
-    drum() { [0, 0.3, 0.6, 0.75, 1.05].forEach((at, i) => tone(i === 3 ? 196 : 110, { at, voice: 'soft', dur: 0.2, vol: 0.32, glide: 0.6 })); },
+    // Both play in time with her sticks, after she raises them
+    xylo() { XYLO_HITS.forEach((at, i) => tone(PENTA[5 + i], { at, voice: 'marimba', dur: i === 6 ? 0.6 : 0.3, vol: 0.22 })); },
+    drum() { DRUM_HITS.forEach((at, i) => tone(i === 3 ? 196 : 110, { at, voice: 'soft', dur: 0.2, vol: 0.32, glide: 0.6 })); },
     // A G chord, then C, G and a last G, strummed low to high in time with her paw
     guitar() {
       const g = [196, 247, 294, 392], c = [196, 262, 330, 392];
@@ -4020,7 +4026,8 @@ const sfx = {
 
 // ===== TEXT TO SPEECH =====
 // Ms. Menna reads her speech bubbles out loud with the shared voice in libs/speech.js.
-Speech.setup({ words: [[/💎/g, ' gems'], [/✓/g, ' check']], onTalk: talkMouth });
+// Some voices say viola like violin; spelled out, it starts with "vee".
+Speech.setup({ words: [[/💎/g, ' gems'], [/✓/g, ' check'], [/\bviola/gi, 'vee-oh-la']], onTalk: talkMouth });
 
 // Her mouth moves while she talks: open on each word when the voice reports words, or at a steady talking pace
 // when it doesn't. Away from questions her head also tilts a little now and then. With Reduce Motion on, she stays still.
@@ -4651,13 +4658,42 @@ const POM_MOVES = {
       .to(b.armL, { rotation: -10, duration: 0.2, ease: 'back.out(2)' }, at));
     swing(tl, b.head, 5, 0.45, 4, 0.1); ears(tl, b, 10, 1, 0.2, 0.1); ears(tl, b, 0, 0, 0.2, 1.9); swing(tl, b.tail, 20, 0.225, 8);
   },
-  // Viola holds the neck with her right paw and draws the bow in her mouth to and fro, eyes shut on the long last note.
+  // Viola sits on her left shoulder, her left paw (armR, on our right) on the fingerboard and her right paw under its end. She draws
+  // the bow in her mouth to and fro along its length, so it stays on the strings, eyes shut on the long last note.
   'act-viola': (tl, b) => {
-    paw(tl, b, 'r', -96, 0.05, 2.05, 2);
+    paw(tl, b, 'r', -135, 0.05, 2.05, -5); paw(tl, b, 'l', -55, 0.05, 2.05, 12);
     [[0.25, 1], [0.6, -1], [0.95, 1]].forEach(([at, way], i) =>
-      tl.to(b.head, { x: 3.5 * way, y: 4.5 * way, rotation: 3 * way, duration: i === 2 ? 0.85 : 0.33, ease: 'sine.inOut' }, at));
+      tl.to(b.head, { x: 4.2 * way, y: 2.6 * way, rotation: 3 * way, duration: i === 2 ? 0.85 : 0.33, ease: 'sine.inOut' }, at));
     tl.to(b.head, { x: 0, y: 0, rotation: 0, duration: 0.3, ease: 'sine.inOut' }, 1.85);
     shutEyes(tl, b, 0.95, 1.85, 0.15); ears(tl, b, 12, 2, 0.3, 0.2); ears(tl, b, 0, 0, 0.3, 1.85); swing(tl, b.tail, 15, 0.55, 4);
+  },
+  // Drum: a stick in each paw, she beats with one then the other, the high "bap" a quick double. Each hit winds up first,
+  // and the stick bounces back off the skin. Her head nods on the beat.
+  'act-drum': (tl, b) => {
+    paw(tl, b, 'l', 38, 0.02, 1.6, 2); paw(tl, b, 'r', -38, 0.02, 1.6, 2);
+    DRUM_HITS.forEach((at, i) => {
+      const [arm, way] = i % 2 ? [b.armR, -1] : [b.armL, 1], quick = i === 3;
+      tl.to(arm, { rotation: way * (quick ? 52 : 64), duration: quick ? 0.06 : 0.12, ease: 'power1.out' }, at - (quick ? 0.1 : 0.18))
+        .to(arm, { rotation: way * 30, duration: 0.05, ease: 'power3.in' }, at - 0.04)
+        .to(arm, { rotation: way * 38, duration: 0.14, ease: 'back.out(3)' }, at + 0.01)
+        .to(b.head, { y: 2.5, rotation: way * 3, duration: 0.05 }, at - 0.04).to(b.head, { y: 0, rotation: 0, duration: 0.16 }, at + 0.01);
+    });
+    ears(tl, b, 10, 1, 0.2, 0.1); swing(tl, b.earL, 8, 0.3, 4, 0.3); swing(tl, b.earR, -8, 0.3, 4, 0.3); ears(tl, b, 0, 0, 0.2, 1.6);
+    swing(tl, b.tail, 20, 0.3, 6);
+  },
+  // Xylophone: mallets in both paws, she taps up the bars from low to high, left to right, paws taking turns, her head following
+  // the notes. On the last high note both mallets lift with a little flourish.
+  'act-xylo': (tl, b) => {
+    paw(tl, b, 'l', 50, 0.02, 1.45, 4); paw(tl, b, 'r', -28, 0.02, 1.45, 4);
+    tl.to(b.armL, { rotation: 22, duration: 0.6, ease: 'none' }, XYLO_HITS[0]).to(b.armR, { rotation: -54, duration: 0.6, ease: 'none' }, XYLO_HITS[0])
+      .to(b.head, { x: -2, rotation: -5, duration: 0.2 }, 0.05).to(b.head, { x: 2, rotation: 5, duration: 0.6, ease: 'none' }, XYLO_HITS[0])
+      .to(b.eyes, { x: -1.5, duration: 0.15 }, 0.05).to(b.eyes, { x: 1.5, duration: 0.6, ease: 'none' }, XYLO_HITS[0]);
+    XYLO_HITS.forEach((at, i) => tl.to(i % 2 ? b.pawR : b.pawL, { y: 8, duration: 0.04, ease: 'power2.in', yoyo: true, repeat: 1 }, at - 0.04)
+      .to(i % 2 ? b.foreR : b.foreL, { scaleY: 30 / ARM_LENGTH, duration: 0.04, ease: 'power2.in', yoyo: true, repeat: 1 }, at - 0.04));
+    const end = XYLO_HITS.at(-1) + 0.06;
+    tl.to(b.armL, { rotation: 70, duration: 0.15, ease: 'back.out(2)' }, end).to(b.armR, { rotation: -70, duration: 0.15, ease: 'back.out(2)' }, end)
+      .to(b.head, { x: 0, rotation: 0, y: -2, duration: 0.2 }, end).to(b.head, { y: 0, duration: 0.2 }, end + 0.4).to(b.eyes, { x: 0, duration: 0.2 }, end);
+    shutEyes(tl, b, end, end + 0.45, 0.15); ears(tl, b, -12, -3, 0.12, end); ears(tl, b, 0, 0, 0.25, 1.45); swing(tl, b.tail, 22, 0.25, 6);
   },
   'act-swing': (tl, b) => { swing(tl, [b.legL, b.legR], 15, 0.9, 3); swing(tl, b.earL, 10, 0.9, 3); swing(tl, b.earR, 10, 0.9, 3); },
   // Dig reaches both front paws down to the ground and scratches with each in turn, every 0.125s.
@@ -6894,14 +6930,32 @@ function walkTo(w, x, y, done, z) {
   }, ms));
 }
 
-const ACT_TIME = { nap: 2300, hop: 1500, spin: 1050, wiggle: 2200, swing: 2700, dig: 2000, munch: 1600, surf: 2400, strum: 2200, viola: 2200 };
+const ACT_TIME = { nap: 2300, hop: 1500, spin: 1050, wiggle: 2200, swing: 2700, dig: 2000, munch: 1600, surf: 2400, strum: 2200, viola: 2200,
+  drum: 1900, xylo: 1700 };
 
 // An instrument she plays leaves its spot and goes in her paws, and her mouth for the viola's bow, until she stops.
+// The drum's and xylophone's sticks go one in each paw, under the paw so she grips them. Before each hit the stick's tip
+// lifts, then snaps down past level and bounces back, the left paw first.
 function holdPiece(w, f) {
   const piece = FURN[placed(f.id) || f.id];
-  const [body, head] = f.hold(...(piece.color ? [piece.color.m, piece.color.d, piece.color.a] : f.classic)).map(svg => ownPaint(svg, w.pom.id));
-  w.pom.querySelector('.pom-arm-l').insertAdjacentHTML('beforebegin', `<g class="held">${body}</g>`);
-  if (head) w.pom.querySelector('.pom-head').insertAdjacentHTML('beforeend', `<g class="held">${head}</g>`);
+  const colors = piece.color ? [piece.color.m, piece.color.d, piece.color.a] : f.classic;
+  if (f.sticks) {
+    const stick = `<g class="stick">${ownPaint(f.sticks(...colors), w.pom.id)}</g>`;
+    w.pom.querySelector('.pom-paw-r').insertAdjacentHTML('beforebegin', `<g class="held">${stick}</g>`);
+    w.pom.querySelector('.pom-paw-l').insertAdjacentHTML('beforebegin', `<g class="held" transform="matrix(-1 0 0 1 130 0)">${stick}</g>`);
+    const [right, left] = w.pom.querySelectorAll('.stick');
+    gsap.set([right, left], { svgOrigin: '84 97' });
+    if (w.pom.move) ({ drum: DRUM_HITS, xylo: XYLO_HITS })[f.act].forEach((at, i) => {
+      const s = i % 2 ? right : left, lift = f.act === 'drum' ? 28 : 14;
+      w.pom.move.to(s, { rotation: lift, duration: 0.1, ease: 'power1.out' }, Math.max(0.05, at - 0.16))
+        .to(s, { rotation: -6, duration: 0.05, ease: 'power3.in' }, at - 0.05)
+        .to(s, { rotation: 0, duration: 0.12, ease: 'back.out(3)' }, at);
+    });
+  } else {
+    const [body, head] = f.hold(...colors).map(svg => ownPaint(svg, w.pom.id));
+    w.pom.querySelector('.pom-arm-l').insertAdjacentHTML('beforebegin', `<g class="held">${body}</g>`);
+    if (head) w.pom.querySelector('.pom-head').insertAdjacentHTML('beforeend', `<g class="held">${head}</g>`);
+  }
   const spot = w.el.parentElement && w.el.parentElement.querySelector(`.spot[data-id="${f.id}"]`);
   if (spot) spot.classList.add('playing');
 }
@@ -6922,7 +6976,7 @@ function doAct(w, f, done, loud) {
     w.pom.appendChild(fx);
   }
   if (f.act === 'surf') w.pom.insertAdjacentHTML('beforeend', '<span class="wave-fx">🌊</span>');
-  if (f.hold && !calmMotion.matches) holdPiece(w, f); // without her paws moving, it stays in its spot
+  if ((f.hold || f.sticks) && !calmMotion.matches) holdPiece(w, f); // without her paws moving, it stays in its spot
   if (loud && sfx.furn[f.sound]) sfx.furn[f.sound]();
   if (f.act === 'dig') for (let i = 0; i < 10; i++) {
     const dirt = document.createElement('span');
@@ -6940,9 +6994,11 @@ function doAct(w, f, done, loud) {
 // Pom goes to a piece and uses it.
 function visitPiece(w, f, done, loud) {
   const spot = actSpot(f);
-  // Pieces she climbs on (bed, swing) keep her drawn in front of them.
-  const z = f.py && f.py > f.y ? 100 - f.y + 2 : null;
-  walkTo(w, spot.x, spot.y, () => doAct(w, f, done, loud), z);
+  // Pieces she climbs on (bed, swing) keep her drawn in front of them. She stands behind the drum and xylophone to play them,
+  // `back` higher up the floor, except with Reduce Motion, when she doesn't play and just stands by.
+  const behind = f.back && !calmMotion.matches;
+  const z = f.py && f.py > f.y ? 100 - f.y + 2 : behind ? 100 - f.y - 1 : null;
+  walkTo(w, behind ? f.x : spot.x, behind ? f.y + f.back : spot.y, () => doAct(w, f, done, loud), z);
 }
 
 // When nobody is tapping, Pom wanders: sometimes to a spot on the floor, sometimes to play with her furniture.

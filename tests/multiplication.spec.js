@@ -1330,6 +1330,26 @@ test('the viola is new at the end of the furniture, and she plays the guitar and
   await expect(page.locator('#houseRoom .spot.playing')).toHaveCount(0);
 });
 
+test('she plays the drum and xylophone from behind them, a stick in each paw', async ({ page }) => {
+  await page.evaluate(() => {
+    state.mastery.fill(STICKER_AT);
+    state.furniture.push('drum', 'xylophone');
+    state.home.drum = 'drum'; state.home.xylophone = 'xylophone';
+    state.room = 'music'; showHouse(); stopWalker(houseWalker); houseWalker.lastTap = Date.now() + 1e6;
+  });
+  for (const id of ['drum', 'xylophone']) {
+    await page.evaluate(id => { stopWalker(houseWalker); visitPiece(houseWalker, FURN[id], null, false); }, id);
+    await expect(page.locator('#houseRoom .pom-container')).toHaveClass(new RegExp('act-' + (id === 'drum' ? 'drum' : 'xylo')), { timeout: 8000 });
+    await expect(page.locator('#houseRoom .pom-container .held .stick')).toHaveCount(2);
+    await expect(page.locator('#houseRoom .spot.playing')).toHaveAttribute('data-id', id);
+    // She stands farther back than the piece, so it is drawn in front of her
+    const z = await page.evaluate(id => [+houseWalker.el.style.zIndex, +document.querySelector(`#houseRoom .spot[data-id="${id}"]`).style.zIndex], id);
+    expect(z[0]).toBeLessThan(z[1]);
+  }
+  await page.evaluate(() => stopWalker(houseWalker));
+  await expect(page.locator('#houseRoom .pom-container .held')).toHaveCount(0);
+});
+
 test('the five new rooms each have at least five pieces, and the surfboard rides a wave at the Beach', async ({ page }) => {
   const counts = await page.evaluate(() => ['spa', 'music', 'swimpool', 'beach', 'treehouse'].map(id => FURNITURE.filter(f => f.room === id).length));
   for (const n of counts) expect(n).toBeGreaterThanOrEqual(5);

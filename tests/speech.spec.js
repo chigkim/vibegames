@@ -43,12 +43,17 @@ const spoken = page => page.evaluate(() => window.__speech.spoken.map(s => s.tex
 
 test.describe('Math with Ms. Menna (multiplication-ms-menna.html)', () => {
   test.beforeEach(async ({ page }) => {
+    // Every open starts on the intro, so tap Ms. Menna to get to the home screen, as a child would.
+    await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => document.getElementById('pomIntro')?.click()));
     await page.goto('/multiplication-ms-menna.html');
     await page.evaluate(() => {
       localStorage.clear();
       document.cookie = 'mennaMult=; max-age=0; path=/';
     });
     await page.reload();
+    // Start from the home screen with nothing said yet.
+    await expect(page.locator('#startScreen')).toHaveClass(/active/);
+    await page.evaluate(() => { window.__speech.spoken.length = 0; });
   });
 
   test('turns symbols into words and drops emoji', async ({ page }) => {
@@ -69,37 +74,6 @@ test.describe('Math with Ms. Menna (multiplication-ms-menna.html)', () => {
     const last = await page.evaluate(() => window.__speech.spoken.at(-1));
     expect(last).toMatchObject({ voice: 'Ava (Premium)', rate: 0.95, pitch: 1.15 });
     expect(last.text).not.toMatch(/[×🐾]/u);
-  });
-
-  test('a line said before the first tap shows at once and is said at that tap, unless a newer line replaced it', async ({ page }) => {
-    // Playwright's evaluate() counts as a tap, so make the page look untapped until the real click.
-    await page.evaluate(() => Object.defineProperty(navigator, 'userActivation', { value: { hasBeenActive: false } }));
-    await page.evaluate(() => { say('startBubble', 'Woof! 🐾'); say('startBubble', 'Hello again! 🐾'); });
-    await expect(page.locator('#startBubble')).toHaveText('Hello again! 🐾');
-    await page.waitForTimeout(300);
-    expect(await spoken(page)).toEqual([]);
-    await page.locator('#startScreen h1').click();
-    await expect.poll(() => spoken(page)).toEqual(['Hello again!']);
-  });
-
-  test('the warning about the browser erasing her things is read at the first tap, and the next tap on OK closes it', async ({ page }) => {
-    // Playwright's evaluate() counts as a tap, so make the page look untapped until the real click.
-    await page.evaluate(() => Object.defineProperty(navigator, 'userActivation', { value: { hasBeenActive: false } }));
-    await page.evaluate(() => { state.playDay = today(); saveState(); localStorage.removeItem(STORE_KEY + '_keepNotice'); showKeepNotice(); });
-    const notice = page.locator('#keepNotice');
-    await expect(notice).toBeVisible();
-    await page.waitForTimeout(300);
-    expect(await spoken(page)).toEqual([]);
-    await page.locator('#keepOkBtn').click();
-    await expect.poll(() => spoken(page)).toEqual([expect.stringContaining('safe with me through next')]);
-    await expect(notice).toBeVisible();
-    await page.locator('#keepOkBtn').click();
-    await expect(notice).toBeHidden();
-    // Once the page can talk, she reads it at once, and one tap closes it
-    await page.evaluate(() => { localStorage.removeItem(STORE_KEY + '_keepNotice'); showKeepNotice(); });
-    await expect.poll(async () => (await spoken(page)).length).toBe(2);
-    await page.locator('#keepOkBtn').click();
-    await expect(notice).toBeHidden();
   });
 
   test('reads the speech bubble but skips gameplay instructions', async ({ page }) => {
@@ -242,6 +216,7 @@ const lastSpoken = page => page.evaluate(() => window.__speech.spoken.at(-1));
 
 test('the picked voice and speed are saved and shared by both games', async ({ page }) => {
   await page.goto('/multiplication-ms-menna.html');
+  await page.locator('#pomIntro').click();
   await page.locator('#voiceBtn').click();
   const picker = page.getByRole('dialog', { name: "Ms. Menna's voice" });
   await expect(picker).toBeVisible();
@@ -275,11 +250,53 @@ test('the picked voice and speed are saved and shared by both games', async ({ p
 });
 
 test('a muted game still plays the sample in the picker', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('mennaMultiplication_keepNotice', '99999'));
   await page.goto('/multiplication-ms-menna.html');
+  await page.locator('#pomIntro').click();
   await page.locator('#muteBtn').click();
   await page.locator('#voiceBtn').click();
   await page.getByRole('button', { name: /Fast/ }).click();
   await expect.poll(() => lastSpoken(page)).toMatchObject({ voice: 'Ava (Premium)', rate: 1.14 });
+});
+
+test.describe('the intro', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('mennaMultiplication_keepNotice', '99999'));
+    await page.goto('/multiplication-ms-menna.html');
+  });
+
+  test('every open starts on the intro, and tapping her goes home, where she says hello', async ({ page }) => {
+    await expect(page.locator('#introScreen')).toHaveClass(/active/);
+    await expect(page.locator('#introBubble')).toHaveText('Tap me to start! 🐾');
+    await expect(page.locator('#introScreen .version')).toHaveText(/^v\d+ - Updated/);
+    // She tries to say it, though a real browser drops it before the first tap; this fake speech engine doesn't.
+    await expect.poll(() => spoken(page)).toEqual(['Tap me to start!']);
+    await page.locator('#pomIntro').click();
+    await expect(page.locator('#startScreen')).toHaveClass(/active/);
+    await expect(page.locator('#startBubble')).toHaveText("Woof! Let's practice! 🐾");
+    await expect.poll(() => spoken(page)).toEqual(['Tap me to start!', "Woof! Let's practice!"]);
+  });
+
+  test('tapping the words starts too, and a due erase warning is said on the home screen and closes in one tap', async ({ page }) => {
+    await page.evaluate(() => { state.playDay = today(); saveState(); localStorage.removeItem(STORE_KEY + '_keepNotice'); });
+    await page.locator('#introBubble').click();
+    await expect(page.locator('#keepNotice')).toBeVisible();
+    await expect.poll(() => spoken(page)).toEqual(['Tap me to start!', expect.stringContaining('safe with me through next')]);
+    await page.locator('#keepOkBtn').click();
+    await expect(page.locator('#keepNotice')).toBeHidden();
+    await expect(page.locator('#startScreen')).toHaveClass(/active/);
+  });
+
+  test('in her Service Dog Vest she is working, so she never spins or jumps', async ({ page }) => {
+    await page.evaluate(() => { state.worn.body = 'helpervest'; state.owned.push('helpervest'); saveState(); });
+    await page.reload();
+    const tricks = [];
+    for (let i = 0; i < 16; i++) {
+      tricks.push(await page.locator('#pomIntro').getAttribute('class'));
+      await page.waitForTimeout(500);
+    }
+    expect(tricks.join(' ')).not.toMatch(/trick-/);
+  });
 });
 
 test.describe('Add & Subtract with Ms. Menna', () => {

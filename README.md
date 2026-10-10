@@ -29,7 +29,7 @@ Each game is one self-contained HTML file with its CSS and JavaScript inline. Th
 | `gsap-3.15.0-CustomBounce.min.js` | GSAP plugin for bounces with matching squash and stretch. Needs `CustomEase`. Not used by any game yet |
 | `gsap-3.15.0-CustomWiggle.min.js` | GSAP plugin for wobbles and shakes. Needs `CustomEase`. Not used by any game yet |
 | `easy-speech-2.4.0.js` | Fixes browser bugs in the built-in text-to-speech voices |
-| `speech.js` | Ms. Menna's shared voice, built on EasySpeech. Load `easy-speech-2.4.0.js` first, then call `Speech.speak(text)`, `Speech.speak(text, { after: true })` (waits for the line being said to finish), `Speech.stop()`, `Speech.idle()` (a promise that settles when she is done talking). Lines said before the first tap, when browsers can't talk yet, show at once and are said at that tap; `Speech.speak()` returns true when it holds a line this way and `Speech.setMuted(on)`. It reads math symbols as words and skips emoji. `Speech.openPicker()` opens a voice and speed picker; the choice is saved in localStorage with a cookie copy (`mennaVoice`) and shared by every game. |
+| `speech.js` | Ms. Menna's shared voice, built on EasySpeech. Load `easy-speech-2.4.0.js` first, then call `Speech.speak(text)`, `Speech.speak(text, { after: true })` (waits for the line being said to finish), `Speech.stop()`, `Speech.idle()` (a promise that settles when she is done talking) and `Speech.setMuted(on)`. It reads math symbols as words and skips emoji. `Speech.openPicker()` opens a voice and speed picker; the choice is saved in localStorage with a cookie copy (`mennaVoice`) and shared by every game. |
 
 ## Running locally
 

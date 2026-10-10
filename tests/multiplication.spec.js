@@ -10,6 +10,8 @@ test.beforeEach(async ({ page, context }) => {
   await context.addInitScript(() => Object.defineProperty(window, 'speechSynthesis', { value: undefined }));
   // The keep-your-things notice waits for a far-off day, so it doesn't cover the screen when a test loads a save.
   await context.addInitScript(() => localStorage.setItem('mennaMultiplication_keepNotice', '99999'));
+  // Every open starts on the intro, so tap Ms. Menna to get to the home screen, as a child would.
+  await context.addInitScript(() => document.addEventListener('DOMContentLoaded', () => document.getElementById('pomIntro')?.click()));
   await page.goto('/multiplication-ms-menna.html');
   await page.evaluate(() => {
     localStorage.clear();
@@ -1736,21 +1738,14 @@ test('the summary shows learning first, and fixed facts are celebrated', async (
   expect(await page.evaluate(() => !!($('newStickers').compareDocumentPosition(document.querySelector('#summaryScreen .stat-row')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
 });
 
-test('on an iPad, the Home Screen tip waits for an open without the sleepy hello, so it never cuts it off', async ({ page, context }) => {
-  await context.addInitScript(() => Object.defineProperty(Navigator.prototype, 'userAgent', { get: () => 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X)' }));
-  await setFact(page, '3x5', 3, 1);
-  await page.reload();
-  await expect(page.locator('#startBubble')).toContainText('1 sticker is sleepy');
-  await page.reload();
-  await expect(page.locator('#startBubble')).toContainText('Add to Home Screen');
-});
-
 test('Ms. Menna says sleepy stickers are still hers, once a day', async ({ page }) => {
   await setFact(page, '3x5', 3, 1);
   await setFact(page, '3x6', 3, 1);
   await page.reload();
+  await expect(page.locator('#startBubble')).not.toContainText('sleepy'); // not on opening: she says hello there
+  await page.evaluate(() => goHome());
   await expect(page.locator('#startBubble')).toHaveText("2 stickers are sleepy 💤. They're still yours! Get them right to wake them up! 🐾");
-  await page.reload();
+  await page.evaluate(() => goHome());
   await expect(page.locator('#startBubble')).not.toContainText('sleepy');
   await page.locator('#stickersBtn').click();
   await expect(page.locator('#stickerHelp')).toContainText('Sleepy stickers are still yours.');

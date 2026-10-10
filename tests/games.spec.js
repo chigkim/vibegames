@@ -53,6 +53,7 @@ const GAMES = [
     file: 'multiplication-ms-menna.html',
     canvas: false,
     start: async page => {
+      await page.locator('#pomIntro').click(); // every open starts on the intro
       await page.locator('#pathBtn').click();
     },
     started: async page => { await expect(page.locator('#gameScreen')).toHaveClass(/active/); },

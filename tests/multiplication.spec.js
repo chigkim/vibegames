@@ -1967,7 +1967,7 @@ test('the last sticker dot has to come on another day', async ({ page }) => {
   await answer(page, true);
   await expect(page.locator('.banner')).toContainText('New sticker: 6 × 7');
   expect(await page.evaluate(() => [state.mastery[FACT_INDEX['6x7']], state.levels[FACT_INDEX['6x7']], state.days[FACT_INDEX['6x7']] === today()]))
-    .toEqual([3, 0, true]);
+    .toEqual([3, 1, true]); // since v66 its first visit is in 3 days
 });
 
 test('a sticker gets sleepy when its visit is due, and a right answer wakes it', async ({ page }) => {
@@ -2000,6 +2000,24 @@ test('a sticker gets sleepy when its visit is due, and a right answer wakes it',
   await askFact(page, 3, 4);
   await answer(page, true);
   expect(await page.evaluate(() => isSleepy(FACT_INDEX['3x4']))).toBe(true);
+});
+
+test('a sticker she remembered longer than its nap skips ahead in its schedule', async ({ page }) => {
+  const woken = (ago, level) => page.evaluate(([ago, level]) => {
+    const i = FACT_INDEX['4x6'];
+    state.mastery[i] = STICKER_AT; state.days[i] = today() - ago; state.levels[i] = level;
+    return REVIEW_DAYS[wokenLevel(i, today())] ?? 'missed';
+  }, [ago, level]);
+  expect(await woken(1, 0)).toBe(3);    // on time: one step, as before
+  expect(await woken(3, 1)).toBe(7);
+  expect(await woken(10, 1)).toBe(14);  // remembered 10 days: next nap 14
+  expect(await woken(14, 1)).toBe(30);  // remembered 14 days: next nap 30
+  expect(await woken(90, 2)).toBe(30);  // never past 30
+  expect(await woken(40, 4)).toBe(30);
+  expect(await page.evaluate(() => {
+    const i = FACT_INDEX['4x6']; state.levels[i] = SLEEPY_NOW; state.days[i] = today() - 20;
+    return REVIEW_DAYS[wokenLevel(i, today())];
+  })).toBe(1); // a missed sticker still starts again at 1 day
 });
 
 test('sleepy facts come up more often', async ({ page }) => {

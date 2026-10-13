@@ -849,31 +849,34 @@
   .practice-box { background: rgba(255,255,255,0.55); border: 2px dashed rgba(139,94,60,0.25); border-radius: 24px; padding: 12px 12px 14px; margin-bottom: 4px; }
   .pick-title { font-family: 'Baloo 2', cursive; font-size: clamp(1.05rem, 2.2vmin, 1.35rem); font-weight: 800; color: var(--dark-brown); margin-bottom: 4px; }
   .pick-sub { font-size: 0.85rem; font-weight: 600; color: var(--brown); margin-bottom: 12px; }
-  .picker { --pick-gap: clamp(8px, 1.6vmin, 14px); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--pick-gap); margin-bottom: 18px; }
-  .pick-btn {
-    position: relative;
-    flex: 0 0 calc((100% - 5 * var(--pick-gap)) / 6);
-    min-width: 40px; /* keeps a finger-sized target on small phones, where the row wraps to 5 */
-    max-width: 62px;
-    aspect-ratio: 1;
-    border-radius: 16px;
-    border: 3px solid rgba(0,0,0,0.06);
-    font-family: 'Baloo 2', cursive;
-    font-size: clamp(1.15rem, 3vmin, 1.7rem);
-    font-weight: 800;
-    color: var(--dark-brown);
-    cursor: pointer;
-    box-shadow: 0 4px 0 rgba(0,0,0,0.12);
-    transition: transform 0.15s, box-shadow 0.15s;
-    touch-action: manipulation;
+  /* Practice grid, 0 to 20 each way: rows are the first number, columns the second. Where it can't fit, it scrolls with
+     bigger cells, and a finger slides to pick only after the first corner is tapped ("picking"). */
+  .box-grid-wrap { overflow: auto; margin: 0 auto 10px; border-radius: 14px; background: #FFF4E4;
+    box-shadow: inset 0 0 0 2px rgba(139,94,60,0.12); overscroll-behavior: contain; }
+  .box-grid { --cell: 28px; display: grid; grid-template-columns: repeat(22, var(--cell)); grid-auto-rows: var(--cell); gap: 2px;
+    padding: 2px; width: max-content; margin: 0 auto; touch-action: pan-x pan-y; }
+  .box-grid.picking { touch-action: none; }
+  .box-grid .head { position: sticky; z-index: 2; display: flex; align-items: center; justify-content: center; border-radius: 7px;
+    font-family: 'Baloo 2', cursive; font-weight: 800; font-size: calc(var(--cell) * 0.55); color: var(--dark-brown);
+    box-shadow: 0 0 0 2px #FFF4E4; transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+  .box-grid .head.top { top: 0; }
+  .box-grid .head.side { left: 0; }
+  .box-grid .head.top.side { z-index: 3; background: #FFF4E4; color: var(--brown); }
+  .box-grid .head.on { transform: scale(1.12); box-shadow: 0 0 0 2px #FFF4E4, inset 0 0 0 2px var(--orange); }
+  .box-grid .cell { display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #fff;
+    box-shadow: inset 0 0 0 1px rgba(139,94,60,0.12); font-size: calc(var(--cell) * 0.5); line-height: 1; cursor: pointer;
+    transition: background 0.18s, box-shadow 0.18s, transform 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+  .box-grid .cell.star::after { content: '⭐'; }
+  .box-grid .cell.sleepy::after { content: '💤'; }
+  .box-grid .cell.in { background: #FFD49A; box-shadow: inset 0 0 0 1px rgba(232,130,40,0.35); }
+  .box-grid .cell.corner { position: relative; z-index: 1; background: var(--orange); transform: scale(1.14);
+    box-shadow: 0 0 0 2px white, 0 2px 4px rgba(0,0,0,0.2); animation: cornerPop 0.45s ease; }
+  @keyframes cornerPop { 0% { transform: scale(0.8); } 45% { transform: scale(1.3) rotate(-6deg); } 75% { transform: scale(1.08) rotate(3deg); } 100% { transform: scale(1.14); } }
+  @media (prefers-reduced-motion: reduce) {
+    .box-grid .cell, .box-grid .head { transition: none; animation: none; }
+    .box-grid .cell.corner, .box-grid .head.on { transform: none; }
   }
-  .pick-btn .medal { position: absolute; top: -9px; right: -9px; font-size: clamp(1.1rem, 2.8vmin, 1.6rem); line-height: 1;
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2)); pointer-events: none; }
-  .medal-key { font-size: 0.85rem; font-weight: 700; color: var(--brown); margin: -8px 0 14px; }
-  .pick-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.12); }
-  .pick-btn.selected { border-color: var(--dark-brown); transform: scale(1.08);
-    box-shadow: 0 0 0 4px white, 0 0 0 7px var(--orange), 0 6px 0 rgba(0,0,0,0.12); animation: wiggle 0.4s ease; }
-  @keyframes wiggle { 0%,100% { transform: scale(1.08) rotate(0); } 30% { transform: scale(1.12) rotate(-6deg); } 60% { transform: scale(1.12) rotate(5deg); } }
+  .grid-key { font-size: 0.85rem; font-weight: 700; color: var(--brown); margin: 0 0 14px; }
   .practice-box .btn-primary { font-size: clamp(1rem, 2.2vmin, 1.35rem); padding: clamp(9px, 1.5vmin, 13px) 24px; }
 
   /* ===== DIVISION SWITCH, INVITATION AND FIRST LESSON ===== */
@@ -1745,7 +1748,7 @@
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
     <div class="pom-container" id="pomIntro" role="button" aria-label="Ms. Menna. Tap her to start"></div>
     <div class="speech-bubble below" id="introBubble" aria-live="polite">Tap me to start! 🐾</div>
-    <p class="version">v66 - Updated 2026-10-10 17:59 EDT</p>
+    <p class="version">v67 - Updated 2026-10-13 10:46 EDT</p>
   </div>
 </div>
 
@@ -1754,7 +1757,7 @@
     <button class="speech-voice-btn" id="voiceBtn" aria-label="Pick Ms. Menna's voice and speed">🗣️</button>
     <div class="pom-container" id="pomStart" role="button" aria-label="Ms. Menna. Tap her to say hi"></div>
     <h1>Math with<br><span>Ms. Menna!</span> 🐾</h1>
-    <p class="version">v66 - Updated 2026-10-10 17:59 EDT</p>
+    <p class="version">v67 - Updated 2026-10-13 10:46 EDT</p>
 
     <div class="bank" id="startBank"><span class="pig" aria-hidden="true"></span><span class="amount" id="startBankAmount">0 coins</span></div>
     <p class="bank-label">Your piggy bank 🐷 — harder questions earn more coins!</p>
@@ -1774,10 +1777,12 @@
       <span class="path-now" id="pathNow"></span>
     </button>
     <div class="practice-box">
-      <p class="pick-title">Or practice up to a number</p>
-      <p class="pick-sub" id="pickSub">Choose a number from 3 to 20</p>
-      <div class="picker" id="picker"></div>
-      <p class="medal-key">🥉 ⅓ of stickers · 🥈 ⅔ · 🥇 all of them</p>
+      <p class="pick-title">Or practice a box of facts</p>
+      <p class="pick-sub" id="pickSub">Tap a corner, then the other corner</p>
+      <div class="box-grid-wrap" id="boxGridWrap">
+        <div class="box-grid" id="boxGrid" role="group" aria-label="Practice grid. Rows are the first number, columns the second"></div>
+      </div>
+      <p class="grid-key">⭐ sticker · 💤 sleepy sticker</p>
       <button class="btn btn-primary" id="startBtn" disabled>Let's Go! 🚀</button>
     </div>
     <label class="divide-toggle">
@@ -2021,7 +2026,7 @@ const QUESTIONS_PER_ROUND = 10;
 const RECENT_TRIES = 10; // the last new times facts she answered on the path, right or not, kept in the save
 const HINT_CENTS = 1; // Pay for a right answer after the picture was shown, whatever the factors.
 const MAX_NUMBER = 20;
-const MIN_PICK = 3; // the smallest number on the practice picker
+const MIN_PICK = 3; // the smallest number on the practice picker up to v66, which still reads lastMax
 const OLD_MAX_NUMBER = 13; // v11 and earlier stopped at 13; their facts keep the first places in FACT_KEYS
 const MAX_PAYOUTS_KEPT = 30;
 const PAY_CONFIRM_DELAY = 1000; // ms before "Yes, traded" can be tapped
@@ -5113,67 +5118,200 @@ function pathPool() {
   return reviewOf(false);
 }
 
-// Practice asks any fact with both numbers up to her number. Division leaves out 0.
+// Practice asks the facts in her box, edges included: rows are the first number, columns the second.
+// 3 × 7 and 7 × 3 are different stickers, so a box asks only the order it shows. Division asks (a × b) ÷ a and leaves out 0;
+// a box with no division facts (only the 0 row) asks times facts on division questions.
+const inBox = (key, box) => { const [a, b] = factsOf(key); return a >= box.r0 && a <= box.r1 && b >= box.c0 && b <= box.c1; };
 function practicePool() {
   const divide = game.divideAt.includes(game.index);
-  return FACT_KEYS.filter(k => k.startsWith('d') === divide && factsOf(k).every(n => n <= game.max));
+  const pool = FACT_KEYS.filter(k => k.startsWith('d') === divide && inBox(k, game.box));
+  return pool.length || !divide ? pool : FACT_KEYS.filter(k => !k.startsWith('d') && inBox(k, game.box));
 }
 
 // ===== START SCREEN =====
-let selectedMax = state.lastMax || 0;
+// Since v67 practice picks a box on a 0–20 grid instead of a number. The box is kept per device, like the chart style.
+// The save still keeps lastMax, for older versions; with no box kept, her old number is the box from 0 × 0 to it.
+const PRACTICE_BOX_KEY = STORE_KEY + '_practiceBox';
+const GRID_FIT_CELL = 26; // smaller than this, the grid scrolls with bigger cells
+const GRID_SCROLL_CELL = 34;
+const boxOf = (p, q) => ({ r0: Math.min(p.r, q.r), c0: Math.min(p.c, q.c), r1: Math.max(p.r, q.r), c1: Math.max(p.c, q.c) });
+const boxText = box => `${box.r0} × ${box.c0} to ${box.r1} × ${box.c1}`;
+const boxSize = box => (box.r1 - box.r0 + 1) * (box.c1 - box.c0 + 1);
+const sameBox = (p, q) => (!p && !q) || (!!p && !!q && boxText(p) === boxText(q));
+
+function loadBox() {
+  let kept = [];
+  try { kept = (localStorage.getItem(PRACTICE_BOX_KEY) || '').split(',').map(Number); } catch (e) {}
+  if (kept.length === 4 && kept.every(n => Number.isInteger(n) && n >= 0 && n <= MAX_NUMBER)) {
+    return boxOf({ r: kept[0], c: kept[1] }, { r: kept[2], c: kept[3] });
+  }
+  return state.lastMax ? { r0: 0, c0: 0, r1: state.lastMax, c1: state.lastMax } : null;
+}
+
+function keepBox(box) {
+  try { localStorage.setItem(PRACTICE_BOX_KEY, [box.r0, box.c0, box.r1, box.c1].join(',')); } catch (e) {}
+}
+
+let selectedBox = loadBox();
+let boxAnchor = null; // the first corner she tapped, while she picks the other
+let boxDrag = null; // a finger or mouse that is down on the grid
 
 function buildPicker() {
-  const picker = $('picker');
-  for (let n = MIN_PICK; n <= MAX_NUMBER; n++) {
-    const btn = document.createElement('button');
-    btn.className = 'pick-btn';
-    btn.textContent = n;
-    btn.dataset.n = n;
-    btn.style.background = PICK_COLORS[n - 1];
-    btn.addEventListener('click', () => selectMax(n, true));
-    picker.appendChild(btn);
+  const grid = $('boxGrid');
+  const head = (n, side) => {
+    const el = document.createElement('div');
+    el.className = 'head ' + side;
+    el.textContent = n;
+    el.style.background = PICK_COLORS[n - 1] || ZERO_COLOR;
+    el.dataset.n = n;
+    return el;
+  };
+  const corner = document.createElement('div');
+  corner.className = 'head top side';
+  corner.textContent = '×';
+  grid.appendChild(corner);
+  for (let c = 0; c <= MAX_NUMBER; c++) grid.appendChild(head(c, 'top'));
+  for (let r = 0; r <= MAX_NUMBER; r++) {
+    grid.appendChild(head(r, 'side'));
+    for (let c = 0; c <= MAX_NUMBER; c++) {
+      const el = document.createElement('div');
+      el.className = 'cell';
+      el.dataset.r = r;
+      el.dataset.c = c;
+      grid.appendChild(el);
+    }
   }
-  renderMedals();
-  if (selectedMax) selectMax(selectedMax, false);
+  grid.addEventListener('pointerdown', onBoxDown);
+  grid.addEventListener('pointermove', onBoxMove);
+  grid.addEventListener('pointerup', onBoxUp);
+  grid.addEventListener('pointercancel', onBoxCancel);
+  // The start screen is hidden behind the intro at first, so the grid is sized whenever its space changes.
+  if (window.ResizeObserver) new ResizeObserver(sizeBoxGrid).observe($('boxGridWrap'));
+  window.addEventListener('resize', sizeBoxGrid);
+  renderBoxMarks();
+  sizeBoxGrid();
+  showBox(selectedBox, false);
 }
 
-// A number's medal shows how many times stickers she has for the facts up to that number.
-function medalFor(n) {
-  let got = 0;
-  for (let a = 0; a <= n; a++) for (let b = 0; b <= n; b++) if (hasSticker(factKey(a, b))) got++;
-  const share = got / ((n + 1) * (n + 1));
-  return share >= 1 ? '🥇' : share >= 2 / 3 ? '🥈' : share >= 1 / 3 ? '🥉' : '';
+// The whole grid shows when its cells can be finger-sized; on small screens it scrolls.
+function sizeBoxGrid() {
+  const wrap = $('boxGridWrap'), grid = $('boxGrid');
+  if (!wrap.clientWidth) return;
+  const viewH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const maxH = Math.min(viewH * 0.85, 760);
+  const n = MAX_NUMBER + 2, gaps = (n + 1) * 2;
+  const fit = Math.floor(Math.min(wrap.clientWidth - gaps, maxH - gaps) / n);
+  const fits = fit >= GRID_FIT_CELL;
+  const cell = fits ? Math.min(fit, 40) : GRID_SCROLL_CELL;
+  if (grid.style.getPropertyValue('--cell') !== cell + 'px') {
+    grid.style.setProperty('--cell', cell + 'px');
+    wrap.style.maxHeight = Math.round(maxH) + 'px';
+    if (!fits && selectedBox) scrollToBox(selectedBox);
+  }
+  grid.classList.toggle('fits', fits);
+  setPicking();
 }
 
-function renderMedals() {
-  document.querySelectorAll('.pick-btn').forEach(btn => {
-    const medal = medalFor(+btn.dataset.n);
-    let el = btn.querySelector('.medal');
-    if (!medal) {
-      if (el) el.remove();
-      btn.removeAttribute('aria-label');
-      return;
-    }
-    if (!el) {
-      el = document.createElement('span');
-      el.className = 'medal';
-      btn.appendChild(el);
-    }
-    el.textContent = medal;
-    btn.setAttribute('aria-label', `${btn.dataset.n}, ${{ '🥇': 'gold', '🥈': 'silver', '🥉': 'bronze' }[medal]} medal`);
-  });
+// Sliding a finger picks a box when the grid fits, or after the first corner; otherwise it scrolls the grid.
+const setPicking = () => $('boxGrid').classList.toggle('picking', $('boxGrid').classList.contains('fits') || !!boxAnchor);
+
+function scrollToBox(box) {
+  const el = $('boxGrid').querySelector(`.cell[data-r="${box.r0}"][data-c="${box.c0}"]`);
+  const head = GRID_SCROLL_CELL + 4;
+  $('boxGridWrap').scrollTo(Math.max(0, el.offsetLeft - head - 4), Math.max(0, el.offsetTop - head - 4));
 }
 
-function selectMax(n, withSound) {
-  selectedMax = n;
-  document.querySelectorAll('.pick-btn').forEach(b => b.classList.toggle('selected', +b.dataset.n === n));
+function cellAt(e) {
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  return el && el.classList.contains('cell') && $('boxGrid').contains(el) ? { r: +el.dataset.r, c: +el.dataset.c } : null;
+}
+
+function onBoxDown(e) {
+  const at = cellAt(e);
+  if (!at || e.button > 0) return;
+  // A mouse always drags a box. A finger on a grid that scrolls may be scrolling, so a tap picks when it lifts.
+  const live = $('boxGrid').classList.contains('picking') || e.pointerType === 'mouse';
+  boxDrag = { fresh: !boxAnchor, from: boxAnchor || at, at, moved: false, live };
+  if (!live) return;
+  $('boxGrid').setPointerCapture(e.pointerId);
+  showBox(boxOf(boxDrag.from, at), false);
+}
+
+function onBoxMove(e) {
+  if (!boxDrag || !boxDrag.live) return;
+  const at = cellAt(e);
+  if (!at || (at.r === boxDrag.at.r && at.c === boxDrag.at.c)) return;
+  Object.assign(boxDrag, { at, moved: true });
+  showBox(boxOf(boxDrag.from, at), false);
+}
+
+function onBoxUp(e) {
+  if (!boxDrag) return;
+  const { fresh, from, moved } = boxDrag;
+  const at = moved ? boxDrag.at : cellAt(e) || boxDrag.at;
+  boxDrag = null;
+  if (fresh && !moved) {
+    // One tap is a one-fact box she can play right away, until she taps the other corner.
+    boxAnchor = at;
+    pickBox(boxOf(at, at), true);
+  } else {
+    boxAnchor = null;
+    pickBox(boxOf(from, at), false);
+  }
+  setPicking();
+}
+
+function onBoxCancel() {
+  if (!boxDrag) return;
+  if (boxDrag.fresh) boxAnchor = null;
+  boxDrag = null;
+  showBox(selectedBox, false);
+  setPicking();
+}
+
+function pickBox(box, first) {
+  selectedBox = box;
+  showBox(box, !first);
   $('startBtn').disabled = false;
-  $('pickSub').textContent = `Questions will use numbers 0 to ${n}`;
-  if (withSound) {
-    sfx.select(n);
-    say('startBubble', pick([`Ooh, ${n}! Great choice!`, `Up to ${n}? You've got this! 🐾`, `${n} it is! Let's go!`]));
-    animatePom($('pomStart'), 'bounce');
+  if (first) {
+    sfx.select(box.r0 + box.c0);
+    $('pickSub').textContent = 'Now tap the other corner';
+    return;
   }
+  const n = boxSize(box);
+  sfx.select(n);
+  say('startBubble', n === 1
+    ? `Just ${box.r0} × ${box.c0}? Let's go! 🐾`
+    : pick([`Ooh, ${boxText(box)}! Great choice!`, `${n} facts! You've got this! 🐾`, `${boxText(box)}? Let's go!`]));
+  animatePom($('pomStart'), 'bounce');
+}
+
+// Lights up the box, its corners and its row and column numbers. A new box ripples in from its top-left corner.
+function showBox(box, ripple) {
+  const grid = $('boxGrid');
+  grid.querySelectorAll('.cell').forEach(el => {
+    const r = +el.dataset.r, c = +el.dataset.c;
+    const on = !!box && r >= box.r0 && r <= box.r1 && c >= box.c0 && c <= box.c1;
+    el.style.transitionDelay = ripple && on ? Math.min(360, (r - box.r0 + c - box.c0) * 18) + 'ms' : '';
+    el.classList.toggle('in', on);
+    el.classList.toggle('corner', on && ((r === box.r0 && c === box.c0) || (r === box.r1 && c === box.c1)));
+  });
+  grid.querySelectorAll('.head.top[data-n]').forEach(el => el.classList.toggle('on', !!box && +el.dataset.n >= box.c0 && +el.dataset.n <= box.c1));
+  grid.querySelectorAll('.head.side[data-n]').forEach(el => el.classList.toggle('on', !!box && +el.dataset.n >= box.r0 && +el.dataset.n <= box.r1));
+  const n = box ? boxSize(box) : 0;
+  $('pickSub').textContent = box ? `${boxText(box)} · ${n} ${n === 1 ? 'fact' : 'facts'}` : 'Tap a corner, then the other corner';
+  $('startBtn').disabled = !box;
+}
+
+// Each times fact on the grid shows its sticker, or that it is sleepy.
+function renderBoxMarks() {
+  if (!selectedBox && state.lastMax) showBox(selectedBox = loadBox(), false); // a save that came back from IndexedDB
+  $('boxGrid').querySelectorAll('.cell').forEach(el => {
+    const i = FACT_INDEX[factKey(el.dataset.r, el.dataset.c)];
+    const sleepy = isSleepy(i);
+    el.classList.toggle('star', state.mastery[i] >= STICKER_AT && !sleepy);
+    el.classList.toggle('sleepy', sleepy);
+  });
 }
 
 function setDivide(on) {
@@ -5238,17 +5376,20 @@ function endDivideLesson() {
 let game = null;
 let carried = null; // retries the last round had no room for, asked first if she plays the same kind of round again
 
-// path is 'main' for Learn with Ms. Menna, or 'practice' for every fact up to max.
-function startRound(path, max = 0) {
+// path is 'main' for Learn with Ms. Menna, or 'practice' for the facts in box. A number n is the box from 0 × 0 to n × n.
+function startRound(path, box = null) {
   catchUpTricks();
+  if (typeof box === 'number') box = box ? { r0: 0, c0: 0, r1: box, c1: box } : null;
   if (path === 'practice') {
-    state.lastMax = max;
+    const big = Math.max(box.r1, box.c1);
+    if (big >= MIN_PICK) state.lastMax = big; // an older version's number picker
+    keepBox(box);
     saveState();
   }
   const guided = path === 'main' && guidedDivide();
   game = {
     path,
-    max,
+    box: path === 'practice' ? box : null,
     guided,
     step: pathStep(),
     divStep: divideStep(),
@@ -5261,7 +5402,7 @@ function startRound(path, max = 0) {
     prevKey: null,
     streak: 0,
     // Facts missed this round, asked again a few questions later. Ones the last round had no room for come first.
-    retries: carried && carried.path === path && carried.max === max
+    retries: carried && carried.path === path && sameBox(carried.box, box)
       ? carried.retries.filter(r => !r.div || state.divOn).map(r => ({ ...r, at: 0 })) : [],
     newStickers: [],
     dots: 0, // dots earned this round, stickers' last dots too
@@ -5847,10 +5988,10 @@ let teachQueue = []; // the trick list to pick from for each table finished this
 let summaryInvite = false; // the summary asks about dividing, after any trick is picked
 
 // The facts another round like this one can ask, so "more can" never counts a fact she can't reach.
-// The path asks the tables up to the one she is learning, and division of the tables she knows; practice asks up to its number.
+// The path asks the tables up to the one she is learning, and division of the tables she knows; practice asks its box.
 function reachKeys() {
   const on = k => state.divOn || !k.startsWith('d');
-  if (game.path === 'practice') return FACT_KEYS.filter(k => on(k) && factsOf(k).every(n => n <= game.max));
+  if (game.path === 'practice') return FACT_KEYS.filter(k => on(k) && inBox(k, game.box));
   const step = pathStep();
   if (step < PATH.length) return [...PATH_FACTS.slice(0, step + 1).flat(), ...(state.divOn ? learnedDivide().flat() : [])];
   if (guidedDivide()) return [...MAIN_KEYS.filter(k => !k.startsWith('d')), ...DIVIDE_FACTS.slice(0, divideStep() + 1).flat()];
@@ -6006,7 +6147,7 @@ function showSummary() {
     const right = state.newTries.split('').filter(c => c === '1').length;
     state.fastPath = !state.easyPath && score >= 9 && state.newTries.length >= RECENT_TRIES && right >= FAST_RIGHT;
   }
-  carried = game.retries.length ? { path: game.path, max: game.max, retries: game.retries } : null;
+  carried = game.retries.length ? { path: game.path, box: game.box, retries: game.retries } : null;
   $('statGems').textContent = `+${game.roundGems} 💎`;
   const list = facts => facts.map(f => `${stickerFor(keyOf(f))} ${questionText(f)}`).join('  ');
   $('newStickers').textContent = [
@@ -6105,7 +6246,7 @@ function goHome() {
   renderBank();
   renderGems();
   renderPath();
-  renderMedals();
+  renderBoxMarks();
   renderPeek();
   const fromHouse = $('houseScreen').classList.contains('active');
   if (fromHouse && $('pomStart').vestOn) vestBackOn($('pomStart'));
@@ -7467,7 +7608,7 @@ function onPayYes() {
 function renderSaved() {
   renderBank();
   renderPath();
-  renderMedals();
+  renderBoxMarks();
   renderGems();
   dressAllPoms();
   renderMute();
@@ -7575,9 +7716,9 @@ function init() {
     renderSaved();
   }
 
-  $('againBtn').addEventListener('click', () => startRound(game.path, game.max));
+  $('againBtn').addEventListener('click', () => startRound(game.path, game.box));
   $('pathBtn').addEventListener('click', () => { sfx.hint(); startRound('main'); });
-  $('startBtn').addEventListener('click', () => { if (selectedMax) { sfx.hint(); startRound('practice', selectedMax); } });
+  $('startBtn').addEventListener('click', () => { if (selectedBox) { sfx.hint(); boxAnchor = null; setPicking(); startRound('practice', selectedBox); } });
   $('divideToggle').addEventListener('change', e => setDivide(e.target.checked));
   $('divideGoBtn').addEventListener('click', () => { sfx.tap(1); endDivideLesson(); });
   $('inviteYesBtn').addEventListener('click', () => {

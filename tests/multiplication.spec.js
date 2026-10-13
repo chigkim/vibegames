@@ -40,6 +40,13 @@ async function answer(page, right) {
   return q;
 }
 
+// The practice grid: a cell, and a box picked by tapping one corner, then the other.
+const cell = (page, r, c) => page.locator(`#boxGrid .cell[data-r="${r}"][data-c="${c}"]`);
+async function pickBox(page, r0, c0, r1, c1) {
+  await cell(page, r0, c0).click();
+  await cell(page, r1, c1).click();
+}
+
 // Puts a times fact on screen in place of the one the round picked.
 async function askFact(page, a, b) {
   await page.evaluate(([x, y]) => {
@@ -1276,7 +1283,7 @@ test('a play report sends only the cookie, with a random device id, once when th
   await page.goto('/multiplication-ms-menna.html');
   await page.waitForTimeout(300);
   expect(reports).toEqual([]); // nothing on opening
-  await page.locator('#picker .pick-btn', { hasText: /^7$/ }).click();
+  await pickBox(page, 0, 0, 7, 7);
   await page.locator('#startBtn').click();
   await expect(page.locator('#gameScreen')).toHaveClass(/active/);
   await expect.poll(() => reports.length).toBe(1);
@@ -1311,7 +1318,7 @@ test('the device id comes back after an older version saves without it, and an o
 test('played over plain http, as on this computer, nothing is sent', async ({ page }) => {
   const requests = [];
   page.on('request', r => { if (r.method() === 'POST') requests.push(r.url()); });
-  await page.locator('#picker .pick-btn', { hasText: /^7$/ }).click();
+  await pickBox(page, 0, 0, 7, 7);
   await page.locator('#startBtn').click();
   await expect(page.locator('#gameScreen')).toHaveClass(/active/);
   await page.waitForTimeout(300);
@@ -1527,9 +1534,9 @@ const playRounds = (page, path, rounds, max = 0) => page.evaluate(([path, rounds
   return out;
 }, [path, rounds, max]);
 
-test('the home screen has the path, a number picker, and division off', async ({ page }) => {
+test('the home screen has the path, a practice grid, and division off', async ({ page }) => {
   await expect(page.locator('#pathNow')).toHaveText('Learning ×2 · 0 of 21 stickers'); // 2 × 0 to 2 × 10 and their flips
-  await expect(page.locator('#picker .pick-btn')).toHaveCount(18); // 3 to 20
+  await expect(page.locator('#boxGrid .cell')).toHaveCount(441); // 0 to 20 each way
   await expect(page.locator('#startBtn')).toBeDisabled();
   await expect(page.locator('#divideToggle')).not.toBeChecked();
 
@@ -1541,29 +1548,75 @@ test('the home screen has the path, a number picker, and division off', async ({
   expect(peeks.filter(q => q.a === 0 || q.b === 0 || q.a === 2 || q.b === 2)).toEqual([]);
   expect(main.filter(q => q.div)).toEqual([]);
 
-  // Practice asks any fact with both numbers up to her number, and remembers it
-  await page.locator('#picker .pick-btn', { hasText: /^7$/ }).click();
-  await expect(page.locator('#pickSub')).toHaveText('Questions will use numbers 0 to 7');
+  // Practice asks only the facts in her box, edges included, in the order the grid shows them, and remembers it
+  await pickBox(page, 3, 6, 5, 8);
+  await expect(page.locator('#pickSub')).toHaveText('3 × 6 to 5 × 8 · 9 facts');
+  await expect(page.locator('#boxGrid .cell.in')).toHaveCount(9);
   await page.locator('#startBtn').click();
   await expect(page.locator('#gameScreen')).toHaveClass(/active/);
-  const practice = (await playRounds(page, 'practice', 20, 7)).flat();
-  expect(practice.filter(q => q.a > 7 || q.b > 7 || q.div)).toEqual([]);
-  expect(Math.max(...practice.map(q => Math.max(q.a, q.b)))).toBe(7);
+  const practice = (await playRounds(page, 'practice', 20, { r0: 3, c0: 6, r1: 5, c1: 8 })).flat();
+  expect(practice.filter(q => q.a < 3 || q.a > 5 || q.b < 6 || q.b > 8 || q.div)).toEqual([]);
+  expect(new Set(practice.map(q => q.key)).size).toBe(9);
   await page.reload();
-  await expect(page.locator('#picker .pick-btn.selected')).toHaveText('7');
+  await expect(page.locator('#pickSub')).toHaveText('3 × 6 to 5 × 8 · 9 facts');
+  await expect(page.locator('#boxGrid .cell.corner')).toHaveCount(2);
 });
 
-test('picker medals follow the stickers up to each number', async ({ page }) => {
-  const upTo3 = [];
-  for (let a = 0; a <= 3; a++) for (let b = 0; b <= 3; b++) upTo3.push(`${a}x${b}`);
-  await giveStickers(page, upTo3);
+test('a practice box can be picked either way round, dragged, or be one fact', async ({ page }) => {
+  await pickBox(page, 6, 6, 3, 3); // bottom-right first
+  await expect(page.locator('#pickSub')).toHaveText('3 × 3 to 6 × 6 · 16 facts');
+  await expect(page.locator('#startBtn')).toBeEnabled();
+
+  // One tap is a one-fact box she can already play, until she taps the other corner
+  await cell(page, 2, 9).click();
+  await expect(page.locator('#pickSub')).toHaveText('Now tap the other corner');
+  await expect(page.locator('#boxGrid .cell.in')).toHaveCount(1);
+  await expect(page.locator('#startBtn')).toBeEnabled();
+  await cell(page, 2, 9).click();
+  await expect(page.locator('#pickSub')).toHaveText('2 × 9 to 2 × 9 · 1 fact');
+  const one = (await playRounds(page, 'practice', 2, { r0: 2, c0: 9, r1: 2, c1: 9 })).flat();
+  expect(new Set(one.map(q => q.key))).toEqual(new Set(['2x9']));
+
+  // A mouse drags from one corner to the other
+  await cell(page, 4, 5).scrollIntoViewIfNeeded();
+  const from = await cell(page, 1, 2).boundingBox(), to = await cell(page, 4, 5).boundingBox();
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await expect(page.locator('#pickSub')).toHaveText('1 × 2 to 4 × 5 · 16 facts');
+});
+
+test('practice division comes from the box, and a box with only 0s asks times facts', async ({ page }) => {
+  const pools = await page.evaluate(() => {
+    state.divOn = true;
+    startRound('practice', { r0: 0, c0: 3, r1: 2, c1: 4 });
+    game.index = DIVIDE_AT[0];
+    const some = practicePool();
+    startRound('practice', { r0: 0, c0: 0, r1: 0, c1: 2 });
+    game.index = DIVIDE_AT[0];
+    return [some.sort(), practicePool().sort()];
+  });
+  expect(pools[0]).toEqual(['d1x3', 'd1x4', 'd2x3', 'd2x4']); // 3 ÷ 1 to 8 ÷ 2; nothing is divided by 0
+  expect(pools[1]).toEqual(['0x0', '0x1', '0x2']);
+});
+
+test('the practice grid shows stickers and sleepy stickers, and an older save starts on its number', async ({ page }) => {
+  await giveStickers(page, ['3x4', '4x3']);
+  await page.evaluate(() => {
+    const i = FACT_INDEX['4x3']; state.days[i] = today() - 5; state.levels[i] = 0;
+    state.lastMax = 7; saveState(); // v66 and before picked a number
+  });
   await page.reload();
-  await expect(page.locator('#picker .pick-btn[data-n="3"] .medal')).toHaveText('🥇');
-  await expect(page.locator('#picker .pick-btn[data-n="4"] .medal')).toHaveText('🥉'); // 16 of 25
-  await giveStickers(page, ['0x4', '4x0']);
-  await page.reload();
-  await expect(page.locator('#picker .pick-btn[data-n="4"] .medal')).toHaveText('🥈'); // 18 of 25
-  await expect(page.locator('#picker .pick-btn[data-n="20"] .medal')).toHaveCount(0);
+  await expect(cell(page, 3, 4)).toHaveClass(/star/);
+  await expect(cell(page, 4, 3)).toHaveClass(/sleepy/);
+  await expect(page.locator('#boxGrid .cell.star')).toHaveCount(1);
+  await expect(page.locator('#pickSub')).toHaveText('0 × 0 to 7 × 7 · 64 facts');
+
+  // Playing a box keeps the save's number for older versions: its biggest number
+  await pickBox(page, 2, 3, 4, 9);
+  await page.locator('#startBtn').click();
+  expect(await page.evaluate(() => state.lastMax)).toBe(9);
 });
 
 test('a path moves on at 80%, rounds are mostly known facts, and division joins when switched on', async ({ page }) => {
@@ -1918,7 +1971,7 @@ test('every fact up to 20 has a picture that adds up, 20 × 20 too', async ({ pa
 
 test('on the smallest phone, the widest pictures fit with their row totals', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
-  await page.locator('.pick-btn[data-n="20"]').click();
+  await pickBox(page, 0, 0, 20, 20);
   await page.locator('#startBtn').click();
   const wide = await page.evaluate(() => [[1, 20], [3, 20], [20, 20], [16, 16], [2, 19]].filter(([a, b]) => {
     Object.assign(game, { a, b, div: false });
